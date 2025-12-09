@@ -1,0 +1,2730 @@
+{% extends "mainapp/base.html" %}
+{% load static %}
+{% block title %}
+Hrms
+{% endblock %}
+{% block jscss %}
+<link rel="stylesheet" href="{% static 'users/css/hrms.css' %}">
+{% endblock jscss %}
+{% block content %}
+
+<div style="padding: 20px; margin-top: 10px; padding-top: 0px;">
+    <div class="notifications">
+        <div class="notif-heading">
+            <div style="position: relative;">
+                Notifications 
+                <div class="notif-reddot"></div>
+            </div>
+            <svg onclick="notifClose()" id="notif-chevron-icon" style="cursor: pointer;" width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="{% if notifs %}M13 7L7 1L1 7 {% else %} M1 1L7 7L13 1 {% endif %}" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </div>
+        <div class="notifications-content" style="display: {% if notifs %}block{% else %}none{% endif %};">
+            <div class="notification-category" id="assessments-category">
+                <div class="notification-category-heading" onclick="toggleCategory(this)">
+                    Assessments
+                    <svg width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13 7L7 1L1 7" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div class="notification-content">
+                    {% for notif in notifications %}
+                    {% if notif.trigger == "assessments" %}
+                    <div id="notif-{{ notif.id }}" class="notif-container github-miss" data-trigger="{{ notif.trigger }}">
+                        <div>{{ notif.content }}</div>
+                        <div style="display:flex;gap:10px;">
+                                {% if is_user_spm %}
+                                    <div class="notif-review">
+                                        <button class="snooze-button" onclick="toggleSnoozeDropdown(this)">Snooze</button>
+                                        <div class="snooze-dropdown" style="display: none;">
+                                            <span class="close-snooze" onclick="closeSnoozeDropdown(this)">&times;</span>
+                                            <label for="snooze-days">Snooze for:</label>
+                                            <select id="snooze-days" class="snooze-select">
+                                                {% for day in days %}
+                                                    <option value="{{ day }}">{{ day }} day{% if day > 1 %}s{% endif %}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <button class="confirm-snooze" onclick="confirmSnooze('{{ notif.id }}')">Confirm</button>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% if notif.project %}
+                            <div class="notif-review" onclick="handleNotificationClick(event,'{{ notif.id }}', '{{ notif.project.id }}','{{ notif.project.project_name }}')">
+                                Review
+                            </div>
+                            {% else %}
+                            <div class="notif-review" onclick="handleNotificationClick(event, '{{ notif.id }}')">Review</div>
+                            {% endif %}
+                        </div>
+                        
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="notification-category" id="github-miss-category">
+                <div class="notification-category-heading">
+                    <span>GitHub Miss</span>
+                    <div class="sorting-controls">
+                            <span> (Last Checked : {{last_updated}}) </span>
+                            <button title="Sort by Project" id="sort-by-project" class="sort-button selected" onclick="selectSortButton(this, 'github-miss', 'project')">
+                                <svg style="transform:rotate(0);padding-left:2px;" fill="#a3a3a3" width="20" height="20" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+                                    <g id="SVGRepo_bgCarrier" stroke-width="0"/>                            
+                                    <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"/>                           
+                                    <g id="SVGRepo_iconCarrier"> <g> <path d="M7,1V5h4V1Zm3,3H8V2h2ZM7,7v4h4V7Zm3,3H8V8h2ZM1,1V5H5V1ZM4,4H2V2H4ZM1,7v4H5V7Zm3,3H2V8H4Z"/> </g> </g>                          
+                                    </svg>
+                            </button>
+                            <button title="Sort by User"  id="sort-by-user" class="sort-button" onclick="selectSortButton(this, 'github-miss', 'user')">
+                                <svg style="transform:rotate(0);" fill="#a3a3a3" width="20" height="20" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" stroke="#a3a3a3">
+                                    <path d="M16 15.503A5.041 5.041 0 1 0 16 5.42a5.041 5.041 0 0 0 0 10.083zm0 2.215c-6.703 0-11 3.699-11 5.5v3.363h22v-3.363c0-2.178-4.068-5.5-11-5.5z"/>
+                                </svg>
+                            </button>
+                        <svg  onclick="toggleCategory(this)" width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M13 7L7 1L1 7" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="notification-content">
+                    {% for notif in notifications %}
+                    {% if notif.trigger == "git_person" %}
+                    <div id="notif-{{ notif.id }}" class="notif-container github-miss" 
+                    data-trigger="{{ notif.trigger }}"
+                    data-project = "{{ notif.project.project_name }}"
+                    data-user = "{{notif.user.username}}"
+                    >   
+                    
+                        <div>{{ notif.content }}</div>
+                        <div style="display:flex;gap:10px;">
+                            {% if is_user_spm %}
+                                <div class="notif-review">
+                                    <button class="snooze-button" onclick="toggleSnoozeDropdown(this)">Snooze</button>
+                                    <div class="snooze-dropdown" style="display: none;">
+                                        <span class="close-snooze" onclick="closeSnoozeDropdown(this)">&times;</span>
+                                        <label for="snooze-days">Snooze for:</label>
+                                        <select id="snooze-days" class="snooze-select">
+                                            {% for day in days %}
+                                                <option value="{{ day }}">{{ day }} day{% if day > 1 %}s{% endif %}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button class="confirm-snooze" onclick="confirmSnooze('{{ notif.id }}')">Confirm</button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="notif-review" onclick="handleNotificationClick(event, '{{ notif.id }}')">Review</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Notice Period Category -->
+            <div class="notification-category" id="notice-period-category">
+                <div class="notification-category-heading" onclick="toggleCategory(this)">
+                    Notice Period
+                    <svg width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13 7L7 1L1 7" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div class="notification-content">
+                    {% for notif in notifications %}
+                    {% if notif.trigger == "person_notice" or notif.trigger == "resignation" %}
+                    <div id="notif-{{ notif.id }}" class="notif-container notice-period" data-trigger="{{ notif.trigger }}">
+                        
+                        <div style="display:flex;gap:10px;align-items:center">
+                            {% if notif.notification_type == "not approved" %}
+                                <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="15" viewBox="0 0 128 128" style="enable-background:new 0 0 128 128;" xml:space="preserve">
+                                    <g>
+                                        <circle style="fill:#CC3333;" cx="63.93" cy="64" r="60"/>
+                                        <circle style="fill:#F44336;" cx="60.03" cy="63.1" r="56.1"/>
+                                        <path style="fill:#FF8A80;" d="M23.93,29.7c4.5-7.1,14.1-13,24.1-14.8c2.5-0.4,5-0.6,7.1,0.2c1.6,0.6,2.9,2.1,2,3.8
+                                            c-0.7,1.4-2.6,2-4.1,2.5c-9.38,3.1-17.47,9.21-23,17.4c-2,3-5,11.3-8.7,9.2C17.43,45.7,18.23,38.5,23.93,29.7z"/>
+                                    </g>
+                                </svg>
+                            {% endif %}
+                            <span> {{ notif.content }} </span>
+                        </div>
+                        <div style="display:flex;gap:10px;">
+                            {% if is_user_spm and notif.trigger == "person_notice" %}
+                                <div class="notif-review">
+                                    <button class="snooze-button" onclick="toggleSnoozeDropdown(this)">Snooze</button>
+                                    <div class="snooze-dropdown" style="display: none;">
+                                        <span class="close-snooze" onclick="closeSnoozeDropdown(this)">&times;</span>
+                                        <label for="snooze-days">Snooze for:</label>
+                                        <select id="snooze-days" class="snooze-select">
+                                            {% for day in days %}
+                                                <option value="{{ day }}">{{ day }} day{% if day > 1 %}s{% endif %}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button class="confirm-snooze" onclick="confirmSnooze('{{ notif.id }}')">Confirm</button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                       
+                    
+                        <div class="notif-review-container">
+                            {% if notif.trigger == "resignation" %}
+                                {% if notif.notification_type == "not approved" %}
+                                <div class="notif-review"  onclick="handleResignNotificationClick(event, '{{ notif.id }}')">
+                                    Approve
+                                </div>
+                                {% else %}
+                                <div class="notif-review"  onclick="handleNotificationClick(event, '{{ notif.id }}')">
+                                    Review
+                                </div>
+                                {% endif%}
+                            {% else %}
+                            <div class="notif-review"  onclick="handleNotificationClick(event, '{{ notif.id }}')">
+                                Review
+                            </div>
+                            {% endif %}
+                            <span class="tooltip">Please talk to the person before marking as complete</span>
+                        </div>
+                    </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+    
+            <!-- Informational Category -->
+            <div class="notification-category" id="informational-category">
+                <div class="notification-category-heading" onclick="toggleCategory(this)">
+                    Informational
+                    <svg width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13 7L7 1L1 7" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div class="notification-content">
+                    {% for notif in notifications %}
+                    {% if notif.trigger != "assessments" and notif.trigger != "git_person" and notif.trigger != "person_notice" and notif.trigger != "task_overdue" and notif.trigger != "task_due_today" and notif.trigger != "resignation" %}
+                    <div id="notif-{{ notif.id }}" class="notif-container github-assignments" data-trigger="{{ notif.trigger }}">
+                        <div>{{ notif.content }}</div>
+                        
+                        <div class="notif-review" onclick="handleNotificationClick(event, '{{ notif.id }}')">Review</div>
+                        
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+    
+            {% if notifications|length == 0 %}
+            <div class="unread-notif">
+                <div class="notif-container">No new notifications.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+      <div class="hrms-dashboard-menu">
+        <!-- <div class="hrms-dashboard-menu-item" onclick="activateMenu('hrms')">HRMS</div> -->
+        <div class="hrms-dashboard-menu-item hrms-menu-active" onclick="activateMenu('team')">Team</div>
+        <div class="hrms-dashboard-menu-item" onclick="activateMenu('project-sanity')">Project Sanity</div>
+        <div class="hrms-dashboard-menu-item" onclick="activateMenu('project-finances-content')">Project Finance</div>
+        <div class="hrms-dashboard-active-line"></div>
+    </div>
+    <div>
+        <div class="hrms-content" style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 200px;">
+            <div style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                <div class="loading-spinner"></div>
+            </div>
+           
+        </div>
+
+        
+        <div class="hrms-team" style="display: none; flex-direction: column; gap: 24px;">
+            
+            <div style="display: flex; flex-direction: row; justify-content: space-between;">
+                <div
+                    style="border: 1px solid #CED4DA; width: 396px; border-radius: 24px; padding: 12px 16px 12px 16px; display: flex; justify-content: space-between;">
+                    <input id="userSearchInput"  type="text" placeholder="search here..." style="outline: none; border: none; width: 70%;">
+                    <svg style="cursor: pointer;" onclick="searchEmployee()"  width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M7.33333 12.6667C10.2789 12.6667 12.6667 10.2789 12.6667 7.33333C12.6667 4.38781 10.2789 2 7.33333 2C4.38781 2 2 4.38781 2 7.33333C2 10.2789 4.38781 12.6667 7.33333 12.6667Z"
+                            stroke="#08090A" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M13.9996 13.9996L11.0996 11.0996" stroke="#08090A" stroke-width="1.33333"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <!-- <div onclick="toggleSortModal()"
+                    style="border: 1px solid #CED4DA; position: relative; cursor: pointer; border-radius: 8px; display: flex; padding: 6px 16px 6px 16px; justify-content: center; align-items: center; ">
+                    Sort by &#8593;&#8595;
+
+                    <div id="sortModal"
+                        style="display: none; flex-direction: column; gap: 6px; width: 250px; position: absolute; top: 100%; right: 0; margin-top: 10px; background: white; border: 1px solid #CED4DA; border-radius: 8px; padding: 10px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); z-index: 1;">
+                        <div style="padding: 6px; cursor: pointer;">Start Date: Ascending</div>
+                        <div style="padding: 6px; cursor: pointer;">Start Date: Descending</div>
+                        <div style="padding: 6px; cursor: pointer;">End Date: Ascending</div>
+                        <div style="padding: 6px; cursor: pointer;">End Date: Descending</div>
+                        <div style="padding: 6px; cursor: pointer;">Pay Type</div>
+                    </div>
+                </div> -->
+                <!-- New Expand All button -->
+                <button onclick="expandAllTables(this)" class="expand-all-btn" style="
+                    border: 1px solid #CED4DA; 
+                    border-radius: 8px; 
+                    padding: 8px 16px; 
+                    background: white; 
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                ">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 13H5V11H19V13Z" fill="#08090A"/>
+                        <path d="M19 17H5V15H19V17Z" fill="#08090A"/>
+                        <path d="M19 9H5V7H19V9Z" fill="#08090A"/>
+                    </svg>
+                    Expand All
+                </button>
+
+
+                <!-- EOD Summary Modal -->
+                <div id="eodSummaryModal" class="popup hidden">
+                    <div class="popup-content" >
+                      <span id="closeEODModalBtn">&times;</span>
+                      <h2>Employee EOD Summary</h2>
+                  
+                      <div class="filter-section">
+                        <label for="dateFilter">Filter:</label>
+                        <select id="dateFilter">
+  <option value="last_7_days">Past 7 Days</option>
+  <option value="last_15_days">Past 15 Days</option>
+  <option value="january">January</option>
+  <option value="february">February</option>
+  <option value="march">March</option>
+  <option value="april">April</option>
+  <option value="may">May</option>
+  <option value="june">June</option>
+  <option value="july">July</option>
+  <option value="august">August</option>
+  <option value="september">September</option>
+  <option value="october">October</option>
+  <option value="november">November</option>
+  <option value="december">December</option>
+</select>
+
+                      </div>
+                  
+                      <table id="eodTable">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Project name</th>
+                            <th>EOD Summary</th>
+                            <th>Bounty</th>
+                          </tr>
+                        </thead>
+                        <tbody id="eodTableBody">
+                          <!-- Filled via JS -->
+                        </tbody>
+                      </table>
+                    </div>
+                                  </div>
+
+                <!-- Assign Goal Modal -->
+                <div id="assignGoalModal" class="modal">
+                    <div class="modal-content">
+                        <h2>Assign Goal</h2>
+                        <form id="assignGoalForm" method="POST" action="">
+                            {% csrf_token %}
+                            <!-- Goal Description -->
+                            <div class="form-group">
+                                <label for="description">Goal Description</label>
+                                <input
+                                    type="text"
+                                    id="description"
+                                    name="description"
+                                    placeholder="Enter goal description"
+                                    required
+                                />
+                            </div>
+
+                            <!-- Date -->
+                            <div class="form-group">
+                                <label for="assigned_on">Date</label>
+                                <input
+                                    type="date"
+                                    id="assigned_on"
+                                    name="assigned_on"
+                                    required
+                                />
+                            </div>
+
+                            <!-- Buttons -->
+                            <div class="button-group">
+                                <button type="button" class="cancel-button" onclick="closeModal()">Cancel</button>
+                                <button type="submit" class="assign-button">Assign</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Goal Overview Modal -->
+                <div id="goalOverviewModal" class="modal">
+                    <div class="modal-content">
+                        <h2>Performance Overview</h2>
+                        
+                        <!-- Placeholder for dynamic overall feedback -->
+                        <p id="overallFeedbackText"><b>Overall Feedback: Loading...</b></p>
+                        
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Goals</th>
+                                    <th>Current Status</th>
+                                    <th>Assigned On</th>
+                                </tr>
+                            </thead>
+                            <tbody id="goalsTableBody">
+                                <!-- Goals will be dynamically populated here -->
+                            </tbody>
+                        </table>
+
+                        <!-- Close Button -->
+                        <div class="button-group">
+                            <button type="button" class="cancel-button" onclick="closeGoalOverviewModal()">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="hrms-team-domainType"
+                style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 200px;">
+                <div id="performance-modal" class="performance-modal" style="display: none; color: #6D747A;">
+                    <div id="close-performance-modal" style="float: right; cursor: pointer; margin-bottom: 6px;">X</div>
+                    <div class="performance-modal-content">
+
+                        <div class="performance-options" style="margin-top: 10px;">
+                            <div performance-status="Good Performer" class="performance-status-name">
+                                <div style="border-radius: 50%; height: 15px; width: 15px; background-color:#9FDFBE ;">
+                                </div> Good Performer
+                            </div>
+                            <div performance-status="Medium Performer" class="performance-status-name">
+                                <div style="border-radius: 50%; height: 15px; width: 15px; background-color: #FFEFBC;">
+                                </div> Medium Performer
+                            </div>
+                            <div performance-status="Low Performer" class="performance-status-name">
+                                <div style="border-radius: 50%; height: 15px; width: 15px; background-color: #FF922B;">
+                                </div>Low Performer
+                            </div>
+                            <div performance-status="On Notice" class="performance-status-name">
+                                <div style="border-radius: 50%; height: 15px; width: 15px;background-color: #ff2c2c">
+                                </div>On Notice
+                            </div>
+                            <div performance-status="On Bench" class="performance-status-name">
+                                <div style="border-radius: 50%; height: 15px; width: 15px; background-color: #CED4DA;">
+                                </div>On Bench
+                            </div>
+                            <div performance-status="Unselect" class="performance-status-name">
+                                <div style="border-radius: 50%; height: 15px; width: 15px; background-color:none ;">
+                                </div>
+                                Unselect
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="team-dash">
+                    <div class="loading-spinner"></div>
+                    <!-- <div class="dept-section">
+                        <div class="team-project-heading">
+                            <b>Node JS</b>
+                            <svg class="toggle-icon" onclick="hrmsTeamToggleTable(this)" style="cursor: pointer;" width="14"
+                                height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <div class="table-container">
+                            <table class="teams-table">
+                                <thead style="background-color: #F2F4FF; width: 100%;">
+                                    <tr style="text-align: left; height: 40px; background-color: #F2F4FF; ">
+                                        <th style="width: 15%; padding: 0px 8px; ">Name</th>
+                                        <th style="width: 20%; ">Remarks</th>
+                                        <th style="width: 20%; ">Project</th>
+                                        <th style="width: 15%; ">Pay Type</th>
+                                        <th style="width: 15%; ">Start Date</th>
+                                        <th style="width: 15%; ">Internship End Date</th>
+
+
+                                    </tr>
+                                </thead>
+                                <tbody style="color: #6D747A; font-size: 16px;">
+                                  
+                                </tbody>
+                            </table>
+                        </div>
+                    </div> -->
+                </div>
+
+            </div>
+        </div>
+
+
+
+        <div class="project-sanity" style="display: none; flex-direction: column; gap: 0px;">
+            <!-- <div style="display: flex; flex-direction: row; justify-content: space-between; margin: 16px 0;">
+                <div
+                    style="border: 1px solid #CED4DA; width: 396px; border-radius: 24px; padding: 12px 16px 12px 16px; display: flex; justify-content: space-between;">
+                    <input id="userSearchInput"  type="text" placeholder="search here..." style="outline: none; border: none; width: 70%;">
+                    <svg style="cursor: pointer;" onclick="searchEmployee()"  width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M7.33333 12.6667C10.2789 12.6667 12.6667 10.2789 12.6667 7.33333C12.6667 4.38781 10.2789 2 7.33333 2C4.38781 2 2 4.38781 2 7.33333C2 10.2789 4.38781 12.6667 7.33333 12.6667Z"
+                            stroke="#08090A" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M13.9996 13.9996L11.0996 11.0996" stroke="#08090A" stroke-width="1.33333"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div class="sort-btns">
+                    <div class="sort-btn priority-sort"><button id="sortPriorityBtn" onclick="sortSanityByPriority()">Priority <span id="sortArrow" class="p-arrow-down"></span></button></div>
+                </div>
+            </div> -->
+            <!-- <div class="ps-header" style="display: flex; justify-content: space-between;padding: 0 8px; width: 100%; height: 96px; background-color: #f8f9fa; border-bottom: 1px solid #E0E1E1;">
+                <div class="ps-header-left" style="height: 100%; display:flex;">
+                    <div class="pshl-elem center_u" style="padding: 25px 16px; height: 100%; display: flex; align-items: center; justify-content: center;">Milestone</div>
+                    <div class="pshl-elem center_u" style="padding: 25px 16px; height: 100%; display: flex; align-items: center; justify-content: center;">Progress</div>
+                </div>
+                <div class="ps-header-right" style="height: 100%; display:flex;">
+                    <div class="pshl-elem center_u" style="padding: 25px 16px; height: 100%; display: flex; align-items: center; justify-content: center; margin-right: 135px;">Progress</div>
+                </div>
+            </div> -->
+            <div style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                <div class="loading-spinner" id="page-sanity-loading-spinner"></div>
+            </div>
+            <div class="ps-container" style="display: flex; flex-direction: column; gap: 0px;"> 
+                
+            </div>
+            
+        </div>
+        <div class="project-finances-content" style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 200px;">
+            <div style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                <div class="loading-spinner"></div>
+            </div>
+           
+        </div>
+    </div>
+</div>
+
+<script>
+
+    function updateCircleColors(upvotes, downvotes, greenCircleId, redCircleId) {
+        const greenCircle = document.querySelector('.'+greenCircleId);
+        const redCircle = document.querySelector('.'+redCircleId);
+
+        const totalVotes = upvotes + downvotes;
+
+        // Avoid division by zero
+        if (totalVotes === 0) {
+            // Set default light colors for both circles if no votes
+            greenCircle.style.backgroundColor = 'hsl(120, 100%, 90%)'; // Light green
+            redCircle.style.backgroundColor = 'hsl(0, 100%, 90%)'; // Light red
+            return;
+        }
+
+        // Calculate proportional intensity of votes
+        const greenProportion = upvotes / totalVotes;
+        const redProportion = downvotes / totalVotes;
+
+        // Map proportions to lightness (90% to 30% range)
+        const lightnessGreen = 90 - greenProportion * 60;
+        const lightnessRed = 90 - redProportion * 60;
+
+        // Set colors dynamically using HSL
+        greenCircle.style.backgroundColor = `hsl(120, 100%, ${lightnessGreen}%)`;
+        redCircle.style.backgroundColor = `hsl(0, 100%, ${lightnessRed}%)`;
+    }
+
+
+    function toggleSelectedTable(activeSection, toggleIcon){
+        switch(activeSection) {
+            case 'Team':
+            hrmsTeamToggleTable(toggleIcon);
+            default:
+                return;
+        }
+
+    }
+    function expandAllTables(buttonElement) {
+        // Determine which section is currently active
+        const activeSection = document.querySelector('.hrms-dashboard-menu-item.hrms-menu-active').textContent;
+        
+        let tablesContainer;
+        let categoryHeadings;
+        let isExpanding = buttonElement.textContent.includes('Expand');
+
+        switch(activeSection) {
+            case 'Team':
+                tablesContainer = document.querySelector('.hrms-team-domainType');
+                categoryHeadings = tablesContainer.querySelectorAll('.team-project-heading');
+                break;
+            case 'Project Sanity':
+                tablesContainer = document.querySelector('.ps-container');
+                categoryHeadings = tablesContainer.querySelectorAll('.team-project-heading');
+                break;
+            case 'Project Finance':
+                tablesContainer = document.querySelector('.project-finances-content');
+                categoryHeadings = tablesContainer.querySelectorAll('.team-project-heading');
+                break;
+            default:
+                return;
+        }
+
+        // Force all tables to desired state
+        categoryHeadings.forEach(heading => {
+            const tableContainer = heading.nextElementSibling;
+            const toggleIcon = heading.querySelector('svg');
+            
+            // Check current state
+            const currentlyExpanded = tableContainer.style.display === 'block';
+            
+            // Only trigger if state needs to change
+            if (isExpanding !== currentlyExpanded) {
+                // Trigger the appropriate click handler based on the section
+                switch(activeSection) {
+                    case 'Team':
+                        hrmsTeamToggleTable(toggleIcon);
+                        break;
+                    case 'Project Sanity':
+                        // For Project Sanity, we need to trigger both toggle and content loading
+                        toggleSanityDd(toggleIcon);
+                        if (isExpanding) {
+                            openMilestones(toggleIcon);
+                        }
+                        break;
+                    case 'Project Finance':
+                        toggleFinanceTable(toggleIcon);
+                        break;
+                }
+            }
+        });
+
+        // Update button text and icon
+        if (isExpanding) {
+            buttonElement.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 11H19V13H5V11Z" fill="#08090A"/>
+                    <path d="M5 15H19V17H5V15Z" fill="#08090A"/>
+                    <path d="M5 7H19V9H5V7Z" fill="#08090A"/>
+                </svg>
+                Collapse All
+            `;
+        } else {
+            buttonElement.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 13H5V11H19V13Z" fill="#08090A"/>
+                    <path d="M19 17H5V15H19V17Z" fill="#08090A"/>
+                    <path d="M19 9H5V7H19V9Z" fill="#08090A"/>
+                </svg>
+                Expand All
+            `;
+        }
+    }
+    let p_label=document.querySelectorAll(".ps-dd-pb-elem-label");
+    let toggle_dd=document.querySelectorAll(".toggle-dd");
+    let pageSanityCache = {};
+    let sanityMilestonesCache = {}
+    let milestoneSubtaskCache = {}
+    let priorityStatusStyle = {
+        "P1": {
+            fontWeight: "bolder",
+            borderColor: "#94999d"
+        },
+        "P2": {
+            fontWeight: "600",
+            borderColor: "#99a4ad"
+        },
+        "P3": {
+            fontWeight: "400",
+            borderColor: "#CED4DA"
+        },
+    }
+    function toggleSanityDd(elem){
+        elem.parentElement.parentElement.parentElement.parentElement.children[1].classList.toggle("none");
+        elem.classList.toggle("arrow-right")
+    }
+    document.querySelectorAll(".ps-dd-progress-bar").forEach((e)=>{
+        if(e.childElementCount==0){
+            e.classList.add("empty");
+        }
+    })
+    p_label.forEach((e)=>{
+        let e_width=e.parentElement.style.width;
+        if(e_width=="0%"){
+            e.style.display='none'
+        }else{
+            e_width = Number(e_width.replace("%", ""))
+            e.innerHTML=e_width/5;
+        }
+    })
+
+    function openPriorityDd(elem) {
+    // Instead of opening a dropdown, we will just toggle the priority
+    let currentPriority = elem.closest('div').querySelector("span").innerText;
+
+    // Set the next priority
+    let nextPriority;
+    switch (currentPriority) {
+        case "P1":
+            nextPriority = "P2";
+            break;
+        case "P2":
+            nextPriority = "P3";
+            break;
+        case "P3":
+            nextPriority = "P1";
+            break;
+        default:
+            nextPriority = "P1"; // Default to P1 if something is wrong
+            break;
+    }
+
+    // Update the UI immediately
+    elem.closest('div').querySelector("span").innerText = nextPriority;
+    switch (nextPriority) {
+        case "P1":
+            elem.closest('div').style.fontWeight='bolder'
+            elem.closest('div').style.borderColor='#94999d'
+            break;
+        case "P2":
+            elem.closest('div').style.fontWeight='600'
+            elem.closest('div').style.borderColor='#99a4ad'
+            break;
+        case "P3":
+            elem.closest('div').style.fontWeight='400'
+            elem.closest('div').style.borderColor='#CED4DA'
+            break;
+        default:
+            break;
+    }
+
+    // Get project_id from the closest div or from data-attribute if needed
+    let project_id = elem.getAttribute("data-project-id");
+
+    // Call the function to update priority in the backend
+    setPriority(nextPriority, project_id, elem);
+}
+
+function setPriority(priority, project_id, elem) {
+    // Convert the priority to the corresponding string value (P1, P2, P3)
+    let p;
+    switch (priority) {
+        case "P1":
+            p = "P1";
+            break;
+        case "P2":
+            p = "P2";
+            break;
+        case "P3":
+            p = "P3";
+            break;
+        default:
+            p = null;
+            break;
+    }
+
+    // Make the API call to update the priority in the database
+    fetch(`/api/update-priority/${project_id}/`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+        },
+        body: JSON.stringify({ priority: p }),
+        credentials: "include",
+    })
+    .then((response) => {
+        if (!response.ok) {
+            throw new Error('API call failed');
+        }
+        return response.json();
+    })
+    .then((data) => {
+        // Update the UI based on the response
+        console.log('API response:', data);
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+}
+
+    // <div id="technical-stack" onclick="tc-editing=true;" style="position: relative; padding: 0 16px;" content-editable='true'>
+    //      hello
+    //      ${project.Technical_stack}
+    //  </div>
+
+    let activeTechnicalStack = null;
+let ts_editing = false;
+
+function editTechnicalStack(elem, project_id) {
+    elem.setAttribute("contenteditable", 'true');
+    activeTechnicalStack = elem;
+    ts_editing = true;
+}
+
+// Save on pressing Enter
+function handleEnterKey(event) {
+    if (event.key === 'Enter' && ts_editing) {
+        event.preventDefault();  // Prevent default Enter behavior (like creating a new line in contenteditable)
+        saveTechnicalStack();
+    }
+}
+
+// Save function to save technical stack data
+function saveTechnicalStack() {
+    ts_editing = false;
+    activeTechnicalStack.setAttribute("contenteditable", 'false'); // Disable contenteditable
+    let project_id = activeTechnicalStack.getAttribute("data-attribute-project-id");
+    let stacks = activeTechnicalStack.innerText.split(",").map(item => item.trim());
+
+    fetch(`/api/update-priority/${project_id}/`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+        },
+        body: JSON.stringify({ technical_stack: stacks }),
+        credentials: "include",
+    })
+    .then((response) => {
+        if (!response.ok) {
+            throw new Error('API call failed');
+        }
+        return response.json();
+    })
+    .then((data) => {
+        activeTechnicalStack.innerText = stacks.join(", ");
+        console.log('API response:', data);
+        activeTechnicalStack = null;
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+}
+
+document.addEventListener('click', (event) => {
+    if (event.target.id !== 'technical-stack' && ts_editing) {
+        saveTechnicalStack();
+    }
+});
+
+document.addEventListener('keydown', handleEnterKey);
+
+
+    function formatDate(RawDate){
+        let date = new Date(RawDate);
+        // Array of month names
+        let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        // Get the day and month
+        let day = date.getDate();
+        let month = months[date.getMonth()];
+        // Format the date as "19 Nov"
+        return `${day} ${month}`;
+    }
+    
+    function renderMilestoneSubtasks(data, taskTracker){
+        taskTracker.innerHTML=``;
+            if (data.length == 0){
+                taskTracker.innerHTML=`No Tasks`;
+            }
+            data.forEach(subtask => {
+                let todayDate = new Date;
+                let date1 = new Date(todayDate);
+                let date2 = new Date(subtask.created_at);
+                let date3 = subtask.due_date ? new Date(subtask.due_date) : null;
+                let daysDifference = 0;
+              
+                if (date3) {
+                    daysDifference = Math.ceil((date3 - date2) / (1000 * 60 * 60 * 24));
+                } else {
+                    daysDifference = null; 
+                }
+                
+                if(!subtask.checkpoint){
+                    let startDate = formatDate(subtask.created_at).replace(', 2024', '');
+                    let dueDate =subtask.due_date ? formatDate(subtask.due_date).split(",")[0] : 'N/A'; 
+                    let totalSubTaskCount = Number(subtask.subtask_summary.completed_count + subtask.subtask_summary.incomplete_count + subtask.subtask_summary.overdue_incomplete_count);
+                    let completedTasks = Number(subtask.subtask_summary.completed_count)
+                    let incompleteTasks = Number(subtask.subtask_summary.incomplete_count)
+                    let overdueIncompleteTasks = Number(subtask.subtask_summary.overdue_incomplete_count)
+                    
+                    if(completedTasks, incompleteTasks, overdueIncompleteTasks == 0){
+                        if(daysDifference > 0){
+                            if(subtask.status == "I"){
+                                incompleteTasks=1;
+                                totalSubTaskCount=1;
+                            }else{
+                                completedTasks=1;
+                                totalSubTaskCount=1;
+                            }
+                        }else{
+                            if(subtask.status == "I"){
+                                overdueIncompleteTasks=1;
+                                totalSubTaskCount=1;
+                            }else{
+                                completedTasks=1;
+                                totalSubTaskCount=1;
+                            }
+                        }
+                    }
+                    
+                    taskTracker.innerHTML+=`
+                        <div class="task_progress_parent" style="display: flex; align-items: center; gap:8px;">
+                            <div class="ps-dd-line-pe">
+                                <svg width="6" height="27" viewBox="0 0 6 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path id="Line 176" d="M3 0.333333C1.52724 0.333333 0.333333 1.52724 0.333333 3C0.333333 4.47276 1.52724 5.66667 3 5.66667C4.47276 5.66667 5.66667 4.47276 5.66667 3C5.66667 1.52724 4.47276 0.333333 3 0.333333ZM2.5 3L2.5 27H3.5L3.5 3H2.5Z" fill="#CED4DA"></path>
+                                </svg>
+                                <div class="ps-dd-line-label" style="opacity: 0;">${startDate}</div>
+                            </div>
+
+                            <div style="height: 8px; width: 86px; display: flex;" class="ps-dd-progress-bar">
+                                <div style="width: ${totalSubTaskCount !=0 ? (completedTasks*100)/totalSubTaskCount : "0"}%; height: 100%; background-color: #00B879;" class="ps-dd-pb-elem">
+                                    <span class="ps-dd-pb-elem-label">${completedTasks != 0 ? completedTasks : ""}</span>
+                                </div>
+                                <div style="width: ${totalSubTaskCount !=0 ? (overdueIncompleteTasks*100)/totalSubTaskCount : "0"}%; height: 100%; background-color: #DD1D43;" class="ps-dd-pb-elem">
+                                    <span class="ps-dd-pb-elem-label">${overdueIncompleteTasks != 0 ? overdueIncompleteTasks : ""}</span>
+                                </div>
+                                <div style="width: ${totalSubTaskCount !=0 ? (incompleteTasks*100)/totalSubTaskCount : "100"}%; height: 100%; background-color: #EBEDF0;" class="ps-dd-pb-elem">
+                                    <span class="ps-dd-pb-elem-label">${incompleteTasks != 0 ? incompleteTasks : ""}</span>
+                                </div>
+                                <div class="ps-dd-pb-label" style="opacity: 0; color: ${Number(daysDifference) > 0 ? '#00B879' : '#DD1D43'}">${daysDifference !== null ? daysDifference + "d" : ""}</div>
+                                <div class="ps-dd-pb-label-btm">${subtask.name}</div>
+                            </div>
+
+                            <div class="ps-dd-line-pe">
+                                <svg width="6" height="27" viewBox="0 0 6 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path id="Line 176" d="M3 0.333333C1.52724 0.333333 0.333333 1.52724 0.333333 3C0.333333 4.47276 1.52724 5.66667 3 5.66667C4.47276 5.66667 5.66667 4.47276 5.66667 3C5.66667 1.52724 4.47276 0.333333 3 0.333333ZM2.5 3L2.5 27H3.5L3.5 3H2.5Z" fill="#CED4DA"></path>
+                                </svg>
+                                <div class="ps-dd-line-label" style="opacity: 0;">${dueDate}</div>
+                            </div>
+                        </div>
+                    `
+                }else{
+                    if (subtask.status == "I") {
+                        // Check if due date is in the future
+                        const dueDate = new Date(subtask.due_date);
+                        const currentDate = new Date();
+                        
+                        if (dueDate > currentDate) {
+                            flag_fill = "#CED4DA"; // Grey color for future checkpoints
+                        } else {
+                            flag_fill = "#DD1D43"; // Red color for overdue checkpoints
+                        }
+                    } else {
+                        flag_fill = "#00B879"; // Green color for completed checkpoints
+                    }
+                    taskTracker.innerHTML+=`
+                            <div class="flag">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <g id="flag_2_24dp_5F6368_FILL1_wght400_GRAD0_opsz24 10">
+                                        <path id="Vector" d="M3.33301 14.6667V2H13.9997L12.6663 5.33333L13.9997 8.66667H4.66634V14.6667H3.33301Z" fill="${flag_fill}"/>
+                                    </g>
+                                </svg>
+                                <div class="flag-label">${subtask.name}</div>
+                            </div>
+                    `
+                }
+            });
+    }
+
+    function openMilestoneSubtask(milestoneId){
+        // document.querySelector(`#notif-chevron-icon-${milestoneId}`).classList.toggle("arrow-right")
+        // document.querySelector(`#ps-dd-tasks-track-${milestoneId}`).classList.toggle("none")
+        let taskTracker = document.querySelector(`#ps-dd-tasks-track-${milestoneId}`);
+        if(Object.keys(milestoneSubtaskCache).length == 0){
+            taskTracker.innerHTML=`<div style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                                            <div class="loading-spinner" id="page-sanity-loading-spinner-3"></div>
+                                        </div>`;
+            fetch(`/api/milestone/${milestoneId}/tasks/`)
+            .then(res=>{
+                if(!res.status==200){
+                    throw new Error("Server Error")
+                }
+                return res.json()
+            })
+            .then(data=>{
+                milestoneSubtaskCache[milestoneId] = data;
+                renderMilestoneSubtasks(milestoneSubtaskCache[milestoneId], taskTracker);
+            })
+        }else{
+            renderMilestoneSubtasks(milestoneSubtaskCache[milestoneId], taskTracker);
+        }
+    }
+
+    function renderMilestones(milestones, toggle_dd){
+        toggle_dd.innerHTML='';
+            milestones.forEach(milestone=>{
+                if(milestone.status == "on-progress"){ 
+                    let todayDate = new Date;
+                    let date1 = new Date(todayDate);
+                    let date2 = new Date(milestone.end_date);
+                    let todayDaysDiff = Math.ceil((date2 - date1) / (1000 * 60 * 60 * 24));
+                    toggle_dd.innerHTML += `<div class="ps-dd" style="padding: 0 32px;margin-top: 35px; margin-bottom: 16px; border: none; justify-content: start;">
+                            <div class="ps-dd-heading" id="ps-dd-heading-${milestone.id}" style="gap: 92px; justify-content: start;">
+                                <div
+                                    style="display: flex; align-items: center; width: fit-content; gap: 6px; justify-content: space-between; padding: 0 8px;">
+                                    
+                                    <div
+                                        style="color: #6D747A;  font-size: 16px; font-style: normal; font-weight: 400; line-height: 24px;">
+                                        ${milestone.name}
+                                    </div>
+                                </div>
+                                <div class="ps-dd-tasks-track" id="ps-dd-tasks-track-${milestone.id}" style="padding: 24px 24px; height: 100%; display: flex; align-items: center; width: fit-content; gap: 16px;">
+                                   
+                            
+                                </div>
+                                <div
+                                    style="color: ${todayDaysDiff<0?"red":"#6D747A"} ;  font-size: 16px; font-style: normal; font-weight: 400; line-height: 24px; letter-spacing: 0.08px;">
+                                    ${milestone.start_date != null ? todayDaysDiff>0 ? todayDaysDiff+" days left" : todayDaysDiff<0?Math.abs(todayDaysDiff)+" days late" :"today" : "Null"}
+                                </div>
+                            </div>
+                            </div>`
+                        
+                    setTimeout(() => {
+                        openMilestoneSubtask(milestone.id)
+                    }, 500);
+                }
+            })
+    }
+
+    function openMilestones(elem){
+        let elem_id = elem.parentElement.parentElement.parentElement.getAttribute("data-attribute-id")
+        let toggle_dd = document.querySelector(`#toggle-dd-${elem_id}`)
+        
+        if(Object.keys(sanityMilestonesCache).length==0){
+            let loadingSpinner2 = document.querySelector("#page-sanity-loading-spinner-2")
+            if(loadingSpinner2 != null){
+                loadingSpinner2.style.display='flex';
+            }
+            fetch(`/api/projects/${elem_id}/milestones/`)
+            .then(res=>{
+                if (!res.ok) {
+                    throw new Error('Failed to fetch milestones');
+                }
+                return res.json();
+            })
+            .then(milestones=>{
+                if(loadingSpinner2 != null){
+                    loadingSpinner2.style.display='none';
+                }
+                sanityMilestonesCache[elem_id] = milestones;
+                renderMilestones(sanityMilestonesCache[elem_id], toggle_dd);
+            })
+        }else{
+            renderMilestones(sanityMilestonesCache[elem_id], toggle_dd);
+        }
+        
+    }
+
+
+    function highlightUpcomingEndDates() {
+        const currentDate = new Date();
+
+        document.querySelectorAll('.internship-end-date').forEach((cell) => {
+            const endDateText = cell.textContent.trim();
+            const [day, month, year] = endDateText.split(' ');
+
+
+            const internshipEndDate = new Date(`${month} ${day}, ${year}`);
+
+
+            const diffInTime = internshipEndDate - currentDate;
+            const diffInDays = diffInTime / (1000 * 3600 * 24);
+
+
+            if (diffInDays <= 30) {
+                cell.style.color = '#A90420';
+            }
+        });
+    }
+
+    highlightUpcomingEndDates();
+
+    //open sortby modal
+    // function toggleSortModal() {
+    //     const modal = document.getElementById('sortModal');
+    //     modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+    // }
+
+
+    // clse the modal
+    // document.addEventListener('click', function (event) {
+    //     const modal = document.getElementById('sortModal');
+    //     const sortButton = event.target.closest('[onclick="toggleSortModal()"]');
+
+    //     if (!modal.contains(event.target) && !sortButton) {
+    //         modal.style.display = 'none';
+    //     }
+    // });
+
+    function sortSanityByPriority(){
+        const contentDiv = document.querySelector('.ps-container');
+        contentDiv.innerHTML='';
+        let priorityBtn = document.querySelector('#sortPriorityBtn');
+        priorityBtn.children[0].classList.toggle('p-arrow-down')
+        priorityBtn.children[0].classList.toggle('p-arrow-up')
+        pageSanityCache.reverse()
+        renderSanityProjects(pageSanityCache, contentDiv, true)
+    }
+
+    function renderSanityProjects(data, contentDiv, cache=false){
+        data.forEach(project => {
+                    const projectDiv = document.createElement('div');
+                    projectDiv.classList.add('ps-dd-main');
+                    projectDiv.style.gap= '16px';
+                    projectDiv.style.border = 'none';
+                    projectDiv.style.padding= '35px 0';
+                    document.querySelector("#page-sanity-loading-spinner").style.display='none'
+                    let priorityBorderColor = priorityStatusStyle[project.priority].borderColor;
+                    let priorityFontWeight = priorityStatusStyle[project.priority].fontWeight;
+                    
+                    projectDiv.innerHTML = `
+                       <div class="ps-dd-heading" id="ps-dd-heading-${project.id}" data-attribute-id="${project.id}" onclick="">
+                        <div style="display: flex; align-items: center; width: fit-content; justify-content: space-between; padding: 0 8px; gap: 16px;">
+                            <div style="display:flex; gap: 16px; width: 300px;">
+                            <div id="notif-chevron-wrapper" onclick="toggleSanityDd(this); openMilestones(this)" class="arrow-right">
+                                <svg id="notif-chevron-icon" style="cursor: pointer;" width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="{% if notifs %}M13 7L7 1L1 7 {% else %} M1 1L7 7L13 1 {% endif %}" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                            <div class="ps-dd-heading-sqr-txt" data-project-id="${project.id}" id="ps-dd-heading-sqr-txt-${project.id}" style="position: relative; font-size: 12px; font-weight: ${priorityStatusStyle[project.priority].fontWeight}; line-height: 14px; border-radius: 4px; border: 1px solid ${priorityStatusStyle[project.priority].borderColor}; color: #939CA3; padding: 4px;" onclick="openPriorityDd(this)">
+                               <span>${project.priority}</span>
+                               <ul class='priority-dd none' style="position: absolute;">
+                                 <li onclick="setPriority(1, ${project.id}, this)">P1</li>
+                                 <li onclick="setPriority(2, ${project.id}, this)">P2</li>
+                                 <li onclick="setPriority(3, ${project.id}, this)">P3</li>
+                                </ul>
+                            </div>
+                            <a href="/project/dashboard/${project.id}/${project.project_name}/" >
+                            <div class="${project.status == "escalated" ? "priority-project" : ""}" style="font-size: 16px; font-weight: 500; line-height: 24px;padding: 0 16px; border-radius: 4px; max-width: 230px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                               ${project.project_name}
+                            </div>
+                            </a>
+                            </div>
+                            <div class="project-manager" id="project-manager-${project.id}">
+                                <p>${project.project_manager == "Null" ? "" : project.project_manager.name}<p/>   
+                            </div>
+                        </div>
+                        
+                        <div id="technical-stack" data-attribute-project-id="${project.id}" onclick="editTechnicalStack(this, ${project.id})" style="position: relative; padding: 0 16px;" contenteditable='false'>
+                            ${project.Technical_stack == "" ? "No Stacks" : project.Technical_stack}
+                        </div>
+                    </div>
+                      <div class="toggle-dd none" id="toggle-dd-${project.id}">
+                        <div style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                <div class="loading-spinner" id="page-sanity-loading-spinner-2"></div>
+            </div>
+                    </div>
+                    `;
+
+                    contentDiv.appendChild(projectDiv);
+                    // if(!cache){
+                        document.querySelector(`#ps-dd-heading-${project.id} #notif-chevron-wrapper`).click();
+                    // }
+                });
+    }
+
+    function activateMenu(menu) {
+
+        const menuItems = document.querySelectorAll('.hrms-dashboard-menu-item');
+        menuItems.forEach(item => item.classList.remove('hrms-menu-active'));
+
+
+        const activeItem = document.querySelector(`.hrms-dashboard-menu-item[onclick*="${menu}"]`);
+        activeItem.classList.add('hrms-menu-active');
+
+
+        const activeLine = document.querySelector('.hrms-dashboard-active-line');
+        const menuRect = activeItem.getBoundingClientRect();
+        const menuContainerRect = document.querySelector('.hrms-dashboard-menu').getBoundingClientRect();
+
+        activeLine.style.width = `${menuRect.width}px`;
+        activeLine.style.left = `${menuRect.left - menuContainerRect.left}px`;
+
+        //function to call HRMS Project
+        // if (menu === 'hrms') {
+        //     document.querySelector('.hrms-content').style.display = 'flex';
+
+
+        //     fetch('/api/projects/')
+        //         .then(response => {
+        //             if (!response.ok) {
+        //                 throw new Error('Failed to fetch departments');
+        //             }
+        //             return response.json();
+        //         })
+        //         .then(data => {
+        //             const contentDiv = document.querySelector('.hrms-content');
+        //             contentDiv.innerHTML = '';
+
+        //             // console.log(data)
+        //             data.forEach(project => {
+        //             const projectDiv = document.createElement('div');
+        //             projectDiv.classList.add('project-section');
+                    
+        //             projectDiv.innerHTML = `
+        //                 <div class="hrms-project-heading">
+        //                     <b>${project.project_name}</b>
+        //                     <svg id="${project.id}" onclick="toggleTable(this)" style="cursor: pointer;" width="14" height="8"
+        //                         viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+        //                         <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round"
+        //                             stroke-linejoin="round" />
+        //                     </svg>
+        //                 </div>
+        //                 <div class="table-container" style="display: none;">
+        //                     <table class="hrms-table">
+        //                         <thead style="background-color: #F2F4FF; width: 100%;">
+        //                             <tr style="text-align: left; height: 40px; background-color: #F2F4FF;">
+        //                                 <th style="width: 20%; padding: 0px 8px;">Name</th>
+        //                                 <th style="width: 20%;">Role</th>
+        //                                 <th style="width: 20%;">Pay Type</th>
+        //                                 <th style="width: 20%;">Start Date</th>
+        //                                 <th style="width: 20%;">Internship End Date</th>
+        //                             </tr>
+        //                         </thead>
+        //                         <tbody class="team-members">
+        //                             <!-- Team members will be dynamically inserted here -->
+        //                         </tbody>
+        //                     </table>
+        //                 </div>
+        //             `;
+
+        //             contentDiv.appendChild(projectDiv);
+        //         });
+        //         })
+        //         .catch(error => {
+        //             console.error('Error:', error);
+        //         });
+        // } else {
+        //     document.querySelector('.hrms-team').style.display = 'none';
+        // }
+
+
+        //function to call HRMS-TEAM department
+        if (menu === 'team') {
+            document.querySelector('.hrms-team').style.display = 'flex';
+
+
+            fetch('/api/departments/')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch departments');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const teamContainer = document.querySelector('.team-dash');
+                    teamContainer.innerHTML = '';
+
+                    data.forEach(department => {
+                        const projectSection = document.createElement('div');
+                        projectSection.classList.add('dept-section');
+                        projectSection.innerHTML = `
+                                <div class="team-project-heading">
+                                    <div><b>${department.name} (${department.user_count})</b></div>
+                                    <div>
+                                        <span class="assigned-count" style="background-color: #DFF4E2; color: #2E7D32; border-radius: 4px; padding: 4px 8px; font-size: 14px; font-weight: 500; display: inline-block;">Assigned: ${department.assigned_count}</span>
+                                        <span class="non-assigned-count" style="background-color: #FDEDED; color: #C62828; border-radius: 4px; padding: 4px 8px; font-size: 14px; font-weight: 500; display: inline-block;">Not Assigned: ${department.non_assigned_count}</span>
+                                        <span style="background-color: #CED4DA; color: #08090A; border-radius: 4px; padding: 4px 8px; font-size: 14px; font-weight: 500; display: inline-block;">On-Bench: ${department.bench_count}</span>
+                                    <svg class="toggle-icon" id="${department.id}" onclick="hrmsTeamToggleTable(this)" style="cursor: pointer;" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    </div>
+                                </div>
+                                <div class="table-container" style="display: none;">
+                                    <table class="teams-table">
+                                        <thead style="background-color: #F2F4FF; width: 100%; box-sizing: border-box;">
+                                            <tr style="height: 40px; text-align: center; font-weight: 600; color: #333333; border-bottom: 1px solid #E0E0E0;">
+                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Name</th>
+                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Remarks</th>
+                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Project</th>
+                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Pay Type</th>
+                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Start Date</th>
+                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Internship End Date</th>
+                                                <th style="width: 10%; padding: 8px 12px; text-align: center; box-sizing: border-box;">BA</th>
+                                                <th style="width: 10%; padding: 8px 12px; text-align: center; box-sizing: border-box;">
+                                                    <div class="bc-dropdown">
+                                                        <span class="bc-dropdown-label">BC</span>
+                                                        <div class="bc-dropdown-icon">
+                                                            <select id="bountyDurationSelect" style="border: none; background-color: transparent; appearance: none; padding: 0; margin: 0; font-size: 14px; font-weight: 500; color: #08090A;">
+                                                                <option value="30">30D</option>
+                                                                <option value="7">7D</option>
+                                                            </select>
+                                                            <svg width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                </th>
+                                                <th style="width: 5%; padding: 8px 12px; text-align: center; box-sizing: border-box;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody style="color: #6D747A; font-size: 16px;"></tbody>
+                                    </table>
+                                </div>
+                            `;
+
+                        teamContainer.appendChild(projectSection);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        } else {
+            document.querySelector('.hrms-team').style.display = 'none';
+        }
+
+// uvsanity
+        if (menu === 'project-sanity') {
+            document.querySelector('.project-sanity').style.display = 'flex';
+            const contentDiv = document.querySelector('.ps-container');
+            contentDiv.innerHTML = '';
+            
+            if(Object.keys(pageSanityCache).length == 0){
+                document.querySelector("#page-sanity-loading-spinner").style.display='flex';
+                fetch('/api/projects/')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch departments');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const sortedData = data.sort((a, b) => {
+                            const statusRank = { escalated: 0, on_track: 1 };
+                            const priorityRank = { P1: 1, P2: 2, P3: 3 };
+
+                            return statusRank[a.status] - statusRank[b.status] || priorityRank[a.priority] - priorityRank[b.priority];
+                        });
+
+                        pageSanityCache = sortedData;
+                        renderSanityProjects(pageSanityCache, contentDiv);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            
+            }else{
+                renderSanityProjects(pageSanityCache, contentDiv, true);
+            }
+            } else {
+            document.querySelector('.hrms-team').style.display = 'none';
+        }
+
+
+        if (menu === 'project-finances-content') {
+            document.querySelector('.project-finances-content').style.display = 'flex';
+
+
+            fetch('/api/projects/')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch project finances');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const contentDiv = document.querySelector('.project-finances-content');
+                    contentDiv.innerHTML = '';
+                    data.forEach(project => {
+                        const projectDiv = document.createElement('div');
+                        projectDiv.classList.add('project-section');
+
+                        projectDiv.innerHTML = `
+                            <div class="hrms-project-heading">
+                                <b>${project.project_name}</b>
+                                <svg id="${project.id}" onclick="toggleFinanceTable(this)" style="cursor: pointer;" width="14" height="8"
+                                    viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                            
+                            <div class="table-container" style="display: none;">
+                                <div class="budget-row">
+                                    <span class="total-budget">Total Budget: ₹...</span>
+                                    <span class="remaining-budget">Remaining Budget: ₹...</span>
+                                </div>
+                                <table class="hrms-table">
+                                    <thead style="background-color: #F2F4FF; width: 100%;">
+                                        <tr style="text-align: left; height: 40px; background-color: #F2F4FF;">
+                                            <th style="width: 10%; padding: 0px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Roles">Roles</th>
+                                            <th style="width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Personnel">Personnel</th>
+                                            <th style="width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Pay Type">Pay Type</th>
+                                            <th style="width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Pay Per Task">Pay Per Task</th>
+                                            <th style="width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Bounties Assigned">Bounties Assigned</th>
+                                            <th style="width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Completed">Completed</th>
+                                            <th style="width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Budget Assigned">Budget Assigned</th>
+                                            <th style="width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Budget Utilized">Budget Utilized</th>
+                                            <th style="width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Budget Left">Budget Left</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="finance-table">
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                        contentDiv.appendChild(projectDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        } else {
+            document.querySelector('.hrms-team').style.display = 'none';
+        }   
+
+
+
+        document.querySelector('.hrms-content').style.display = menu === 'hrms' ? 'flex' : 'none';
+        document.querySelector('.hrms-team').style.display = menu === 'team' ? 'flex' : 'none';
+        document.querySelector('.project-sanity').style.display = menu === 'project-sanity' ? 'flex' : 'none';
+        document.querySelector('.project-finances-content').style.display = menu === 'project-finances-content' ? 'flex' : 'none';
+
+        // console.log('hi')
+    }
+
+
+    //stored team members for projects HRMS
+    const teamMembersCache = {};
+
+    //function to call team-member api for project
+    function toggleTable(element) {
+        const projectId = element.id;
+        const tableContainer = element.closest('.project-section').querySelector('.table-container');
+        const icon = element.querySelector('path');
+        const teamMembersBody = tableContainer.querySelector('.team-members');
+        tableContainer.style.display = tableContainer.style.display === 'block' ? 'none' : 'block';
+
+        icon.setAttribute('d', tableContainer.style.display === 'none'
+            ? 'M1 1L7 7L13 1'
+            : 'M13 7L7 1L1 7');
+        
+        if (tableContainer.style.display === 'block') {
+            const tbody = tableContainer.querySelector('tbody');
+            tbody.innerHTML = `<tr>
+                                    <td colspan="6" style="text-align: center;">
+                                        <div class="loading-spinner"></div>
+                                    </td>
+                            </tr>`;
+
+        // check if team members are already cache
+        if (teamMembersCache[projectId]) {
+            populateTeamMembers(teamMembersCache[projectId], teamMembersBody);
+        }
+        else {
+                fetch(`/api/project/${projectId}/team-members/`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                       
+                        teamMembersCache[projectId] = data; 
+                        populateTeamMembers(data, teamMembersBody);
+                       
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+            
+        }
+
+    }
+
+    //function to populate team members for hrms project
+    function populateTeamMembers(teamMembers, tableBody) {
+        tableBody.innerHTML = ''; 
+        teamMembers.forEach(member => {
+            const row = document.createElement('tr');
+            row.classList.add('hrms-table-tr');
+
+            row.innerHTML = `
+                <td style="padding-left: 10px;">${member.name}</td>
+                <td>${member.role}</td>
+                <td>${member.pay_type || 'N/A'}</td>
+                <td>${member.start_date}</td>
+                <td class="internship-end-date">${member.end_date}</td>
+            `;
+
+            tableBody.appendChild(row);
+        });
+    }
+
+    //populate project finance 
+
+    const projectFinanceCache = {};
+
+    //function to call team-member api for project
+    function toggleFinanceTable(element) {
+        const projectId = element.id;
+        const tableContainer = element.closest('.project-section').querySelector('.table-container');
+        const icon = element.querySelector('path');
+        const projectFinanceBody = tableContainer.querySelector('.finance-table');
+        
+        // Toggle display
+        const isShowing = tableContainer.style.display === 'none';
+        tableContainer.style.display = isShowing ? 'block' : 'none';
+        // Update icon
+        icon.setAttribute('d', tableContainer.style.display === 'none'
+            ? 'M1 1L7 7L13 1'
+            : 'M13 7L7 1L1 7');
+        
+        // Only fetch data when table is being displayed
+        if (isShowing) {
+            if (projectFinanceCache[projectId]) {
+                populateFinanceTable(projectFinanceCache[projectId], projectFinanceBody);
+            } else {
+                // Show loading spinner
+                projectFinanceBody.innerHTML = `<tr>
+                    <td colspan="9" class="text-center">
+                        <div class="loading-spinner"></div>
+                    </td>
+                </tr>`;
+                // Fetch data for this specific project
+                fetch(`/api/project-finances/?project_id=${projectId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        projectFinanceCache[projectId] = data; // Cache the response
+                        populateFinanceTable(data, projectFinanceBody);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        projectFinanceBody.innerHTML = `<tr>
+                            <td colspan="9" class="text-center">
+                                Error loading data
+                            </td>
+                        </tr>`;
+                    });
+                }
+        }
+    }
+
+    function truncateText(text, maxLength = 10) {
+        if (text === null || text === undefined) return '';
+        return String(text).length > maxLength ? String(text).slice(0, maxLength) + '...' : text;
+    }
+    //function to populate team members for hrms project
+    function populateFinanceTable(data, tableBody) {
+        tableBody.innerHTML = ''; 
+        if (!data.details || data.details.length === 0) {
+            tableBody.innerHTML = `<tr>
+                <td colspan="9" class="text-center">No finance data available</td>
+            </tr>`;
+            return;
+        }
+        const totalBudgetElement = document.querySelector('.total-budget');
+        const remainingBudgetElement = document.querySelector('.remaining-budget');
+
+        totalBudgetElement.textContent = `Total Budget: ₹${data.total_budget}`;
+        remainingBudgetElement.textContent = `Remaining Budget: ₹${data.remaining_budget}`;
+        
+        data.details.forEach(detail => {
+            const row = document.createElement('tr');
+            row.classList.add('project-table-tr');
+            
+            row.innerHTML = `
+                <td style="padding: 8px 12px; box-sizing: border-box;">${truncateText(detail.role)}</td>
+                <td style="padding: 8px 12px; box-sizing: border-box;">${detail.personnel}</td>
+                <td style="padding: 8px 12px; box-sizing: border-box;">${truncateText(detail.pay_type)}</td>
+                <td style="padding: 8px 12px; box-sizing: border-box;">${truncateText(detail.pay_per_task)}</td>
+                <td style="padding: 8px 12px; box-sizing: border-box;">${truncateText(detail.bounties_assigned)}</td>
+                <td style="padding: 8px 12px; box-sizing: border-box;">${truncateText(detail.completed)}</td>
+                <td style="padding: 8px 12px; box-sizing: border-box;">${truncateText(detail.budget_assigned)}</td>
+                <td style="padding: 8px 12px; box-sizing: border-box;">${truncateText(detail.budget_utilized)}</td>
+                <td style="padding: 8px 12px; box-sizing: border-box;">${truncateText(detail.budget_left)}</td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+    }
+
+
+
+    // function teamDept(){
+    //     const dept_name = document.querySelectorAll('.team-project-heading');
+
+
+    // }
+
+
+
+    //team user search
+    // let controller;
+    // document.getElementById('userSearchInput').addEventListener('input', function() {
+    //     if (controller) {
+    //         controller.abort();
+    //     }
+
+    //     //abort old request if input value chnages
+    //     controller = new AbortController();
+    //     searchEmployee(controller.signal);
+    // });
+
+
+    //search team by name function
+    function searchEmployee() {
+        const query = document.getElementById('userSearchInput').value;
+        const url = `/api/user-search/?q=${encodeURIComponent(query)}`;
+        const teamContainer = document.querySelector('.team-dash');
+        teamContainer.innerHTML = '';
+        
+        if (query == "") {
+            teamContainer.innerHTML = '';
+            activateMenu('team');
+        }
+        else{
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                // console.log('Response:', data);
+                 if(data.length ===0 )
+                 {
+                    teamContainer.innerHTML = `
+                    <div style="color:#A90420;">
+                           No users found with the username <b>${query}</b> ❗❗
+                        </div>`;
+                    
+                 }
+                const departments = {};
+                // console.log("FG",departments)
+
+                let hasDepartment = false;        
+                
+                data.forEach(employee => {
+                    // if the employee has any departments
+                    if (employee.deptid && employee.deptid.length > 0) {
+                        hasDepartment = true;        
+                        employee.deptid.forEach(department => {
+                            const departmentId = department.id;
+                            if (!departments[departmentId]) {
+                                departments[departmentId] = {
+                                    dept_name: department.dept_name,
+                                    employees: []
+                                };
+                            }
+                            departments[departmentId].employees.push(employee);  
+                        });
+                    } else {
+                        // employe with no depart
+                        if (!departments['No Department']) {
+                            departments['No Department'] = {
+                                dept_name: 'No Department',
+                                employees: []
+                            };
+                        }
+                        departments['No Department'].employees.push(employee);
+                    }
+                });
+
+                
+                Object.keys(departments).forEach(departmentId => {
+                    const department = departments[departmentId];
+                    const projectSection = document.createElement('div');
+                    projectSection.classList.add('dept-section');
+                    const totalEmployees = department.employees.length;
+                    //no user
+
+                    projectSection.innerHTML = `
+                        <div class="team-project-heading">
+                            <b>${department.dept_name} (${totalEmployees})</b>
+                            <svg class="toggle-icon" id="${departmentId}" onclick="teamToggleTable(this)" style="cursor: pointer;" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M13 7L7 1L1 7" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <div class="table-container" style="display:block">
+                            <table class="teams-table">
+                                <thead style="background-color: #F2F4FF; width: 100%;">
+                                    <tr style="text-align: left; height: 40px; background-color: #F2F4FF;">
+                                        <th style="width: 15%; padding: 0px 8px;">Name</th>
+                                        <th style="width: 20%;">Remarks</th>
+                                        <th style="width: 20%;">Project</th>
+                                        <th style="width: 15%;">Pay Type</th>
+                                        <th style="width: 15%;">Start Date</th>
+                                        <th style="width: 15%;">Internship End Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody style="color: #6D747A; font-size: 16px;"></tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    teamContainer.appendChild(projectSection);
+                    const tbody = projectSection.querySelector('tbody');
+
+                    
+                    // searchrender(tbody, department.employees);
+                    renderEmployeeData(tbody,department.employees);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching search results:', error);
+            });
+        }
+    }
+
+    function teamToggleTable(element){
+        const departmentId = element.id;
+        const tableContainer = element.closest('.dept-section').querySelector('.table-container');
+        const icon = element.querySelector('path');
+
+        tableContainer.style.display = tableContainer.style.display === 'none' ? 'block' : 'none';
+
+        icon.setAttribute('d', tableContainer.style.display === 'block'
+            ? 'M13 7L7 1L1 7'
+            : 'M1 1L7 7L13 1');
+    }
+
+    // function searchrender(tbody, employees) {
+    //     renderEmployeeData(tbody, employees);
+    //     console.log('rendering data:', employees);
+    // }
+
+
+    //stored Department employeee cached data
+    const employeeDataCache = new Map();
+
+
+
+    function hrmsTeamToggleTable(element) {
+        const departmentId = element.id;
+        const tableContainer = element.closest('.dept-section').querySelector('.table-container');
+        const icon = element.querySelector('path');
+        const bountyDurationSelect = tableContainer.querySelector('#bountyDurationSelect');
+
+        // Toggle table visibility
+        tableContainer.style.display = tableContainer.style.display === 'block' ? 'none' : 'block';
+
+        // Update icon
+        icon.setAttribute('d', tableContainer.style.display === 'none'
+            ? 'M1 1L7 7L13 1'
+            : 'M13 7L7 1L1 7');
+
+        // Add event listener to duration select if not already added
+        if (bountyDurationSelect && !bountyDurationSelect.hasAttribute('data-listener-added')) {
+            bountyDurationSelect.addEventListener('change', () => {
+                const selectedDuration = parseInt(bountyDurationSelect.value);
+                const tbody = tableContainer.querySelector('tbody');
+
+                // Show loading
+                tbody.innerHTML = `<tr>
+                                        <td colspan="9" style="text-align: center;">
+                                            <div class="loading-spinner"></div>
+                                        </td>
+                                    </tr>`;
+
+                // Create cache key
+                const cacheKey = `${departmentId}_${selectedDuration}`;
+
+                // Check cache first
+                if (employeeDataCache.has(cacheKey)) {
+                    const data = employeeDataCache.get(cacheKey);
+                    renderEmployeeData(tbody, data, departmentId);
+                    return;
+                }
+
+                // Fetch data with selected duration
+                fetch(`/api/department/${departmentId}/employees/?duration=${selectedDuration}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Cache the fetched data
+                        employeeDataCache.set(cacheKey, data);
+                        renderEmployeeData(tbody, data, departmentId);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        tbody.innerHTML = `<tr>
+                                                <td colspan="9" style="text-align: center;">
+                                                    Error loading data
+                                                </td>
+                                            </tr>`;
+                    });
+            });
+
+            // Mark the select to prevent multiple listeners
+            bountyDurationSelect.setAttribute('data-listener-added', 'true');
+        }
+
+        // If opening the table, load initial data
+        if (tableContainer.style.display === 'block') {
+            const tbody = tableContainer.querySelector('tbody');
+            const initialDuration = bountyDurationSelect ? parseInt(bountyDurationSelect.value) : 7;
+
+            // Create cache key
+            const cacheKey = `${departmentId}_${initialDuration}`;
+
+            // Show loading
+            tbody.innerHTML = `<tr>
+                                    <td colspan="9" style="text-align: center;">
+                                        <div class="loading-spinner"></div>
+                                    </td>
+                                </tr>`;
+
+            // Check cache first
+            if (employeeDataCache.has(cacheKey)) {
+                const data = employeeDataCache.get(cacheKey);
+                renderEmployeeData(tbody, data, departmentId);
+                return;
+            }
+
+            // Fetch initial data
+            fetch(`/api/department/${departmentId}/employees/?duration=${initialDuration}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Cache the fetched data
+                    employeeDataCache.set(cacheKey, data);
+                    renderEmployeeData(tbody, data, departmentId);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    tbody.innerHTML = `<tr>
+                                            <td colspan="9" style="text-align: center;">
+                                                Error loading data
+                                            </td>
+                                        </tr>`;
+                });
+        }
+    }
+
+
+    function fetchUserFeedback(userId,departmentId) {
+        const apiUrl = `/api/user/${userId}/feedback/`;
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const thumbsUp = data.total_thumbs_up || 0;
+                const thumbsDown = data.total_thumbs_down || 0;
+                updateCircleColors(thumbsUp, thumbsDown, 'greenCircle'+ departmentId + '_' + userId, 'redCircle' + departmentId + '_' + userId);
+            })
+            .catch(error => {
+                console.error('Error fetching user feedback:', error);
+            });
+    }
+
+    function fetchNoticePeriodStatus(userId, deptId) {
+        const apiUrl = `/api/user/${userId}/on-notice/`;
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.is_on_notice){
+                    noticePeriodClass = `.noticePeriod${deptId}_${userId}`;
+                    document.querySelector(noticePeriodClass).style.display = 'inline-block';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching user status:', error);
+            });
+    }
+    
+    function fetchUserBounties(userId, duration = 30, callback) {
+        const apiUrl = `/api/user/${userId}/bounties/${duration}/`;
+        
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const totalBounties = data.total_bounties || 0;
+                const completedBounties = data.completed_bounties || 0;
+                const totalTasks = data.total_tasks || 0;
+                const completedTasks = data.completed_tasks || 0;
+                
+                if (callback) {
+                    callback({
+                        totalBounties,
+                        completedBounties,
+                        totalTasks,
+                        completedTasks
+                    }); 
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching user bounties:', error);
+                if (callback) {
+                    callback({
+                        totalBounties: 0,
+                        completedBounties: 0,
+                        totalTasks: 0,
+                        completedTasks: 0
+                    }); // Fallback values in case of error
+                }
+            });
+    }
+
+
+    //eod
+let currentEODUserId = null;
+
+function openEODSummary(userId) {
+  currentEODUserId = userId;
+  document.getElementById('eodSummaryModal').classList.remove('hidden');
+  fetchAndRenderEOD(userId, 'last_7_days'); // default filter
+}
+
+function closeEODModal() {
+  document.getElementById('eodSummaryModal').classList.add('hidden');
+}
+
+document.getElementById('closeEODModalBtn').addEventListener('click', closeEODModal);
+
+document.getElementById('dateFilter').addEventListener('change', () => {
+  const filterValue = document.getElementById('dateFilter').value;
+  fetchAndRenderEOD(currentEODUserId, filterValue);
+});
+
+async function fetchAndRenderEOD(userId, filterValue) {
+  const tbody = document.getElementById('eodTableBody');
+  tbody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
+
+  try {
+    const res = await fetch(`/tasks/api/eod-report/?user=${userId}&filter=${filterValue}`, {
+      credentials: 'include'
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! Status: ${res.status}`);
+    }
+
+    const data = await res.json();
+    tbody.innerHTML = '';
+
+    // Determine date list
+    let allDates = [];
+    if (filterValue === "last_7_days") {
+      allDates = getPastDates(7);
+    } else if (filterValue === "last_15_days") {
+      allDates = getPastDates(15);
+    } else {
+      allDates = getMonthDates(filterValue); // month name → array of YYYY-MM-DD
+    }
+
+    allDates.forEach(date => {
+      const entries = data.filter(item => item.date === date);
+
+      if (entries.length > 0) {
+        entries.forEach((entry, index) => {
+          const row = document.createElement("tr");
+
+          const dateCell = document.createElement("td");
+          dateCell.textContent = index === 0 ? date : "";
+
+          const projectCell = document.createElement("td");
+          projectCell.textContent = entry.project_name;
+
+          const summaryCell = document.createElement("td");
+          summaryCell.innerHTML = `${entry.task_name} -- ${entry.text}
+            <span class="status-chip ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}">
+              ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}
+            </span>`;
+
+          const bountyCell = document.createElement("td");
+          bountyCell.textContent = entry.bounty;
+
+          row.append(dateCell, projectCell, summaryCell, bountyCell);
+          tbody.appendChild(row);
+        });
+      } else {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${date}</td>
+          <td>-</td>
+          <td>No EOD submitted today</td>
+          <td>-</td>
+        `;
+        tbody.appendChild(row);
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = '<tr><td colspan="4">Error loading data</td></tr>';
+  }
+}
+
+// Helpers
+
+
+// Generate past N days in YYYY-MM-DD
+function getPastDates(days) {
+  const dates = [];
+  const today = new Date();
+  for (let i = 0; i < days; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    dates.push(formatDateee(d));
+  }
+  return dates;
+}
+
+// Generate all days of given month name
+function getMonthDates(monthName) {
+  const monthIndex = new Date(`${monthName} 1, ${new Date().getFullYear()}`).getMonth();
+  const year = new Date().getFullYear();
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const dates = [];
+  for (let i = 1; i <= daysInMonth; i++) {
+    dates.push(formatDateee(new Date(year, monthIndex, i)));
+  }
+  return dates;
+}
+
+// Format date to YYYY-MM-DD
+function formatDateee(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+
+
+//end of eod
+
+    function openAssignGoalModal(userId) {
+    // Code to display the Goal Description form as an overlay
+        document.getElementById('assignGoalModal').style.display = 'flex';
+        const form = document.getElementById('assignGoalForm');
+        form.action = `/users/${userId}/assign-goal/`;
+    }
+
+    // Handle form submission using AJAX
+    document.getElementById('assignGoalForm').addEventListener('submit', function (e) {
+        e.preventDefault(); // Prevent default form submission
+
+        const form = this;
+        const userId = form.action.split('/')[4];  // Extract userId from the form action URL
+        const description = document.getElementById('description').value;
+        const assignedOn = document.getElementById('assigned_on').value;
+
+        // Prepare data to send to the backend
+        const formData = new FormData();
+        formData.append('description', description);
+        formData.append('assigned_on', assignedOn);
+
+        // Send the data using Fetch API
+        fetch(`/users/${userId}/assign-goal/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),  // Ensure CSRF token is included
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert(data.message);  // Show success message
+                closeModal();  // Close the modal
+            } else {
+                alert('Failed to assign goal');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while assigning the goal');
+        });
+    });
+
+    function closeModal() {
+        document.getElementById('assignGoalModal').style.display = 'none';
+    }
+
+    function openGoalOverview(userId) {
+        // Fetch goal overview data for the specific user
+        fetch(`/users/${userId}/goals/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch goal overview');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update overall feedback
+                const overallFeedbackText = document.getElementById('overallFeedbackText');
+                overallFeedbackText.innerHTML = data.overall_feedback 
+                    ? `<b>Overall Feedback: ${data.overall_feedback}</b>`
+                    : '<b>Overall Feedback: No feedback available</b>';
+
+                // Populate goals table
+                const goalsTableBody = document.getElementById('goalsTableBody');
+                goalsTableBody.innerHTML = ''; // Clear existing content
+
+                if (data.goals.length === 0) {
+                    goalsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="3">No goals assigned yet.</td>
+                        </tr>
+                    `;
+                } else {
+                    data.goals.forEach(goal => {
+                        const feedback = goal.feedback[0] || { thumbs_up: 0, thumbs_down: 0, id: null };
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${goal.description}</td>
+                            <td>
+                                <div class="feedback-buttons">
+                                    <span class="thumbs-up" onclick="sendFeedback('${goal.feedback_urls.thumbs_up}', ${goal.id})">
+                                        <i style="color:green; margin-right:5px;" class="bi bi-hand-thumbs-up"></i>
+                                        <span id="thumbs-up-count-${goal.id}">${feedback.thumbs_up}</span>
+                                    </span>
+                                    <span class="thumbs-down" onclick="sendFeedback('${goal.feedback_urls.thumbs_down}', ${goal.id})">
+                                        <i style="color:red; margin-right:5px;" class="bi bi-hand-thumbs-down"></i>
+                                        <span id="thumbs-down-count-${goal.id}">${feedback.thumbs_down}</span>
+                                    </span>
+                                </div>
+                            </td>
+                            <td>${goal.assigned_on}</td>
+                            <td>
+                                <button class="deleteGoalBtn" onclick="deleteGoal(${userId},${goal.id})" data-goal-id="${goal.id}"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        `;
+                        goalsTableBody.appendChild(row);
+                    });
+                }
+
+                // Display the modal
+                document.getElementById('goalOverviewModal').style.display = 'flex';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to load goal overview');
+            });
+    }
+
+    function deleteGoal(userId, goalId) {
+        if (!confirm('Are you sure you want to delete this goal?')) {
+            return;
+        }
+
+        fetch(`/users/${userId}/goals/${goalId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')  // Ensure CSRF token is included
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to delete goal');
+            }
+            // Remove the goal from the table
+            const row = document.querySelector(`button[data-goal-id="${goalId}"]`).closest('tr');
+            row.remove();
+            alert('Goal deleted successfully');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to delete goal');
+        });
+    }
+
+    function closeGoalOverviewModal() {
+        document.getElementById('goalOverviewModal').style.display = 'none';
+    }
+
+    function sendFeedback(url, goalId) {
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.error || 'An error occurred.');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById(`thumbs-up-count-${goalId}`).innerText = data.thumbs_up;
+            document.getElementById(`thumbs-down-count-${goalId}`).innerText = data.thumbs_down;
+        })
+        .catch(error => {
+            alert(error.message);
+            console.error('Error:', error);
+        });
+    }
+
+    function renderEmployeeData(tbody, data, departmentId = 'default') {
+        tbody.innerHTML = ''; // Clear the table body
+        const bountyDurationSelect = tbody.closest('.table-container').querySelector('#bountyDurationSelect');
+        data.forEach(employee => {
+            const row = document.createElement('tr');
+            row.classList.add('teams-table-tr');
+            // Assign unique IDs for bounties fields
+            const bountiesAssignedClass = `bountiesAssigned${departmentId}_${employee.user_id}`;
+            const bountiesCompletedClass = `bountiesCompleted${departmentId}_${employee.user_id}`;
+            
+            // Default bounty values in case bounty_info is not present
+            const bountyInfo = employee.bounty_info || {
+                total_bounties: 0,
+                completed_bounties: 0,
+                total_tasks: 0,
+                completed_tasks: 0,
+                duration: 7
+            };
+
+            row.innerHTML = `
+                <td style="width: 15%; padding: 8px 12px; text-align: left; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="team-name" id="${employee.user_id}" performance-status="${employee.status}" style="min-width: 150px; max-width: 150px;">
+                            <span>
+                                ${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}
+                            </span>
+                            <div style="display: flex; align-items: center; margin-left: 8px;">
+                                <svg style="cursor: pointer; flex-shrink: 0;" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px; margin-left: auto;">
+                            <span class="noticePeriodStatus noticePeriod${departmentId}_${employee.user_id}" style="flex-shrink: 0;"><i class="fa-regular fa-clock"></i></span>
+                            <span class="status-circle green-circle greenCircle${departmentId}_${employee.user_id}" style="flex-shrink: 0;"></span>
+                            <span class="status-circle red-circle redCircle${departmentId}_${employee.user_id}" style="flex-shrink: 0;"></span>
+                        </div>
+                    </div>
+                </td>
+                <td style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">
+                    <div class="remarks-container">
+                        <input data-user-id="${employee.user_id}" class="remarks-team-input" type="text" value="${employee.remark}">
+                        <div class="remarks-tooltip">${employee.remark}</div>
+                    </div>
+                </td>
+                <td style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        ${employee.projects.map(project => `<div>${project.project_name}</div>`).join('')}
+                    </div>
+                </td>
+                <td style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">
+                    ${employee.pay_type === "Performance Based" ? "Performance" : employee.pay_type}
+                </td>
+                <td style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">${formatDate(employee.start_date)}</td>
+                <td style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;" class="internship-end-date">${formatDate(employee.end_date)}</td>
+                <td style="width: 10%; padding: 8px 12px; text-align: center; box-sizing: border-box;" class="${bountiesAssignedClass}">${bountyInfo.allocated_bounties}</td>
+                <td style="width: 10%; padding: 8px 12px; text-align: center; box-sizing: border-box;" class="${bountiesCompletedClass}">${bountyInfo.completed_bounties}</td>
+                <td style="width: 5%; padding: 8px 12px; text-align: center; box-sizing: border-box;">
+                    <div class="three-dot-menu">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                        <div class="hover-menu">
+                            <div class="hover-menu-item" onclick="openAssignGoalModal(${employee.user_id})">Assign Goal</div>
+                            <div class="hover-menu-item" onclick="openGoalOverview(${employee.user_id})">Goal Overview</div>
+                            <div class="hover-menu-item" onclick="openEODSummary(${employee.user_id})">EOD Summary</div>
+
+                        </div>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+            fetchNoticePeriodStatus(employee.user_id, departmentId);
+            // Fetch bounties data and update the table dynamically
+            fetchUserFeedback(employee.user_id, departmentId);
+            if (bountyDurationSelect && !bountyDurationSelect.hasAttribute('data-listener-added')) {
+                bountyDurationSelect.addEventListener('change', () => {
+                    const selectedDuration = parseInt(bountyDurationSelect.value);
+                });
+                bountyDurationSelect.setAttribute('data-listener-added', 'true');
+            }
+        });
+
+        highlightUpcomingEndDates();
+        attachSvgClickHandler();
+        applyBackgroundColors();
+        attachInputListeners();
+    }
+
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        const day = date.getDate();
+        const month = date.toLocaleString('default', { month: 'short' });
+        const year = date.getFullYear();
+
+        return `${day} ${month}, ${year}`;
+    }
+
+
+    window.onload = () => {
+        activateMenu('team');
+    };
+
+    function attachSvgClickHandler() {
+        document.querySelectorAll('.teams-table-tr svg').forEach((icon, index) => {
+            icon.addEventListener('click', function (event) {
+                // console.log( event);
+                const modal = document.getElementById('performance-modal');
+
+                const rect = event.target.getBoundingClientRect();
+
+                modal.style.top = `${rect.bottom + window.scrollY}px`;
+                modal.style.left = `${rect.left + window.scrollX}px`;
+
+                modal.style.display = 'block';
+
+                modal.setAttribute('data-target-row', index);
+            });
+        });
+    }
+
+
+    attachSvgClickHandler();
+
+    // function performanceModal(){
+
+    // }
+
+    //close performance modal
+    document.getElementById('close-performance-modal').addEventListener('click', function () {
+        document.getElementById('performance-modal').style.display = 'none';
+    });
+
+
+    // Helper function to get the CSRF token from the cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    if (!csrftoken) {
+        console.error('CSRF token not found!');
+    }
+
+
+    //change perfomance status from modal
+    function attachPerformanceOptionHandlers() {
+        document.querySelectorAll('.performance-options > div').forEach(option => {
+            option.addEventListener('click', function () {
+                const selectedStatus = this.getAttribute('performance-status');
+                const rowIndex = document.getElementById('performance-modal').getAttribute('data-target-row');
+                const targetRow = document.querySelectorAll('.teams-table-tr')[rowIndex];
+
+                const teamNameCell = targetRow.querySelector('.team-name');
+                const userId = teamNameCell.id;
+                // console.log(userId)
+
+                fetch(`/api/user-status/${userId}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                    },
+                    body: JSON.stringify({ status: selectedStatus }),
+                    credentials: 'include'
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to update performance status');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        
+                        updateEmployeeCache(userId, { status: selectedStatus, department_id: data.department_id });
+                        
+                        //update bg color
+                        setTeamMemberStatus(teamNameCell, selectedStatus);
+
+                        // close modal
+                        document.getElementById('performance-modal').style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error('Error updating status:', error);
+                    });
+
+
+                // Reset 
+                // targetRow.querySelectorAll('td').forEach(td => {
+                //     td.style.backgroundColor = '';
+                // });
+
+                // bg color based on the selection
+                setTeamMemberStatus(teamNameCell, selectedStatus);
+
+
+                // console.log("name", teamMemberName, "performance status", selectedStatus);
+
+                // Close modal
+                document.getElementById('performance-modal').style.display = 'none';
+            });
+        });
+    }
+
+
+    //update cachedata
+
+    function updateEmployeeCache(userId, updates) {
+       
+        for (const [departmentId, employees] of employeeDataCache.entries()) {
+           
+            const employeeIndex = employees.findIndex(emp => emp.user_id === Number(userId));
+
+         
+            if (employeeIndex !== -1) {
+               
+                Object.assign(employees[employeeIndex], updates);
+                // console.log('Updated employee in department', departmentId, employees[employeeIndex]);
+            }
+        }
+    }
+
+
+    //apply performace bg color
+    function applyBackgroundColors() {
+        document.querySelectorAll('.team-name').forEach(element => {
+            const status = element.getAttribute('performance-status');
+            setTeamMemberStatus(element, status);
+        });
+    }
+
+    //function post performace status
+    function setTeamMemberStatus(element, status) {
+        switch (status) {
+            case 'Good Performer':
+                element.style.backgroundColor = '#9FDFBE';
+                element.style.color = '#08090A';
+                break;
+            case 'Medium Performer':
+                element.style.backgroundColor = '#FFEFBC';
+                element.style.color = '#08090A';
+                break;
+            case 'Low Performer':
+                element.style.backgroundColor = '#FF922B';
+                element.style.color = '#08090A';
+                break;
+            case 'On Notice':
+                element.style.backgroundColor = '#ff2c2c';
+                element.style.color = '#08090A';
+                break;
+            case 'On Bench':
+                element.style.backgroundColor = '#CED4DA';
+                element.style.color = '#08090A';
+                break;
+            case 'Unselect':
+                element.style.backgroundColor = '';
+                element.style.color = '#6D747A';
+                break;
+        }
+    }
+
+    // function call initially
+    attachPerformanceOptionHandlers();
+    applyBackgroundColors();
+
+
+    //handle remarks input chnage
+    function attachInputListeners() {
+        document.querySelectorAll('.teams-table-tr input[type="text"]').forEach(input => {
+            if (!input.hasAttribute('listener-attached')) {
+                input.setAttribute('listener-attached', 'true');
+
+                const originalValue = input.value;
+                let debounceTimer;
+
+                // Event handler for input change
+                function handleInputChange(event) {
+                    event.stopPropagation();
+                    clearTimeout(debounceTimer);
+
+                    debounceTimer = setTimeout(() => {
+                        const updatedValue = event.target.value;
+
+                        if (updatedValue !== originalValue) {
+                            const userId = event.target.getAttribute('data-user-id');
+                            // console.log("User ID:", userId);
+
+
+                            sendEmployeeRemarks(userId, updatedValue);
+                        }
+                    }, 300);
+                }
+                input.addEventListener('change', handleInputChange);
+            }
+        });
+    }
+
+
+    // function to send remarks
+    function sendEmployeeRemarks(userId, remark) {
+        fetch(`/api/user-status/${userId}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({ remark: remark }),
+            credentials: 'include'
+
+
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update remark');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Remarks successfully updated');
+                updateEmployeeCache(userId, { remark: remark, department_id: data.department_id });
+            })
+            .catch(error => {
+                console.error('Error updating remark:', error);
+            });
+    }
+
+    function selectSortButton(button, type, criteria) {
+        document.querySelectorAll('.sort-button').forEach(btn => btn.classList.remove('selected'));
+        button.classList.add('selected');
+        sortNotifications(type, criteria);
+    }
+    
+    
+    function sortNotifications(type, criteria) {
+        const notificationList = document.getElementById(`${type}-category`);
+        const notifications = Array.from(notificationList.getElementsByClassName('notif-container'));
+    
+        notifications.sort((a, b) => {
+            const aValue = a.getAttribute(`data-${criteria}`).toLowerCase();
+            const bValue = b.getAttribute(`data-${criteria}`).toLowerCase();
+            return aValue.localeCompare(bValue);
+        });
+    
+        
+        notifications.forEach((notif, index) => {
+            notif.style.order = index;
+        });
+    }
+    
+    
+    const notifications_exist = "{{notifs}}";
+    function notifClose() {
+        const notifDiv = document.querySelector(".notifications-content");
+        const notifAlert = document.querySelector(".notif-reddot");
+        const arrow = document.getElementById('notif-chevron-icon');
+        const arrowPath = arrow.querySelector('path');
+        if (notifDiv.style.display === "block" || notifDiv.style.display === "") {
+            notifDiv.style.display = "none";
+            if (notifications_exist =="True"){   
+                notifAlert.style.display = "block"
+            }
+                
+            arrowPath.setAttribute('d', 'M1 1L7 7L13 1');
+        } else {
+            notifDiv.style.display = "block";
+            notifAlert.style.display = "none"
+            arrowPath.setAttribute('d', 'M13 7L7 1L1 7');
+        }
+    }
+    function toggleCategory(element) {
+        const category = element.parentElement;
+        category.classList.toggle('expanded');
+    }
+    function handleNotificationClick(event,notifId, projectId,projectName) {
+      event.preventDefault();  // Prevent the default action (in case it's a link)
+    
+        let targetUrl = projectId ? `/project/dashboard/${projectId}/${projectName}/` : event.target.getAttribute('href');
+         
+            fetch(`/project/notifications_read/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    notif_id: notifId
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                  // Once marked as read, navigate to the target URL
+                    const notifElement = document.getElementById(`notif-${notifId}`);
+                    if (notifElement) {
+                        notifElement.remove();
+                    }
+                    if (targetUrl){
+                        //window.location.href = targetUrl;
+                    }
+                    
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        let currentNotifId = null;
+
+        // Open the snooze modal
+        function toggleSnoozeDropdown(button) {
+            const dropdown = button.parentElement.querySelector('.snooze-dropdown');
+        
+            // Toggle visibility of the dropdown
+            if (dropdown.style.display === "flex") {
+                dropdown.style.display = "none";
+            } else {
+                // First, hide all other dropdowns
+                document.querySelectorAll('.snooze-dropdown').forEach(drop => drop.style.display = 'none');
+        
+                // Position the dropdown relative to the button
+                dropdown.style.display = "flex";
+                const rect = button.getBoundingClientRect();
+                dropdown.style.top = `${rect.top + window.scrollY + button.offsetHeight}px`;
+                dropdown.style.left = `${rect.left + window.scrollX}px`;
+            }
+        }
+        
+        function closeSnoozeDropdown(closeBtn) {
+            const dropdown = closeBtn.parentElement;
+            dropdown.style.display = "none";
+        }
+        
+        
+        
+        function confirmSnooze(notifId) {
+            const dropdown = document.querySelector(`#notif-${notifId} .snooze-dropdown`);
+            const days = dropdown.querySelector('.snooze-select').value;
+        
+            // Fetch to backend to handle snoozing logic
+            fetch(`/snooze_notification/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    notif_id: notifId,
+                    snooze_days: days
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the notification from frontend
+                    const notifElement = document.getElementById(`notif-${notifId}`);
+                    if (notifElement) {
+                        notifElement.remove();
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+
+        document.addEventListener("DOMContentLoaded", function () {
+            sortNotifications('github-miss','project');
+            const categories = [
+                { id: 'tasks-category', triggers: ['task_overdue', 'task_due_today'] },
+                { id: 'github-miss-category', triggers: ['git_person'] },
+                { id: 'notice-period-category', triggers: ['person_notice','resignation'] },
+                { id: 'informational-category', triggers: [] } // Anything else
+            ];
+        
+            // Loop through each category and check if it has relevant notifications
+            categories.forEach(category => {
+                const categoryElement = document.getElementById(category.id);
+                if (categoryElement) {
+                    const notifContainers = categoryElement.querySelectorAll('.notif-container');
+                    let shouldExpand = false;
+        
+                    notifContainers.forEach(container => {
+                        const trigger = container.dataset.trigger;  // Assuming the trigger is stored in the container's dataset
+                        if (category.triggers.length === 0 || category.triggers.includes(trigger)) {
+                            shouldExpand = true;
+                        }
+                    });
+        
+                    if (shouldExpand) {
+                        categoryElement.classList.add('expanded');  // Add 'expanded' class to the category
+                    }
+                }
+            });
+        });
+
+        // function for handling the click on the resignation notification
+        function handleResignNotificationClick(event, notifId) {
+            // Prevent default behavior if needed
+            event.preventDefault();
+        
+            // Make a request to fetch the resignation request ID for the user
+            fetch(`/get-resignation-request/${notifId}/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    if (data.resignationId) {
+                        const baseUrl = window.location.origin;
+                        const url = `${baseUrl}/admin/users/resignationrequest/${data.resignationId}/change/`;
+
+                        window.open(url, '_blank');
+                    } else {
+                        alert('No resignation request found for this notification.');
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error fetching resignation request:', error);
+                    alert('Failed to fetch resignation request. Please try again later.');
+                });
+        }
+        
+        // Function to toggle categories manually when clicked
+        function toggleCategory(element) {
+            const parent = element.closest('.notification-category');
+            parent.classList.toggle('expanded');
+        }
+        
+</script>
+{% endblock %}

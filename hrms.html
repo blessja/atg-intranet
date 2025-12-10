@@ -1238,32 +1238,25 @@ document.addEventListener('keydown', handleEnterKey);
                                 </div>
                                 <div class="table-container" style="display: none;">
                                     <table class="teams-table">
-                                        <thead style="background-color: #F2F4FF; width: 100%; box-sizing: border-box;">
-                                            <tr style="height: 40px; text-align: center; font-weight: 600; color: #333333; border-bottom: 1px solid #E0E0E0;">
-                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Name</th>
-                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Remarks</th>
-                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Project</th>
-                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Pay Type</th>
-                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Start Date</th>
-                                                <th style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">Internship End Date</th>
-                                                <th style="width: 10%; padding: 8px 12px; text-align: center; box-sizing: border-box;">BA</th>
-                                                <th style="width: 10%; padding: 8px 12px; text-align: center; box-sizing: border-box;">
-                                                    <div class="bc-dropdown">
-                                                        <span class="bc-dropdown-label">BC</span>
-                                                        <div class="bc-dropdown-icon">
-                                                            <select id="bountyDurationSelect" style="border: none; background-color: transparent; appearance: none; padding: 0; margin: 0; font-size: 14px; font-weight: 500; color: #08090A;">
-                                                                <option value="30">30D</option>
-                                                                <option value="7">7D</option>
-                                                            </select>
-                                                            <svg width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                                            </svg>
-                                                        </div>
-                                                    </div>
-                                                </th>
-                                                <th style="width: 5%; padding: 8px 12px; text-align: center; box-sizing: border-box;"></th>
-                                            </tr>
-                                        </thead>
+                                       <thead style="background: #F0F5FF; border-bottom: 1px solid #E0E1E1;">
+    <tr>
+        <th style="width: 15%; padding: 8px; text-align: left;">Name / Joining date</th>
+        <th style="width: 15%; padding: 8px; text-align: left;">Skill level</th>
+        <th style="width: 13%; padding: 8px; text-align: left;">Project</th>
+        <th style="width: 15%; padding: 8px; text-align: left;">Remarks</th>
+        <th style="width: 5%; padding: 8px; text-align: left;">BA</th>
+        <th style="width: 10%; padding: 8px; text-align: left;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+                BC (30 d)
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 10L8 6L12 10" stroke="#08090A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </th>
+        <th style="width: 22%; padding: 8px; text-align: left;">EOD Summary & Attendance</th>
+        <th style="width: 5%; padding: 8px;"></th>
+    </tr>
+</thead>
                                         <tbody style="color: #6D747A; font-size: 16px;"></tbody>
                                     </table>
                                 </div>
@@ -1648,16 +1641,25 @@ document.addEventListener('keydown', handleEnterKey);
                         </div>
                         <div class="table-container" style="display:block">
                             <table class="teams-table">
-                                <thead style="background-color: #F2F4FF; width: 100%;">
-                                    <tr style="text-align: left; height: 40px; background-color: #F2F4FF;">
-                                        <th style="width: 15%; padding: 0px 8px;">Name</th>
-                                        <th style="width: 20%;">Remarks</th>
-                                        <th style="width: 20%;">Project</th>
-                                        <th style="width: 15%;">Pay Type</th>
-                                        <th style="width: 15%;">Start Date</th>
-                                        <th style="width: 15%;">Internship End Date</th>
-                                    </tr>
-                                </thead>
+                              <thead style="background: #F0F5FF; border-bottom: 1px solid #E0E1E1;">
+    <tr>
+        <th style="width: 15%; padding: 8px; text-align: left;">Name / Joining date</th>
+        <th style="width: 15%; padding: 8px; text-align: left;">Skill level</th>
+        <th style="width: 13%; padding: 8px; text-align: left;">Project</th>
+        <th style="width: 15%; padding: 8px; text-align: left;">Remarks</th>
+        <th style="width: 5%; padding: 8px; text-align: left;">BA</th>
+        <th style="width: 10%; padding: 8px; text-align: left;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+                BC (30 d)
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 10L8 6L12 10" stroke="#08090A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </th>
+        <th style="width: 22%; padding: 8px; text-align: left;">EOD Summary & Attendance</th>
+        <th style="width: 5%; padding: 8px;"></th>
+    </tr>
+</thead>
                                 <tbody style="color: #6D747A; font-size: 16px;"></tbody>
                             </table>
                         </div>
@@ -2185,94 +2187,277 @@ function formatDateee(date) {
         });
     }
 
-    function renderEmployeeData(tbody, data, departmentId = 'default') {
-        tbody.innerHTML = ''; // Clear the table body
-        const bountyDurationSelect = tbody.closest('.table-container').querySelector('#bountyDurationSelect');
-        data.forEach(employee => {
-            const row = document.createElement('tr');
-            row.classList.add('teams-table-tr');
-            // Assign unique IDs for bounties fields
-            const bountiesAssignedClass = `bountiesAssigned${departmentId}_${employee.user_id}`;
-            const bountiesCompletedClass = `bountiesCompleted${departmentId}_${employee.user_id}`;
-            
-            // Default bounty values in case bounty_info is not present
-            const bountyInfo = employee.bounty_info || {
-                total_bounties: 0,
-                completed_bounties: 0,
-                total_tasks: 0,
-                completed_tasks: 0,
-                duration: 7
-            };
+function renderEmployeeData(tbody, data, departmentId = 'default') {
+    tbody.innerHTML = '';
+    const bountyDurationSelect = tbody.closest('.table-container').querySelector('#bountyDurationSelect');
+    
+    data.forEach(employee => {
+        const row = document.createElement('tr');
+        row.style.borderBottom = '1px solid #EBEDF0';
+        
+        // Determine name badge styling based on status
+        let nameBadgeBg = '';
+        let nameBadgeColor = '#08090A';
+        let rowBg = 'white';
+        
+        switch(employee.status) {
+            case 'On Notice':
+                nameBadgeBg = '#FF1A1A';
+                nameBadgeColor = 'white';
+                break;
+            case 'Low Performer':
+                nameBadgeBg = '#FF6666';
+                nameBadgeColor = 'white';
+                break;
+            case 'On Bench':
+                nameBadgeBg = '#EBEDF0';
+                nameBadgeColor = '#08090A';
+                rowBg = '#EBEDF0';
+                break;
+            default:
+                // Normal employees have no background
+                nameBadgeBg = '';
+                nameBadgeColor = '#08090A';
+        }
+        
+        // For "Not Assigned" status
+        if (employee.projects.length === 0) {
+            rowBg = '#FFECEE';
+        }
 
-            row.innerHTML = `
-                <td style="width: 15%; padding: 8px 12px; text-align: left; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <div class="team-name" id="${employee.user_id}" performance-status="${employee.status}" style="min-width: 150px; max-width: 150px;">
-                            <span>
-                                ${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}
-                            </span>
-                            <div style="display: flex; align-items: center; margin-left: 8px;">
-                                <svg style="cursor: pointer; flex-shrink: 0;" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
+        // Determine skill level styling
+        let skillBg = '#FDF9D8';
+        let skillColor = '#7F7300';
+        let skillText = 'Basic';
+        let skillIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="8" cy="8" r="6.67" stroke="#28CF0A" stroke-width="1.33"/>
+            <path d="M5.33 8L7.33 10L10.67 6.67" stroke="#28CF0A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`;
+        
+        const skillLevel = employee.skill_level || 'basic';
+        
+        if (skillLevel.toLowerCase() === 'intermediate') {
+            skillBg = '#FDEFDD';
+            skillColor = '#A25D03';
+            skillText = 'Intermediate';
+            skillIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="6" stroke="#FF1A1A" stroke-width="1.67"/>
+                <circle cx="8" cy="5" r="0.83" fill="#FF1A1A"/>
+                <path d="M8 7v4" stroke="#FF1A1A" stroke-width="1.67" stroke-linecap="round"/>
+            </svg>`;
+        } else if (skillLevel.toLowerCase() === 'advance') {
+            skillBg = '#EDEDFD';
+            skillColor = '#504CF5';
+            skillText = 'Advance';
+            skillIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="6" stroke="#FF1A1A" stroke-width="1.67"/>
+                <circle cx="8" cy="5" r="0.83" fill="#FF1A1A"/>
+                <path d="M8 7v4" stroke="#FF1A1A" stroke-width="1.67" stroke-linecap="round"/>
+            </svg>`;
+        }
+
+        const bountyInfo = employee.bounty_info || {
+            allocated_bounties: 0,
+            completed_bounties: 0
+        };
+
+        // Build attendance calendar (you'll need to get real data from backend)
+        const attendanceHtml = employee.attendance && employee.attendance.length > 0 
+            ? employee.attendance.map(day => {
+                let bgColor = '#00B879'; // present (green)
+                if (day.status === 'pending') bgColor = '#A37D21';
+                if (day.status === 'absent') bgColor = '#DD1D43';
+                if (day.status === 'leave') bgColor = '#E44A69';
+                
+                return `<div style="width: 32px; height: 32px; padding: 10px; background: ${bgColor}; ${day.status === 'pending' || day.status === 'absent' ? 'opacity: 0.80;' : ''} border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${day.date}</div>
+                </div>`;
+            }).join('')
+            : `
+                <div style="width: 32px; height: 32px; padding: 10px; opacity: 0.80; background: #A37D21; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">23</div>
+                </div>
+                <div style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">24</div>
+                </div>
+                <div style="width: 32px; height: 32px; padding: 10px; opacity: 0.80; background: #DD1D43; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">25</div>
+                </div>
+                <div style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">26</div>
+                </div>
+                <div style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">27</div>
+                </div>
+                <div style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">28</div>
+                </div>
+                <div style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">29</div>
+                </div>
+            `;
+
+        row.innerHTML = `
+            <td style="flex: 1; padding: 16px 8px 16px 16px; background: ${rowBg};">
+                <div style="display: flex; gap: 4px; align-items: flex-start;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="width: 158px; padding: 2px 4px; ${nameBadgeBg ? 'background: ' + nameBadgeBg + ';' : ''} border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1; color: ${nameBadgeColor}; font-size: 16px; font-family: Roboto; font-weight: 400; line-height: 24px; letter-spacing: 0.08px;">${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}</div>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(180deg);">
+                                <path d="M4 10L8 6L12 10" stroke="${nameBadgeColor}" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;">${formatDate(employee.start_date)}</div>
+                    </div>
+                    <div style="width: 24px; height: 24px; position: relative;">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="position: absolute; left: 4px; top: 4px;">
+                            <circle cx="8" cy="8" r="6" stroke="#6D747A" stroke-width="1.33"/>
+                            <path d="M8 11V8M8 5H8.01" stroke="#6D747A" stroke-width="1.33" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </td>
+            <td style="width: 161px; padding: 16px 8px; background: ${rowBg};">
+                <div class="skill-level-dropdown" data-employee-id="${employee.user_id}" style="display: flex; align-items: center; gap: 8px;">
+                    <div style="padding: 2px; border-radius: 20px; border: 1px solid #9B99F3; display: flex; align-items: center; gap: 8px; position: relative;">
+                        <div class="skill-badge" style="padding: 4px 8px; background: ${skillBg}; border-radius: 25px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            ${skillIcon}
+                            <span style="color: ${skillColor}; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px;">${skillText}</span>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-180deg); margin-right: 4px;">
+                            <path d="M4 10L8 6L12 10" stroke="#08090A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div class="skill-dropdown-menu" style="width: 145px; padding: 8px; position: absolute; top: 36px; left: 0; background: white; box-shadow: 0px 1px 4px rgba(12, 12, 13, 0.05); border-radius: 4px; border: 1px solid #D9D9D9; display: none; flex-direction: column; gap: 8px; z-index: 10;">
+                            <div class="skill-option" data-skill="intermediate" style="padding: 4px 8px; background: #FDEFDD; border-radius: 25px; cursor: pointer;">
+                                <span style="color: #A25D03; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px;">Intermediate</span>
+                            </div>
+                            <div class="skill-option" data-skill="advance" style="padding: 4px 8px; border-radius: 25px; cursor: pointer;">
+                                <span style="color: #504CF5; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px;">Advance</span>
+                            </div>
+                            <div class="skill-option" data-skill="basic" style="padding: 4px 8px; border-radius: 25px; cursor: pointer;">
+                                <span style="color: #7F7300; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px;">Basic</span>
                             </div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 4px; margin-left: auto;">
-                            <span class="noticePeriodStatus noticePeriod${departmentId}_${employee.user_id}" style="flex-shrink: 0;"><i class="fa-regular fa-clock"></i></span>
-                            <span class="status-circle green-circle greenCircle${departmentId}_${employee.user_id}" style="flex-shrink: 0;"></span>
-                            <span class="status-circle red-circle redCircle${departmentId}_${employee.user_id}" style="flex-shrink: 0;"></span>
-                        </div>
                     </div>
-                </td>
-                <td style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">
-                    <div class="remarks-container">
-                        <input data-user-id="${employee.user_id}" class="remarks-team-input" type="text" value="${employee.remark}">
-                        <div class="remarks-tooltip">${employee.remark}</div>
+                </div>
+            </td>
+            <td style="width: 130px; padding: 16px 8px; background: ${rowBg};">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${employee.projects && employee.projects.length > 0 
+                        ? employee.projects.map(p => `<div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;">${p.project_name}</div>`).join('') 
+                        : '<div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px;">-</div>'}
+                </div>
+            </td>
+            <td style="width: 167px; padding: 16px 8px; background: ${rowBg};">
+                ${employee.remark || employee.status === 'On Bench' ? `
+                    <div style="border: 1px solid #CED4DA; border-radius: 2px; padding: 8px;">
+                        <textarea class="remarks-field" data-user-id="${employee.user_id}" style="width: 100%; border: none; outline: none; color: ${employee.remark ? '#08090A' : '#6D747A'}; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px; resize: none; min-height: 60px;" placeholder="Add remarks...">${employee.remark || ''}</textarea>
                     </div>
-                </td>
-                <td style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        ${employee.projects.map(project => `<div>${project.project_name}</div>`).join('')}
+                ` : '<div style="height: 33px; border: 1px solid #EBEDF0;"></div>'}
+            </td>
+            <td style="width: 48px; padding: 16px 8px; background: ${rowBg}; text-align: center;">
+                <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;">${bountyInfo.allocated_bounties || 0}</div>
+            </td>
+            <td style="width: 104px; padding: 16px 8px; background: ${rowBg}; text-align: center;">
+                <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;">${bountyInfo.completed_bounties || 0}</div>
+            </td>
+            <td style="padding: 16px 8px; background: ${rowBg};">
+                <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+                    <div style="display: flex;">
+                        ${attendanceHtml}
                     </div>
-                </td>
-                <td style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">
-                    ${employee.pay_type === "Performance Based" ? "Performance" : employee.pay_type}
-                </td>
-                <td style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;">${formatDate(employee.start_date)}</td>
-                <td style="width: 15%; padding: 8px 12px; text-align: center; box-sizing: border-box;" class="internship-end-date">${formatDate(employee.end_date)}</td>
-                <td style="width: 10%; padding: 8px 12px; text-align: center; box-sizing: border-box;" class="${bountiesAssignedClass}">${bountyInfo.allocated_bounties}</td>
-                <td style="width: 10%; padding: 8px 12px; text-align: center; box-sizing: border-box;" class="${bountiesCompletedClass}">${bountyInfo.completed_bounties}</td>
-                <td style="width: 5%; padding: 8px 12px; text-align: center; box-sizing: border-box;">
-                    <div class="three-dot-menu">
-                        <i class="fa-solid fa-ellipsis-vertical"></i>
-                        <div class="hover-menu">
-                            <div class="hover-menu-item" onclick="openAssignGoalModal(${employee.user_id})">Assign Goal</div>
-                            <div class="hover-menu-item" onclick="openGoalOverview(${employee.user_id})">Goal Overview</div>
-                            <div class="hover-menu-item" onclick="openEODSummary(${employee.user_id})">EOD Summary</div>
+                    <div style="padding: 2px 7px; opacity: 0.90; border-radius: 4px; display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="openEODSummary(${employee.user_id})">
+                        <span style="color: #504CF5; font-size: 16px; font-family: Helvetica Neue; font-weight: 500; line-height: 18px; letter-spacing: 0.06px;">View more</span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-180deg);">
+                            <path d="M19 15L12 9L5 15" stroke="#504CF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </td>
+            <td style="width: 21px; padding: 16px 5px; background: ${rowBg};">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
+                    <circle cx="8" cy="3" r="1.33" fill="#6D747A"/>
+                    <circle cx="8" cy="8" r="1.33" fill="#6D747A"/>
+                    <circle cx="8" cy="13" r="1.33" fill="#6D747A"/>
+                </svg>
+            </td>
+        `;
 
-                        </div>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(row);
-            fetchNoticePeriodStatus(employee.user_id, departmentId);
-            // Fetch bounties data and update the table dynamically
-            fetchUserFeedback(employee.user_id, departmentId);
-            if (bountyDurationSelect && !bountyDurationSelect.hasAttribute('data-listener-added')) {
-                bountyDurationSelect.addEventListener('change', () => {
-                    const selectedDuration = parseInt(bountyDurationSelect.value);
-                });
-                bountyDurationSelect.setAttribute('data-listener-added', 'true');
-            }
+        tbody.appendChild(row);
+        
+        fetchNoticePeriodStatus(employee.user_id, departmentId);
+        fetchUserFeedback(employee.user_id, departmentId);
+    });
+
+    highlightUpcomingEndDates();
+    attachSkillDropdownListeners();
+    attachRemarksListeners();
+}
+
+// Skill dropdown functionality
+function attachSkillDropdownListeners() {
+    document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
+        const badge = dropdown.querySelector('.skill-badge');
+        const menu = dropdown.querySelector('.skill-dropdown-menu');
+
+        badge.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Close all other dropdowns
+            document.querySelectorAll('.skill-dropdown-menu').forEach(m => {
+                if (m !== menu) m.style.display = 'none';
+            });
+            
+            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
         });
 
-        highlightUpcomingEndDates();
-        attachSvgClickHandler();
-        applyBackgroundColors();
-        attachInputListeners();
-    }
+        dropdown.querySelectorAll('.skill-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const skill = option.dataset.skill;
+                const employeeId = dropdown.dataset.employeeId;
+                
+                fetch(`/api/user-status/${employeeId}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                    },
+                    body: JSON.stringify({ skill_level: skill }),
+                    credentials: 'include'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Error updating skill level:', error);
+                });
+            });
+        });
+    });
 
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.skill-level-dropdown')) {
+            document.querySelectorAll('.skill-dropdown-menu').forEach(menu => {
+                menu.style.display = 'none';
+            });
+        }
+    });
+}
 
+function attachRemarksListeners() {
+    document.querySelectorAll('.remarks-field').forEach(field => {
+        let timeout;
+        field.addEventListener('input', () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                const employeeId = field.dataset.userId;
+                const remarks = field.value;
+                sendEmployeeRemarks(employeeId, remarks);
+            }, 1000);
+        });
+    });
+}
     function formatDate(dateString) {
         const date = new Date(dateString);
         const day = date.getDate();

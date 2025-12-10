@@ -2399,23 +2399,39 @@ function attachSkillDropdownListeners() {
     document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
         const badge = dropdown.querySelector('.skill-badge');
         const menu = dropdown.querySelector('.skill-dropdown-menu');
+        const chevron = dropdown.querySelector('svg');
 
         badge.addEventListener('click', (e) => {
             e.stopPropagation();
             
             // Close all other dropdowns
             document.querySelectorAll('.skill-dropdown-menu').forEach(m => {
-                if (m !== menu) m.style.display = 'none';
+                if (m !== menu) {
+                    m.style.display = 'none';
+                    const otherChevron = m.previousElementSibling;
+                    if (otherChevron) otherChevron.style.transform = 'rotate(-180deg)';
+                }
             });
             
-            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+            const isOpen = menu.style.display === 'flex';
+            menu.style.display = isOpen ? 'none' : 'flex';
+            chevron.style.transform = isOpen ? 'rotate(-180deg)' : 'rotate(0deg)';
         });
 
         dropdown.querySelectorAll('.skill-option').forEach(option => {
-            option.addEventListener('click', () => {
+            option.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const skill = option.dataset.skill;
                 const employeeId = dropdown.dataset.employeeId;
                 
+                // Update UI immediately for better UX
+                updateSkillBadgeUI(badge, skill);
+                menu.style.display = 'none';
+                chevron.style.transform = 'rotate(-180deg)';
+                
+                // Send update to backend
                 fetch(`/api/user-status/${employeeId}/`, {
                     method: 'PUT',
                     headers: {
@@ -2427,21 +2443,438 @@ function attachSkillDropdownListeners() {
                 })
                 .then(response => response.json())
                 .then(data => {
-                    location.reload();
+                    console.log('Skill level updated successfully');
+                    // Update cache without reloading
+                    updateEmployeeCache(employeeId, { skill_level: skill });
                 })
                 .catch(error => {
                     console.error('Error updating skill level:', error);
+                    alert('Failed to update skill level. Please try again.');
                 });
             });
         });
     });
 
+    // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.skill-level-dropdown')) {
             document.querySelectorAll('.skill-dropdown-menu').forEach(menu => {
                 menu.style.display = 'none';
             });
+            document.querySelectorAll('.skill-level-dropdown svg').forEach(chevron => {
+                chevron.style.transform = 'rotate(-180deg)';
+            });
         }
+    });
+}
+
+function updateSkillBadgeUI(badge, skill) {
+    const skillConfig = {
+        'basic': {
+            bg: '#FDF9D8',
+            color: '#7F7300',
+            text: 'Basic',
+            icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="6.67" stroke="#28CF0A" stroke-width="1.33"/>
+                <path d="M5.33 8L7.33 10L10.67 6.67" stroke="#28CF0A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>`
+        },
+        'intermediate': {
+            bg: '#FDEFDD',
+            color: '#A25D03',
+            text: 'Intermediate',
+            icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="6" stroke="#FF1A1A" stroke-width="1.67"/>
+                <circle cx="8" cy="5" r="0.83" fill="#FF1A1A"/>
+                <path d="M8 7v4" stroke="#FF1A1A" stroke-width="1.67" stroke-linecap="round"/>
+            </svg>`
+        },
+        'advance': {
+            bg: '#EDEDFD',
+            color: '#504CF5',
+            text: 'Advance',
+            icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="6" stroke="#FF1A1A" stroke-width="1.67"/>
+                <circle cx="8" cy="5" r="0.83" fill="#FF1A1A"/>
+                <path d="M8 7v4" stroke="#FF1A1A" stroke-width="1.67" stroke-linecap="round"/>
+            </svg>`
+        }
+    };
+    
+    const config = skillConfig[skill.toLowerCase()];
+    if (config) {
+        badge.style.background = config.bg;
+        badge.innerHTML = `
+            ${config.icon}
+            <span style="color: ${config.color}; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px;">${config.text}</span>
+        `;
+    }
+}
+
+// ============================================
+// EOD CALENDAR - Full Month View with Tooltips
+// ============================================
+
+(function() {
+    // Local variables for EOD calendar
+    let eodUserId = null;
+    let eodMonth = new Date().getMonth();
+    let eodYear = new Date().getFullYear();
+
+    // Override the global openEODSummary function
+    window.openEODSummary = function(userId) {
+        eodUserId = userId;
+        eodMonth = new Date().getMonth();
+        eodYear = new Date().getFullYear();
+        
+        document.getElementById('eodSummaryModal').classList.remove('hidden');
+        renderEODCalendar(userId, eodMonth, eodYear);
+    };
+
+    // Override the global closeEODModal function
+    window.closeEODModal = function() {
+        document.getElementById('eodSummaryModal').classList.add('hidden');
+    };
+
+    // Month navigation
+    window.changeEODMonth = function(direction) {
+        eodMonth += direction;
+        
+        if (eodMonth > 11) {
+            eodMonth = 0;
+            eodYear++;
+        } else if (eodMonth < 0) {
+            eodMonth = 11;
+            eodYear--;
+        }
+        
+        renderEODCalendar(eodUserId, eodMonth, eodYear);
+    };
+
+    async function renderEODCalendar(userId, month, year) {
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                            'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        // Create or get calendar header
+        let calendarHeader = document.getElementById('eodCalendarHeader');
+        if (!calendarHeader) {
+            const modalContent = document.querySelector('#eodSummaryModal .popup-content');
+            const h2 = modalContent.querySelector('h2');
+            calendarHeader = document.createElement('div');
+            calendarHeader.id = 'eodCalendarHeader';
+            h2.after(calendarHeader);
+        }
+        
+        calendarHeader.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 16px; margin: 24px 0;">
+                <button onclick="changeEODMonth(-1)" style="padding: 8px 16px; border: 1px solid #CED4DA; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
+                    ← Previous
+                </button>
+                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #08090A;">${monthNames[month]} ${year}</h3>
+                <button onclick="changeEODMonth(1)" style="padding: 8px 16px; border: 1px solid #CED4DA; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
+                    Next →
+                </button>
+            </div>
+        `;
+        
+        // Create or get calendar grid
+        let calendarGrid = document.getElementById('eodCalendarGrid');
+        if (!calendarGrid) {
+            calendarGrid = document.createElement('div');
+            calendarGrid.id = 'eodCalendarGrid';
+            calendarHeader.after(calendarGrid);
+        }
+        
+        calendarGrid.innerHTML = '<div style="text-align: center; padding: 20px; color: #6D747A;">Loading calendar...</div>';
+        
+        try {
+            // Fetch EOD data for the month
+            const filterValue = monthNames[month].toLowerCase();
+            const res = await fetch(`/tasks/api/eod-report/?user=${userId}&filter=${filterValue}&year=${year}`, {
+                credentials: 'include'
+            });
+            
+            if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+            
+            const eodData = await res.json();
+            
+            // Build calendar
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            let calendarHTML = `
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px;">
+                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sun</div>
+                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Mon</div>
+                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Tue</div>
+                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Wed</div>
+                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Thu</div>
+                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Fri</div>
+                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sat</div>
+            `;
+            
+            // Empty cells before first day
+            for (let i = 0; i < firstDay; i++) {
+                calendarHTML += '<div style="min-height: 48px;"></div>';
+            }
+            
+            // Calendar days
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayData = eodData.filter(item => item.date === dateStr);
+                
+                let bgColor = '#EBEDF0'; // Default gray for no data
+                let opacity = '0.5';
+                let tooltipText = 'No EOD submitted';
+                
+                if (dayData.length > 0) {
+                    const hasComplete = dayData.some(item => item.task_status === 'C');
+                    const hasIncomplete = dayData.some(item => item.task_status === 'I');
+                    
+                    if (hasComplete && !hasIncomplete) {
+                        bgColor = '#00B879'; // Green - all complete
+                        opacity = '1';
+                        tooltipText = `All tasks completed (${dayData.length})`;
+                    } else if (hasIncomplete && !hasComplete) {
+                        bgColor = '#DD1D43'; // Red - all incomplete
+                        opacity = '0.8';
+                        tooltipText = `Has incomplete tasks (${dayData.length})`;
+                    } else if (hasIncomplete && hasComplete) {
+                        bgColor = '#A37D21'; // Orange - mixed
+                        opacity = '0.8';
+                        tooltipText = `Mixed: ${dayData.filter(d => d.task_status === 'C').length} complete, ${dayData.filter(d => d.task_status === 'I').length} incomplete`;
+                    } else {
+                        bgColor = '#A37D21'; // Pending
+                        opacity = '0.8';
+                        tooltipText = `Pending tasks (${dayData.length})`;
+                    }
+                    
+                    // Build detailed tooltip
+                    const projectSummary = {};
+                    dayData.forEach(item => {
+                        if (!projectSummary[item.project_name]) {
+                            projectSummary[item.project_name] = { complete: 0, incomplete: 0 };
+                        }
+                        if (item.task_status === 'C') {
+                            projectSummary[item.project_name].complete++;
+                        } else {
+                            projectSummary[item.project_name].incomplete++;
+                        }
+                    });
+                    
+                    tooltipText = Object.keys(projectSummary).map(proj => {
+                        const stats = projectSummary[proj];
+                        return `${proj}: ${stats.complete}✓ ${stats.incomplete}✗`;
+                    }).join('\n');
+                }
+                
+                calendarHTML += `
+                    <div class="calendar-day-wrapper" style="position: relative;">
+                        <div class="calendar-day" style="
+                            width: 100%;
+                            height: 48px;
+                            background: ${bgColor};
+                            opacity: ${opacity};
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 16px;
+                            font-weight: 400;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            position: relative;
+                            transition: all 0.2s ease;
+                        " onclick="showDayDetails('${dateStr}', ${userId})">
+                            ${day}
+                        </div>
+                        <div class="calendar-tooltip" style="
+                            visibility: hidden;
+                            opacity: 0;
+                            position: absolute;
+                            bottom: calc(100% + 8px);
+                            left: 50%;
+                            transform: translateX(-50%);
+                            background: white;
+                            color: #08090A;
+                            padding: 8px 12px;
+                            border-radius: 4px;
+                            font-size: 12px;
+                            white-space: pre-wrap;
+                            max-width: 200px;
+                            z-index: 1000;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                            border: 1px solid #D9D9D9;
+                            pointer-events: none;
+                            transition: opacity 0.2s ease, visibility 0s 0.2s;
+                        ">${tooltipText}</div>
+                    </div>
+                `;
+            }
+            
+            calendarHTML += '</div>';
+            calendarGrid.innerHTML = calendarHTML;
+            
+            // Add hover listeners for tooltips
+            attachCalendarTooltips();
+            
+        } catch (err) {
+            console.error(err);
+            calendarGrid.innerHTML = '<div style="text-align: center; padding: 20px; color: #DD1D43;">Error loading calendar</div>';
+        }
+    }
+
+
+function attachCalendarTooltips() {
+        document.querySelectorAll('.calendar-day-wrapper').forEach(wrapper => {
+            const day = wrapper.querySelector('.calendar-day');
+            const tooltip = wrapper.querySelector('.calendar-tooltip');
+            
+            if (!day || !tooltip) return;
+            
+            day.addEventListener('mouseenter', () => {
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+                tooltip.style.transition = 'opacity 0.2s ease';
+                day.style.transform = 'scale(1.05)';
+                day.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+            });
+            
+            day.addEventListener('mouseleave', () => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+                day.style.transform = 'scale(1)';
+                day.style.boxShadow = 'none';
+            });
+        });
+    }
+
+    window.showDayDetails = function(dateStr, userId) {
+        // Create or get details section
+        let detailsSection = document.getElementById('eodDayDetails');
+        if (!detailsSection) {
+            const calendarGrid = document.getElementById('eodCalendarGrid');
+            detailsSection = document.createElement('div');
+            detailsSection.id = 'eodDayDetails';
+            calendarGrid.after(detailsSection);
+        }
+        
+        detailsSection.innerHTML = `<div style="text-align: center; padding: 20px; color: #6D747A;">Loading details for ${dateStr}...</div>`;
+        
+        fetch(`/tasks/api/eod-report/?user=${userId}&date=${dateStr}`, {
+            credentials: 'include'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.length === 0) {
+                detailsSection.innerHTML = `<p style="color: #6D747A; padding: 16px; text-align: center; background: #F5F5F5; border-radius: 4px; margin-top: 16px;">No EOD submitted for ${dateStr}</p>`;
+                return;
+            }
+            
+            let html = `<div style="margin-top: 24px; border-top: 2px solid #EBEDF0; padding-top: 16px;">
+                <h4 style="margin-bottom: 16px; color: #08090A; font-size: 16px; font-weight: 600;">EOD Details for ${dateStr}</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: #F0F5FF;">
+                        <tr>
+                            <th style="padding: 12px 8px; text-align: left; border-bottom: 1px solid #E0E1E1; font-size: 14px; font-weight: 600; color: #08090A;">Project</th>
+                            <th style="padding: 12px 8px; text-align: left; border-bottom: 1px solid #E0E1E1; font-size: 14px; font-weight: 600; color: #08090A;">Task</th>
+                            <th style="padding: 12px 8px; text-align: left; border-bottom: 1px solid #E0E1E1; font-size: 14px; font-weight: 600; color: #08090A;">Summary</th>
+                            <th style="padding: 12px 8px; text-align: left; border-bottom: 1px solid #E0E1E1; font-size: 14px; font-weight: 600; color: #08090A;">Status</th>
+                            <th style="padding: 12px 8px; text-align: left; border-bottom: 1px solid #E0E1E1; font-size: 14px; font-weight: 600; color: #08090A;">Bounty</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            data.forEach(entry => {
+                html += `
+                    <tr style="border-bottom: 1px solid #EBEDF0;">
+                        <td style="padding: 12px 8px; color: #08090A; font-size: 14px;">${entry.project_name}</td>
+                        <td style="padding: 12px 8px; color: #08090A; font-size: 14px;">${entry.task_name}</td>
+                        <td style="padding: 12px 8px; color: #6D747A; font-size: 14px;">${entry.text}</td>
+                        <td style="padding: 12px 8px;">
+                            <span class="status-chip ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}">
+                                ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}
+                            </span>
+                        </td>
+                        <td style="padding: 12px 8px; color: #08090A; font-size: 14px;">${entry.bounty || '-'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table>
+                <button onclick="document.getElementById('eodDayDetails').innerHTML = ''" style="
+                    margin-top: 16px;
+                    padding: 8px 16px;
+                    background: #504CF5;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 500;
+                ">Close Details</button>
+            </div>`;
+            detailsSection.innerHTML = html;
+        })
+        .catch(err => {
+            console.error(err);
+            detailsSection.innerHTML = `<p style="color: #DD1D43; padding: 16px; text-align: center;">Error loading details</p>`;
+        });
+    };
+})();
+
+function showDayDetails(dateStr, userId) {
+    // Show detailed EOD entries for this day
+    const detailsSection = document.getElementById('eodDayDetails');
+    detailsSection.innerHTML = `<div style="text-align: center; padding: 20px;">Loading details for ${dateStr}...</div>`;
+    
+    fetch(`/tasks/api/eod-report/?user=${userId}&date=${dateStr}`, {
+        credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.length === 0) {
+            detailsSection.innerHTML = `<p style="color: #6D747A; padding: 16px;">No EOD submitted for ${dateStr}</p>`;
+            return;
+        }
+        
+        let html = `<div style="margin-top: 24px; border-top: 1px solid #EBEDF0; padding-top: 16px;">
+            <h4 style="margin-bottom: 16px;">EOD Details for ${dateStr}</h4>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: #F0F5FF;">
+                    <tr>
+                        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #E0E1E1;">Project</th>
+                        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #E0E1E1;">Task</th>
+                        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #E0E1E1;">Summary</th>
+                        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #E0E1E1;">Status</th>
+                        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #E0E1E1;">Bounty</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
+        data.forEach(entry => {
+            html += `
+                <tr style="border-bottom: 1px solid #EBEDF0;">
+                    <td style="padding: 8px;">${entry.project_name}</td>
+                    <td style="padding: 8px;">${entry.task_name}</td>
+                    <td style="padding: 8px;">${entry.text}</td>
+                    <td style="padding: 8px;">
+                        <span class="status-chip ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}">
+                            ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}
+                        </span>
+                    </td>
+                    <td style="padding: 8px;">${entry.bounty || '-'}</td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        detailsSection.innerHTML = html;
+    })
+    .catch(err => {
+        console.error(err);
+        detailsSection.innerHTML = `<p style="color: red; padding: 16px;">Error loading details</p>`;
     });
 }
 
@@ -2458,6 +2891,13 @@ function attachRemarksListeners() {
         });
     });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize skill dropdown listeners
+    setTimeout(() => {
+        attachSkillDropdownListeners();
+    }, 1000);
+});
     function formatDate(dateString) {
         const date = new Date(dateString);
         const day = date.getDate();

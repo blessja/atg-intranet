@@ -2187,6 +2187,8 @@ function formatDateee(date) {
         });
     }
 
+
+
 function renderEmployeeData(tbody, data, departmentId = 'default') {
     tbody.innerHTML = '';
     const bountyDurationSelect = tbody.closest('.table-container').querySelector('#bountyDurationSelect');
@@ -2215,7 +2217,6 @@ function renderEmployeeData(tbody, data, departmentId = 'default') {
                 rowBg = '#EBEDF0';
                 break;
             default:
-                // Normal employees have no background
                 nameBadgeBg = '';
                 nameBadgeColor = '#08090A';
         }
@@ -2261,64 +2262,186 @@ function renderEmployeeData(tbody, data, departmentId = 'default') {
             completed_bounties: 0
         };
 
-        // Build attendance calendar (you'll need to get real data from backend)
+        // Format dates for tooltips
+        const joiningDate = formatDateForTooltip(employee.start_date);
+        const skillUpdatedDate = employee.skill_level_updated_at 
+            ? formatRelativeTime(employee.skill_level_updated_at)
+            : 'Never updated';
+        
+        // Info tooltip content
+        const endDate = employee.end_date ? formatDateForTooltip(employee.end_date) : 'N/A';
+        const daysUntilEnd = employee.end_date ? getDaysUntil(employee.end_date) : null;
+        const endDateWarning = daysUntilEnd !== null && daysUntilEnd <= 30 && daysUntilEnd >= 0
+            ? `⚠️ ${daysUntilEnd} days remaining`
+            : '';
+        
+        const infoTooltip = `
+Pay Type: ${employee.pay_type || 'N/A'}
+Internship Ends: ${endDate}
+${endDateWarning}
+        `.trim();
+
+        // Build attendance calendar
         const attendanceHtml = employee.attendance && employee.attendance.length > 0 
             ? employee.attendance.map(day => {
                 let bgColor = '#00B879'; // present (green)
-                if (day.status === 'pending') bgColor = '#A37D21';
-                if (day.status === 'absent') bgColor = '#DD1D43';
-                if (day.status === 'leave') bgColor = '#E44A69';
+                let statusText = 'Present';
+                if (day.status === 'pending') { 
+                    bgColor = '#A37D21';
+                    statusText = 'Pending';
+                }
+                if (day.status === 'absent') { 
+                    bgColor = '#DD1D43';
+                    statusText = 'Absent';
+                }
+                if (day.status === 'leave') { 
+                    bgColor = '#E44A69';
+                    statusText = 'On Leave';
+                }
                 
-                return `<div style="width: 32px; height: 32px; padding: 10px; background: ${bgColor}; ${day.status === 'pending' || day.status === 'absent' ? 'opacity: 0.80;' : ''} border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
-                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${day.date}</div>
-                </div>`;
+                return `
+                    <div class="calendar-day-wrapper" style="position: relative;">
+                        <div class="calendar-day" style="
+                            width: 32px; 
+                            height: 32px; 
+                            padding: 10px; 
+                            background: ${bgColor}; 
+                            ${day.status === 'pending' || day.status === 'absent' ? 'opacity: 0.80;' : ''} 
+                            border-right: 1px rgba(255, 255, 255, 0.70) solid; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center;
+                            cursor: pointer;
+                        ">
+                            <div style="color: white; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${day.date}</div>
+                        </div>
+                        <div class="calendar-tooltip" style="
+                            visibility: hidden;
+                            opacity: 0;
+                            position: absolute;
+                            bottom: calc(100% + 8px);
+                            left: 50%;
+                            transform: translateX(-50%);
+                            background: white;
+                            color: #08090A;
+                            padding: 8px 12px;
+                            border-radius: 4px;
+                            font-size: 12px;
+                            white-space: nowrap;
+                            z-index: 1000;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                            border: 1px solid #D9D9D9;
+                            pointer-events: none;
+                        ">${statusText} - Day ${day.date}</div>
+                    </div>
+                `;
             }).join('')
             : `
-                <div style="width: 32px; height: 32px; padding: 10px; opacity: 0.80; background: #A37D21; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
-                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">23</div>
+                <div class="calendar-day-wrapper" style="position: relative;">
+                    <div class="calendar-day" style="width: 32px; height: 32px; padding: 10px; opacity: 0.80; background: #A37D21; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                        <div style="color: white; font-size: 16px;">23</div>
+                    </div>
+                    <div class="calendar-tooltip" style="visibility: hidden; opacity: 0;">Pending - Day 23</div>
                 </div>
-                <div style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
-                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">24</div>
+                <div class="calendar-day-wrapper" style="position: relative;">
+                    <div class="calendar-day" style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                        <div style="color: white; font-size: 16px;">24</div>
+                    </div>
+                    <div class="calendar-tooltip" style="visibility: hidden; opacity: 0;">Present - Day 24</div>
                 </div>
-                <div style="width: 32px; height: 32px; padding: 10px; opacity: 0.80; background: #DD1D43; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
-                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">25</div>
+                <div class="calendar-day-wrapper" style="position: relative;">
+                    <div class="calendar-day" style="width: 32px; height: 32px; padding: 10px; opacity: 0.80; background: #DD1D43; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                        <div style="color: white; font-size: 16px;">25</div>
+                    </div>
+                    <div class="calendar-tooltip" style="visibility: hidden; opacity: 0;">Absent - Day 25</div>
                 </div>
-                <div style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
-                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">26</div>
+                <div class="calendar-day-wrapper" style="position: relative;">
+                    <div class="calendar-day" style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                        <div style="color: white; font-size: 16px;">26</div>
+                    </div>
+                    <div class="calendar-tooltip" style="visibility: hidden; opacity: 0;">Present - Day 26</div>
                 </div>
-                <div style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
-                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">27</div>
+                <div class="calendar-day-wrapper" style="position: relative;">
+                    <div class="calendar-day" style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                        <div style="color: white; font-size: 16px;">27</div>
+                    </div>
+                    <div class="calendar-tooltip" style="visibility: hidden; opacity: 0;">Present - Day 27</div>
                 </div>
-                <div style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
-                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">28</div>
+                <div class="calendar-day-wrapper" style="position: relative;">
+                    <div class="calendar-day" style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                        <div style="color: white; font-size: 16px;">28</div>
+                    </div>
+                    <div class="calendar-tooltip" style="visibility: hidden; opacity: 0;">Present - Day 28</div>
                 </div>
-                <div style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
-                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue;">29</div>
+                <div class="calendar-day-wrapper" style="position: relative;">
+                    <div class="calendar-day" style="width: 32px; height: 32px; padding: 10px; background: #00B879; border-right: 1px rgba(255, 255, 255, 0.70) solid; display: flex; align-items: center; justify-content: center;">
+                        <div style="color: white; font-size: 16px;">29</div>
+                    </div>
+                    <div class="calendar-tooltip" style="visibility: hidden; opacity: 0;">Present - Day 29</div>
                 </div>
             `;
 
         row.innerHTML = `
             <td style="flex: 1; padding: 16px 8px 16px 16px; background: ${rowBg};">
                 <div style="display: flex; gap: 4px; align-items: flex-start;">
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div style="width: 158px; padding: 2px 4px; ${nameBadgeBg ? 'background: ' + nameBadgeBg + ';' : ''} border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-                            <div style="flex: 1; color: ${nameBadgeColor}; font-size: 16px; font-family: Roboto; font-weight: 400; line-height: 24px; letter-spacing: 0.08px;">${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}</div>
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(180deg);">
-                                <path d="M4 10L8 6L12 10" stroke="${nameBadgeColor}" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+                    <div style="display: flex; flex-direction: column; gap: 8px; position: relative;">
+                        <div class="name-badge-wrapper" style="position: relative;">
+                            <div style="width: 158px; padding: 2px 4px; ${nameBadgeBg ? 'background: ' + nameBadgeBg + ';' : ''} border-radius: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                                <div style="flex: 1; color: ${nameBadgeColor}; font-size: 16px; font-family: Roboto; font-weight: 400; line-height: 24px; letter-spacing: 0.08px;">${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}</div>
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(180deg);">
+                                    <path d="M4 10L8 6L12 10" stroke="${nameBadgeColor}" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="name-tooltip" style="
+                                visibility: hidden;
+                                opacity: 0;
+                                position: absolute;
+                                top: calc(100% + 8px);
+                                left: 0;
+                                background: white;
+                                color: #08090A;
+                                padding: 8px 12px;
+                                border-radius: 4px;
+                                font-size: 12px;
+                                white-space: nowrap;
+                                z-index: 1000;
+                                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                                border: 1px solid #D9D9D9;
+                                pointer-events: none;
+                            ">Joined: ${joiningDate}</div>
                         </div>
                         <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;">${formatDate(employee.start_date)}</div>
                     </div>
-                    <div style="width: 24px; height: 24px; position: relative;">
+                    <div class="info-icon-wrapper" style="width: 24px; height: 24px; position: relative; cursor: pointer;">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="position: absolute; left: 4px; top: 4px;">
                             <circle cx="8" cy="8" r="6" stroke="#6D747A" stroke-width="1.33"/>
                             <path d="M8 11V8M8 5H8.01" stroke="#6D747A" stroke-width="1.33" stroke-linecap="round"/>
                         </svg>
+                        <div class="info-tooltip" style="
+                            visibility: hidden;
+                            opacity: 0;
+                            position: absolute;
+                            top: calc(100% + 8px);
+                            left: 50%;
+                            transform: translateX(-50%);
+                            background: white;
+                            color: #08090A;
+                            padding: 10px 14px;
+                            border-radius: 4px;
+                            font-size: 12px;
+                            white-space: pre-line;
+                            min-width: 200px;
+                            z-index: 1000;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                            border: 1px solid #D9D9D9;
+                            pointer-events: none;
+                            line-height: 1.6;
+                        ">${infoTooltip}</div>
                     </div>
                 </div>
             </td>
             <td style="width: 161px; padding: 16px 8px; background: ${rowBg};">
-                <div class="skill-level-dropdown" data-employee-id="${employee.user_id}" style="display: flex; align-items: center; gap: 8px;">
+                <div class="skill-level-dropdown" data-employee-id="${employee.user_id}" style="position: relative; display: flex; align-items: center; gap: 8px;">
                     <div style="padding: 2px; border-radius: 20px; border: 1px solid #9B99F3; display: flex; align-items: center; gap: 8px; position: relative;">
                         <div class="skill-badge" style="padding: 4px 8px; background: ${skillBg}; border-radius: 25px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
                             ${skillIcon}
@@ -2339,6 +2462,23 @@ function renderEmployeeData(tbody, data, departmentId = 'default') {
                             </div>
                         </div>
                     </div>
+                    <div class="skill-tooltip" style="
+                        visibility: hidden;
+                        opacity: 0;
+                        position: absolute;
+                        top: calc(100% + 8px);
+                        left: 0;
+                        background: white;
+                        color: #08090A;
+                        padding: 8px 12px;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        white-space: nowrap;
+                        z-index: 1000;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                        border: 1px solid #D9D9D9;
+                        pointer-events: none;
+                    ">Last updated: ${skillUpdatedDate}</div>
                 </div>
             </td>
             <td style="width: 130px; padding: 16px 8px; background: ${rowBg};">
@@ -2392,8 +2532,90 @@ function renderEmployeeData(tbody, data, departmentId = 'default') {
     highlightUpcomingEndDates();
     attachSkillDropdownListeners();
     attachRemarksListeners();
+    attachTooltipListeners();
 }
 
+// Attach tooltip listeners for name, info icon, skill level, and calendar
+function attachTooltipListeners() {
+    // Name tooltip
+    document.querySelectorAll('.name-badge-wrapper').forEach(wrapper => {
+        const badge = wrapper.querySelector('div[style*="cursor: pointer"]');
+        const tooltip = wrapper.querySelector('.name-tooltip');
+        
+        if (badge && tooltip) {
+            badge.addEventListener('mouseenter', () => {
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+                tooltip.style.transition = 'opacity 0.2s ease';
+            });
+            
+            badge.addEventListener('mouseleave', () => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+            });
+        }
+    });
+    
+    // Info icon tooltip
+    document.querySelectorAll('.info-icon-wrapper').forEach(wrapper => {
+        const icon = wrapper.querySelector('svg');
+        const tooltip = wrapper.querySelector('.info-tooltip');
+        
+        if (icon && tooltip) {
+            wrapper.addEventListener('mouseenter', () => {
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+                tooltip.style.transition = 'opacity 0.2s ease';
+            });
+            
+            wrapper.addEventListener('mouseleave', () => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+            });
+        }
+    });
+    
+    // Skill level tooltip (on the container, not the badge)
+    document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
+        const tooltip = dropdown.querySelector('.skill-tooltip');
+        
+        if (tooltip) {
+            dropdown.addEventListener('mouseenter', () => {
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+                tooltip.style.transition = 'opacity 0.2s ease';
+            });
+            
+            dropdown.addEventListener('mouseleave', () => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+            });
+        }
+    });
+    
+    // Calendar day tooltips
+    document.querySelectorAll('.calendar-day-wrapper').forEach(wrapper => {
+        const day = wrapper.querySelector('.calendar-day');
+        const tooltip = wrapper.querySelector('.calendar-tooltip');
+        
+        if (day && tooltip) {
+            day.addEventListener('mouseenter', () => {
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+                tooltip.style.transition = 'opacity 0.2s ease';
+            });
+            
+            day.addEventListener('mouseleave', () => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+            });
+        }
+    });
+}
 // Skill dropdown functionality
 function attachSkillDropdownListeners() {
     document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
@@ -2444,8 +2666,16 @@ function attachSkillDropdownListeners() {
                 .then(response => response.json())
                 .then(data => {
                     console.log('Skill level updated successfully');
-                    // Update cache without reloading
-                    updateEmployeeCache(employeeId, { skill_level: skill });
+                    // Update cache with new timestamp
+                    updateEmployeeCache(employeeId, { 
+                        skill_level: skill,
+                        skill_level_updated_at: new Date().toISOString()
+                    });
+                    // Update tooltip
+                    const tooltip = dropdown.querySelector('.skill-tooltip');
+                    if (tooltip) {
+                        tooltip.textContent = `Last updated: Just now`;
+                    }
                 })
                 .catch(error => {
                     console.error('Error updating skill level:', error);
@@ -2510,6 +2740,51 @@ function updateSkillBadgeUI(badge, skill) {
         `;
     }
 }
+
+// ============================================
+// TOOLTIP HELPERS
+// ============================================
+
+function formatRelativeTime(dateString) {
+    if (!dateString) return 'Never';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDateForTooltip(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+
+function getDaysUntil(dateString) {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = date - now;
+    const diffDays = Math.ceil(diffMs / 86400000);
+    return diffDays;
+}
+// ============================================
+// EOD CALENDAR - Full Month View with Tooltips
+// ============================================
 
 // ============================================
 // EOD CALENDAR - Full Month View with Tooltips
@@ -2601,6 +2876,9 @@ function updateSkillBadgeUI(badge, skill) {
             // Build calendar
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            const isCurrentMonth = (today.getMonth() === month && today.getFullYear() === year);
+            const todayDate = today.getDate();
             
             let calendarHTML = `
                 <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px;">
@@ -2622,12 +2900,25 @@ function updateSkillBadgeUI(badge, skill) {
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const dayData = eodData.filter(item => item.date === dateStr);
+                const isFutureDate = new Date(dateStr) > today;
+                const isToday = isCurrentMonth && day === todayDate;
                 
                 let bgColor = '#EBEDF0'; // Default gray for no data
                 let opacity = '0.5';
                 let tooltipText = 'No EOD submitted';
+                let borderStyle = '';
                 
-                if (dayData.length > 0) {
+                // Highlight today
+                if (isToday) {
+                    borderStyle = 'border: 2px solid #504CF5;';
+                }
+                
+                // Future dates - lighter gray
+                if (isFutureDate) {
+                    bgColor = '#F5F5F5';
+                    opacity = '0.3';
+                    tooltipText = 'Future date';
+                } else if (dayData.length > 0) {
                     const hasComplete = dayData.some(item => item.task_status === 'C');
                     const hasIncomplete = dayData.some(item => item.task_status === 'I');
                     
@@ -2678,15 +2969,17 @@ function updateSkillBadgeUI(badge, skill) {
                             display: flex;
                             align-items: center;
                             justify-content: center;
-                            color: white;
+                            color: ${isToday ? '#504CF5' : 'white'};
                             font-size: 16px;
-                            font-weight: 400;
+                            font-weight: ${isToday ? '700' : '400'};
                             border-radius: 4px;
-                            cursor: pointer;
+                            cursor: ${isFutureDate ? 'default' : 'pointer'};
                             position: relative;
                             transition: all 0.2s ease;
-                        " onclick="showDayDetails('${dateStr}', ${userId})">
+                            ${borderStyle}
+                        " ${!isFutureDate ? `onclick="showDayDetails('${dateStr}', ${userId})"` : ''}>
                             ${day}
+                            ${isToday ? '<div style="position: absolute; bottom: 2px; font-size: 8px; color: #504CF5;">Today</div>' : ''}
                         </div>
                         <div class="calendar-tooltip" style="
                             visibility: hidden;
@@ -2723,7 +3016,6 @@ function updateSkillBadgeUI(badge, skill) {
             calendarGrid.innerHTML = '<div style="text-align: center; padding: 20px; color: #DD1D43;">Error loading calendar</div>';
         }
     }
-
 
 function attachCalendarTooltips() {
         document.querySelectorAll('.calendar-day-wrapper').forEach(wrapper => {
@@ -2824,59 +3116,6 @@ function attachCalendarTooltips() {
     };
 })();
 
-function showDayDetails(dateStr, userId) {
-    // Show detailed EOD entries for this day
-    const detailsSection = document.getElementById('eodDayDetails');
-    detailsSection.innerHTML = `<div style="text-align: center; padding: 20px;">Loading details for ${dateStr}...</div>`;
-    
-    fetch(`/tasks/api/eod-report/?user=${userId}&date=${dateStr}`, {
-        credentials: 'include'
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.length === 0) {
-            detailsSection.innerHTML = `<p style="color: #6D747A; padding: 16px;">No EOD submitted for ${dateStr}</p>`;
-            return;
-        }
-        
-        let html = `<div style="margin-top: 24px; border-top: 1px solid #EBEDF0; padding-top: 16px;">
-            <h4 style="margin-bottom: 16px;">EOD Details for ${dateStr}</h4>
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead style="background: #F0F5FF;">
-                    <tr>
-                        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #E0E1E1;">Project</th>
-                        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #E0E1E1;">Task</th>
-                        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #E0E1E1;">Summary</th>
-                        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #E0E1E1;">Status</th>
-                        <th style="padding: 8px; text-align: left; border-bottom: 1px solid #E0E1E1;">Bounty</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-        
-        data.forEach(entry => {
-            html += `
-                <tr style="border-bottom: 1px solid #EBEDF0;">
-                    <td style="padding: 8px;">${entry.project_name}</td>
-                    <td style="padding: 8px;">${entry.task_name}</td>
-                    <td style="padding: 8px;">${entry.text}</td>
-                    <td style="padding: 8px;">
-                        <span class="status-chip ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}">
-                            ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}
-                        </span>
-                    </td>
-                    <td style="padding: 8px;">${entry.bounty || '-'}</td>
-                </tr>
-            `;
-        });
-        
-        html += '</tbody></table></div>';
-        detailsSection.innerHTML = html;
-    })
-    .catch(err => {
-        console.error(err);
-        detailsSection.innerHTML = `<p style="color: red; padding: 16px;">Error loading details</p>`;
-    });
-}
 
 function attachRemarksListeners() {
     document.querySelectorAll('.remarks-field').forEach(field => {

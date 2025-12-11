@@ -1833,25 +1833,30 @@ document.addEventListener('keydown', handleEnterKey);
     }
 
     function fetchNoticePeriodStatus(userId, deptId) {
-        const apiUrl = `/api/user/${userId}/on-notice/`;
-        fetch(apiUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
+    const apiUrl = `/api/user/${userId}/on-notice/`;
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                // Log error but don't break the UI
+                console.warn(`Failed to fetch notice period status for user ${userId}:`, response.status);
+                return null;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.is_on_notice) {
+                noticePeriodClass = `.noticePeriod${deptId}_${userId}`;
+                const element = document.querySelector(noticePeriodClass);
+                if (element) {
+                    element.style.display = 'inline-block';
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.is_on_notice){
-                    noticePeriodClass = `.noticePeriod${deptId}_${userId}`;
-                    document.querySelector(noticePeriodClass).style.display = 'inline-block';
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching user status:', error);
-            });
-    }
-    
+            }
+        })
+        .catch(error => {
+            console.warn('Error fetching notice period status:', error);
+            // Don't break the UI - just log the error
+        });
+}
     function fetchUserBounties(userId, duration = 30, callback) {
         const apiUrl = `/api/user/${userId}/bounties/${duration}/`;
         
@@ -3405,23 +3410,29 @@ function attachRemarksListeners() {
     });
 }
 
-// Cache for attendance data
-// let attendanceCache = {};
 
-// Fetch attendance data for an employee (last 7 days)
+
 // Cache for attendance data - use Map for better key handling
 const attendanceCache = new Map();
 
 // Fetch attendance data for an employee (last 7 days)
 async function fetchEmployeeAttendance(userId) {
-    // Create a unique cache key
-    const cacheKey = `user_${userId}`;
+    // Create a unique cache key - IMPORTANT: Convert to string to ensure uniqueness
+    const cacheKey = `user_${String(userId)}`;
+    
+    // DEBUGGING: Log every fetch attempt
+    console.log(`🔍 fetchEmployeeAttendance called for userId: ${userId} (type: ${typeof userId})`);
     
     // Check cache first
     if (attendanceCache.has(cacheKey)) {
         console.log(`✓ Using cached attendance for user ${userId}`);
-        return buildAttendanceHtml(attendanceCache.get(cacheKey), userId);
+        const cachedData = attendanceCache.get(cacheKey);
+        console.log(`📦 Cache contains ${Object.keys(cachedData).filter(k => !k.includes('_')).length} date entries`);
+        return buildAttendanceHtml(cachedData, userId);
     }
+
+    console.log(`❌ No cache found for key: "${cacheKey}"`);
+    console.log(`📋 Current cache keys:`, Array.from(attendanceCache.keys()));
 
     try {
         // Ensure userId is properly encoded
@@ -3436,34 +3447,97 @@ async function fetchEmployeeAttendance(userId) {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.warn(`⚠ HTTP ${response.status} for user ${userId} - using default calendar`);
+            return buildDefaultAttendanceHtml();
         }
         
         const data = await response.json();
         console.log(`← Received ${data.length} attendance records for user ${userId}`);
         
-        // Verify we got data for the correct user (if your API returns user_id)
-        if (data.length > 0 && data[0].user_id && data[0].user_id != userId) {
-            console.error(`❌ WARNING: Received data for user ${data[0].user_id} instead of ${userId}`);
+        // Verify the data structure
+        if (!Array.isArray(data)) {
+            console.error(`❌ Invalid data format for user ${userId}:`, data);
+            return buildDefaultAttendanceHtml();
+        }
+        
+        // CRITICAL: Verify we got data for the correct user
+        if (data.length > 0) {
+            const firstRecord = data[0];
+            console.log(`🔬 First record inspection:`, {
+                user_id_from_response: firstRecord.user_id,
+                user_id_from_response_type: typeof firstRecord.user_id,
+                requested_userId: userId,
+                requested_userId_type: typeof userId,
+                match: firstRecord.user_id == userId,
+                strict_match: firstRecord.user_id === userId
+            });
+            
+            // Check if user_id matches (loose comparison to handle string/number mismatch)
+            if (firstRecord.user_id && firstRecord.user_id != userId) {
+                console.error(`❌ CRITICAL: API returned data for user ${firstRecord.user_id} but we requested user ${userId}!`);
+                console.error(`❌ This is a backend issue - the API is returning wrong user data`);
+                return buildDefaultAttendanceHtml();
+            }
+            
+            // Additional check: verify ALL records are for the correct user
+            const wrongUserRecords = data.filter(record => record.user_id && record.user_id != userId);
+            if (wrongUserRecords.length > 0) {
+                console.error(`❌ CRITICAL: Found ${wrongUserRecords.length} records for wrong users:`, 
+                    wrongUserRecords.map(r => r.user_id));
+                return buildDefaultAttendanceHtml();
+            }
+            
+            console.log(`✓ Data verified for user ${userId} - all ${data.length} records match`);
+        } else {
+            console.log(`ℹ No attendance records found for user ${userId} - showing default calendar`);
+            // For users with no data, still cache an empty object
+            attendanceCache.set(cacheKey, {});
+            return buildDefaultAttendanceHtml();
         }
         
         // Process attendance data
         const attendanceData = {};
+        let processedCount = 0;
+        
         data.forEach(entry => {
             const dateKey = entry.date;
             // Determine status based on EOD submission
+            const hasEOD = entry.eod_text && entry.eod_text.length > 0;
+            
             attendanceData[dateKey] = entry.leave
                 ? 'leave'
-                : entry.eod_text && entry.eod_text.length > 0
+                : hasEOD
                 ? 'present'
                 : 'absent';
+                
             attendanceData[dateKey + '_eod'] = entry.eod_text || [];
             attendanceData[dateKey + '_leave_subject'] = entry.leave_subject;
+            
+            processedCount++;
+            
+            // Debug first entry
+            if (processedCount === 1) {
+                console.log(`📝 Sample entry for user ${userId}:`, {
+                    date: dateKey,
+                    status: attendanceData[dateKey],
+                    hasEOD: hasEOD,
+                    eodCount: entry.eod_text ? entry.eod_text.length : 0
+                });
+            }
+        });
+
+        console.log(`✓ Processed ${processedCount} attendance records for user ${userId}`);
+        console.log(`📊 Status breakdown:`, {
+            dates_with_data: Object.keys(attendanceData).filter(k => !k.includes('_')).length,
+            present: Object.values(attendanceData).filter(v => v === 'present').length,
+            absent: Object.values(attendanceData).filter(v => v === 'absent').length,
+            leave: Object.values(attendanceData).filter(v => v === 'leave').length
         });
 
         // Cache the data with the unique key
         attendanceCache.set(cacheKey, attendanceData);
-        console.log(`✓ Cached attendance data for user ${userId}`);
+        console.log(`✅ Cached attendance data for user ${userId} with key: "${cacheKey}"`);
+        console.log(`📋 Cache now has ${attendanceCache.size} entries:`, Array.from(attendanceCache.keys()));
         
         return buildAttendanceHtml(attendanceData, userId);
     } catch (error) {
@@ -3472,19 +3546,12 @@ async function fetchEmployeeAttendance(userId) {
     }
 }
 
-// Function to clear cache when needed
-function clearAttendanceCache(userId = null) {
-    if (userId) {
-        const cacheKey = `user_${userId}`;
-        attendanceCache.delete(cacheKey);
-        console.log(`Cleared cache for user ${userId}`);
-    } else {
-        attendanceCache.clear();
-        console.log('Cleared all attendance cache');
-    }
-}
+
 // Build attendance HTML from data
-function buildAttendanceHtml(attendanceData) {
+function buildAttendanceHtml(attendanceData, userId) {
+    console.log(`🎨 Building attendance HTML for user ${userId}`);
+    console.log(`📊 AttendanceData has ${Object.keys(attendanceData).filter(k => !k.includes('_')).length} date entries`);
+    
     const today = new Date();
     const last7Days = [];
     
@@ -3495,21 +3562,47 @@ function buildAttendanceHtml(attendanceData) {
         const dateKey = date.toISOString().split('T')[0];
         const dayNumber = date.getDate();
         
-        const status = attendanceData[dateKey] || 'absent';
+        // Check if we have data for this date - THIS IS THE KEY FIX
+        const hasData = attendanceData.hasOwnProperty(dateKey);
+        const status = hasData ? attendanceData[dateKey] : null;
         const eodData = attendanceData[dateKey + '_eod'] || [];
         const leaveSubject = attendanceData[dateKey + '_leave_subject'];
         
-        let bgColor = '#00B879'; // Green for EOD submitted (present)
-        let statusText = 'EOD Submitted';
-        let opacity = '1';
+        // Log first day for debugging
+        if (i === 6) {
+            console.log(`📅 First day (${dateKey}) for user ${userId}:`, {
+                hasData,
+                status,
+                eodCount: eodData.length
+            });
+        }
         
-        if (status === 'absent') {
+        // Default to gray (no data) instead of red
+        let bgColor = '#EBEDF0'; // Gray for no data
+        let statusText = 'No data available';
+        let opacity = '0.30';
+        let textColor = '#6D747A';
+        let cursor = 'default';
+        
+        // Only apply colors if we have actual data
+        if (status === 'present') {
+            bgColor = '#00B879'; // Green for EOD submitted
+            statusText = 'EOD Submitted';
+            opacity = '1';
+            textColor = 'white';
+            cursor = 'pointer';
+        } else if (status === 'absent') {
             bgColor = '#DD1D43'; // Red for no EOD
             statusText = 'No EOD Submitted';
             opacity = '0.80';
+            textColor = 'white';
+            cursor = 'pointer';
         } else if (status === 'leave') {
             bgColor = '#E44A69'; // Pink for leave
             statusText = 'On Leave';
+            opacity = '1';
+            textColor = 'white';
+            cursor = 'pointer';
             if (leaveSubject) {
                 statusText = `Leave: ${leaveSubject}`;
             }
@@ -3535,9 +3628,9 @@ function buildAttendanceHtml(attendanceData) {
                     display: flex; 
                     align-items: center; 
                     justify-content: center;
-                    cursor: pointer;
+                    cursor: ${cursor};
                 ">
-                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${dayNumber}</div>
+                    <div style="color: ${textColor}; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${dayNumber}</div>
                 </div>
                 <div class="calendar-tooltip" style="
                     visibility: hidden;
@@ -3562,6 +3655,7 @@ function buildAttendanceHtml(attendanceData) {
         `);
     }
     
+    console.log(`✅ Built calendar HTML for user ${userId} with ${last7Days.length} days`);
     return last7Days.join('');
 }
 
@@ -3581,15 +3675,15 @@ function buildDefaultAttendanceHtml() {
                     width: 32px; 
                     height: 32px; 
                     padding: 10px; 
-                    opacity: 0.80; 
-                    background: #DD1D43;
+                    opacity: 0.30; 
+                    background: #EBEDF0;
                     border-right: 1px rgba(255, 255, 255, 0.70) solid; 
                     display: flex; 
                     align-items: center; 
                     justify-content: center;
-                    cursor: pointer;
+                    cursor: default;
                 ">
-                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${dayNumber}</div>
+                    <div style="color: #6D747A; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${dayNumber}</div>
                 </div>
                 <div class="calendar-tooltip" style="
                     visibility: hidden;
@@ -3616,6 +3710,16 @@ function buildDefaultAttendanceHtml() {
     return last7Days.join('');
 }
 
+function clearAttendanceCache(userId = null) {
+    if (userId) {
+        const cacheKey = `user_${userId}`;
+        attendanceCache.delete(cacheKey);
+        console.log(`Cleared cache for user ${userId}`);
+    } else {
+        attendanceCache.clear();
+        console.log('Cleared all attendance cache');
+    }
+}
 
 
 document.addEventListener('DOMContentLoaded', function() {

@@ -2308,7 +2308,7 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
             statusText = 'Absent';
         }
         if (day.status === 'leave') { 
-            bgColor = '#E44A69';
+            // bgColor = '#E44A69';
             statusText = 'On Leave';
         }
         
@@ -2816,7 +2816,7 @@ async function renderFullMonthCalendar(userId) {
             // Check for leave status
             const isLeave = dayData.some(item => item.status === 'leave');
             if (isLeave) {
-                bgColor = '#E44A69';
+                // bgColor = '#E44A69';
                 opacity = '1';
                 tooltipText = 'On Leave';
             }
@@ -3487,16 +3487,36 @@ function attachCalendarTooltips() {
 function attachRemarksListeners() {
     document.querySelectorAll('.remarks-field').forEach(field => {
         let timeout;
-        field.addEventListener('input', () => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                const employeeId = field.dataset.userId;
-                const remarks = field.value;
+        let originalValue = field.value;
+        
+        // Remove any existing listeners to prevent duplicates
+        field.replaceWith(field.cloneNode(true));
+        
+        // Get the fresh element after cloning
+        const freshField = document.querySelector(`[data-user-id="${field.dataset.userId}"]`);
+        
+        // Save changes on blur (when clicking outside)
+        freshField.addEventListener('blur', () => {
+            const employeeId = freshField.dataset.userId;
+            const remarks = freshField.value;
+            
+            // Only send if value has actually changed
+            if (remarks !== originalValue) {
                 sendEmployeeRemarks(employeeId, remarks);
-            }, 1000);
+                originalValue = remarks; // Update the original value
+            }
+        });
+        
+        // Optional: Also save on Enter key
+        freshField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                freshField.blur(); // This will trigger the blur event above
+            }
         });
     });
 }
+
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize skill dropdown listeners

@@ -1,0 +1,827 @@
+{% extends "mainapp/base.html" %}
+{% load crispy_forms_tags static %}
+
+{% block title %}
+Homepage
+{% endblock %}
+
+{% block jscss %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.0.2/css/uikit.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.20/css/dataTables.uikit.min.css">
+<script src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/fixedheader/3.1.6/js/dataTables.fixedHeader.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" />
+
+<link rel="stylesheet" href="{% static 'users/css/home.css' %}">
+
+{% endblock jscss %}
+
+{% block styling%}
+.paginate_button{padding:3px;width:4px;border-radius:2px;margin-bottom:4px}.paginate_button:hover{background-color:#dcdcdc}.dataTables_filter input{border-radius:5px;padding:5px}table#selected th{border-bottom:1px solid #ddd;text-align:left;padding:8px;width:10%}#button_table{background:None;width:100%;border:none}button{float:right}tbody tr:hover{background-color:#ddd}th{border-bottom:1px solid #ddd;padding-top:6px;padding-bottom:6px}table tr:nth-child(even){background-color:#f1f1f1}table tr:nth-child(even):hover{background-color:#ddd}.dataTables_length select{border-radius:5px;padding:5px}
+{%endblock%}
+
+{% block content %}
+<div  style="display: {% if notifs %}none{% else %}block{% endif %};">
+    <div style="padding-left: 8px;"> <span style="color: #08090A; font-size: 24px; font-weight: 400;">Hello, {{user.get_full_name}} !</span>
+        <p id="datetimehome" style="color: #6D747A;"></p>
+    </div>
+</div>
+<div class="project-notifications" style="display: {% if notifs %}block{% else %}none{% endif %};">
+  <div class="project-notif-heading">
+      <div style="position: relative;">Notifications 
+          <div class="notif-reddot"></div>
+      </div>
+      <svg onclick="projectNotifClose()" id="notif-chevron-icon" style="cursor: pointer;" width="14"
+          height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="{%if notifs %}M13 7L7 1L1 7 {% else %} M1 1L7 7L13 1 {% endif %}" stroke="#6D747A" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+      </svg>
+  </div>
+  <div class="project-notifications-content"  style="display: {% if notifs %}block{% else %}none{% endif %};">
+      {% if notifications %}
+      <div class="unread-notif">
+          {% for notif in notifications %}
+          <div id="notif-{{ notif.id }}" class="notif-container">
+              <div>{{ notif.content }}</div>
+              {% if notif.project %}
+                <div href="/project/dashboard/{{ notif.project.id }}/{{notif.project.project_name}}/" 
+                    class="notif-review"
+                    type="{{ notif.trigger }}"
+                    onclick="handleNotificationClick(event,'{{ notif.id }}', '{{ notif.project.id }}','{{ notif.project.project_name }}')">
+                    Review
+                </div>
+              {% else %}
+              <div href="" 
+                    class="notif-review"
+                    type="{{ notif.trigger }}" 
+                    onclick="handleNotificationClick(event,'{{ notif.id }}', '{{ notif.project.id }}')">
+                    Review
+                </div>
+              {%endif%}
+
+          </div>
+          {% endfor %}
+      </div>
+      {% else %}
+      <div class="unread-notif">
+        <div class="notif-container"> No new notifications. </div>
+      </div>
+      {% endif %}
+  </div>
+</div>
+
+<div class="employee-homepage">
+    
+    <div style="color: #6D747A;">Attendance Overview (last 15 days)</div>
+    <div style="display: flex; flex-direction: row; justify-content: space-between;">
+        <!-- <div id="tooltip" class="eod-tooltip">df</div> -->
+        <div class="date-container" id="dateContainer"></div>
+
+        <!-- <div style="display: flex; flex-direction: row; gap: 10px;">
+            <div class="submit-eod-btn" onclick="submitEODData()"
+                style=" display: none; cursor: pointer; background-color: #504CF5; text-align: center; color: #F2F4FF; padding: 8px 24px; border-radius: 4px;">
+                Submit EOD Report</div>
+            <div class="update-eod-btn" onclick="updateEodTemplate()"
+                style=" cursor: pointer; background-color: #504CF5; text-align: center; color: #F2F4FF; padding: 8px 24px; border-radius: 4px;">
+                Update EOD</div>
+        </div> -->
+    </div>
+    <div class="employee-home-getStarted"><a href="https://intranet.atg.party/docs/" target="_blank">Getting Started</a></div>
+    <div style="margin-bottom: 20px; width: 100%;">
+        <div class="employee-assigned-task">
+            <table class="employee-assigned-task-table">
+                <thead style="background-color:None ; width: 100%;">
+                    <tr style="text-align: left; height: 20px; background-color:None; ">
+                         <th style="width: 5%; padding: 0px 8px;">Select</th>
+                        <th style="width: 50%; padding: 0px 8px; ">Assigned Task</th>
+                        <th style="width: 10%; ">Bounty</th>
+                        <th style="width: 15%; ">Status</th>
+                        <th style="width: 15%; ">Due date</th>
+                        <th style="width: 10%; ">Assignee</th>
+
+                    </tr>
+                </thead>
+                <div style="margin-bottom: 20px;">
+                <label for="task-filter" style="margin-right: 10px;">Filter by Status:</label>
+                <select id="task-filter">
+                    <option value="pending" selected>Pending</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+
+            {% for project, tasks in user_tasks.items %}
+<tbody class="project-task-group" data-project="{{ project.id }}" style="color: #6D747A; font-size: 16px;">   
+    <tr class="project-header-row" style="height: 60px;">
+        <td colspan="5">
+            <div style="display: flex; justify-content: space-between;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <svg onclick="hideprojecttaskrow(this)" style="cursor: pointer;" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <a href="{% url 'project:project-dashboard' pk=project.id name=project.project_name %}" style="color:#6D747A;">
+                        <b style="color: #08090A; cursor: pointer;">{{ project.project_name }}</b>
+                    </a>
+                </div>
+            </div>
+        </td>
+    </tr>
+    {% for task in tasks %}
+    <tr class="assigned-task-details-row task-row" data-status="{% if task.status == 'C' %}completed{% elif task.status == 'I' %}incomplete{% else %}unknown{% endif %}">
+        <td>
+            <input type="checkbox" class="task-checkbox" data-task-id="{{ task.id }}" data-task-name="{{ task.name }}" onchange="toggleEODInput(this)"style="width: 22px; height: 22px; transform: scale(1.4);">
+        </td>
+        <td>{{ task.name }}</td>
+        <td>{{ task.bounty }}</td>
+        <td style="color: {% if task.status == 'C' %}#169462{% else %}#ff9800{% endif %};">
+            <div class="assigned-task-status">{{ task.get_status_display }}</div>
+        </td>
+        <td>
+            {% if task.status == 'C' and task.completed_on %}
+                {{ task.completed_on|date:"M d" }}
+            {% else %}
+                {{ task.due_date }}
+            {% endif %}
+        </td>
+        <td>
+            <div class="employee-assigned-task-assignee">{{ task.assignee.get_full_name|slice:"1" }}</div>
+        </td>
+    </tr>
+    <!-- new eod input box  -->
+    <tr class="eod-input-row" id="eod-row-{{ task.id }}" style="display: none;">
+        <td colspan="6" style="padding: 16px;">
+            <div style="background: #F8F9FA; padding: 16px; border-radius: 4px;">
+                <textarea 
+                    class="eod-textarea" 
+                    id="eod-text-{{ task.id }}" 
+                    placeholder="What did you do today on this task?"
+                    style="width: 100%; min-height: 200px; padding: 12px; border: 1px solid None; border-radius: 4px; resize: vertical; font-family: inherit; font-size: 14px;"
+                ></textarea>
+                <div style="margin-top: 12px; text-align: right;">
+                    <button 
+                        onclick="submitSingleEOD({{ task.id }})" 
+                        style="background-color: #504CF5; color: #F2F4FF; padding: 8px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;"
+                    >
+                        Update EOD Report
+                    </button>
+                </div>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+{% endfor %}
+                
+            </table>
+        </div>
+
+        <!-- update eod template -->
+        <!-- <div class="employee-assigned-task-update" style="display: none;">
+            <table class="employee-assigned-task-update-table">
+                <thead style="background-color: #F0F5FF; width: 100%;">
+                    <tr style="text-align: left; height: 40px; background-color: #F2F4FF; ">
+                        <th style="width: 60%; padding: 0px 8px; ">Please select individual tasks and provide the
+                            status update </th>
+                        <th style="width: 15%; "></th>
+                        <th style="width: 15%; "></th>
+                        <th style="width: 10%; "></th>
+
+                    </tr>
+                </thead>
+                
+                {% for project, tasks in user_tasks.items %}
+                <tbody style="color: #6D747A; font-size: 16px;">
+                    <tr style="height: 60px;">
+                        <td style="" colspan="4">
+                            <div style="display: flex; flex-direction: row; justify-content: space-between;">
+                                <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                                    <svg onclick="hideprojecttaskrow(this)" style="cursor: pointer;" width="14" height="8" viewBox="0 0 14 8"
+                                        fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <b style="color: #08090A;">{{ project.project_name }}</b>
+                                </div>
+                                
+                            </div>
+                        </td>
+                    </tr>
+                    {% for task in tasks %}
+                    <tr class="assigned-task-details-row">
+                        <td><label class="custom-checkbox">
+                            <input type="checkbox" onclick="toggleRowInputDisplay(this)" id="{{task.id}}">
+                            <span class="checkmark"></span>
+                            {{ task.name }}
+                        </label>
+                        </td>
+                        <td colspan="3" style="display: none;">
+                            <div style="width: 100%;">
+                                <input type="text" style="width: 90%; outline: none;  color: #6D747A;" placeholder="update eod...">
+                            </div>
+                        </td>
+                        <td style="color: #169462;">
+                            <div class="assigned-task-status"> {{task.get_status_display}}
+                               
+                            </div>
+
+                        </td>
+                        <td>{{task.due_date}}</td>
+                        <td>
+                            <div class="employee-assigned-task-assignee">{{task.assignee.get_full_name|slice:"1"}}</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% endfor %}
+
+            </table>
+        </div> -->
+    </div>
+
+    <div class="employee-home-assessment-dashboard" style="margin-bottom: 20px;">
+        <table class="employee-home-assessment-table">
+            <thead>
+                <tr style="text-align: left; height: 40px; background-color: #F2F4FF; ">
+                    <th style="padding-left: 10px;">Assessment</th>
+                    <th>Action</th>
+                    <th>Date</th>
+                    <th>Weeks since joining</th>
+                    <th>Status</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody style="color: #6D747A; font-size: 400;">
+                {% for assessment in assignments %}
+                <tr class="assessment-row">
+                    <td>
+                        <div class="assessment-name-home">
+                            {{ assessment.assessment_name }}
+                        </div>
+                    </td>
+                    <td class="action-cell"><a href="http://">Retake &#8635;</a> </td>
+                    <td>{{assessment.date|date:"D, M j Y"}}</td>
+                    <td>{{ assessment.weeks_since_join }} Weeks</td>
+                    <td><span class="assessment-status">{{ assessment.status }}</span></td> 
+                    <td class="result-cell" style="color: #DD1D43;">{{ assessment.result }}</td>
+                </tr>
+                 {% endfor %}   
+
+            </tbody>
+        </table>
+    </div>
+
+    <div class="employee-home-payment-dashboard" style="margin-bottom: 200px;">
+        <div style="margin-bottom: 10px; color: #08090A; font-size: 16px; font-weight: 500;"><b>Payment</b></div>
+         <table class="employee-home-payment-table">
+            <thead>
+                <tr style="text-align: left; height: 40px; background-color: #F2F4FF; ">
+                    <th style="padding-left: 10px;">Month</th>
+                    <th>Task Allocated</th>
+                    <th>Task Completed</th>
+                    <th>Total Payment</th>
+                    <th>PaySlip</th>
+                </tr>
+            </thead>
+            <tbody style="color: #6D747A; font-size: 400;">
+                {% for data in payment_with_tasks %}
+                    <tr class="payment-month-row">
+                        <td class="payment-month-name">{{ data.payment.payslip_month }}</td>
+                        <td>{{ data.total_tasks }}</td>
+                        <td>{{ data.payment.task_count }}</td>
+                        <td>₹{{ data.payment.pay_after_deductions }}</td>
+                        <td><a href="javascript:{PayslipGen('{{  data.payment.id  }}')}">Download</a></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+         </table>
+    </div>
+</div>
+
+
+
+
+
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+
+  {% if request.user.is_authenticated %}
+    <!-- STORE MANTIS API TOKEN IN A VARIABLE -->
+    <script>
+      const USER_FULL_NAME = "{{ request.user.get_full_name }}";
+      const PAY_DATA_EXISTS = {% if pay_data %}true{% else %}false{% endif %};
+      const USER_PAY_PER_TASK = "{{ pay_data.pay_per_task }}";
+      const USER_BASE_PAY = "{{ pay_data.base_pay }}";
+      const ISSUES_TABLES_LIST = [];
+      {% for dept in departments %}
+        ISSUES_TABLES_LIST.push("{{ dept.id }}")
+      {% endfor %}
+      const USER_PAY_TYPE = "{{ pay_data.pay_type }}";
+      const SERVICE = "{{ service }}";
+      const notifications_exist = "{{notifs}}";
+
+      function projectNotifClose() {
+        const notifDiv = document.querySelector(".project-notifications-content");
+        const notifAlert = document.querySelector(".notif-reddot");
+        const arrow = document.getElementById('notif-chevron-icon');
+        const arrowPath = arrow.querySelector('path');
+        if (notifDiv.style.display === "block" || notifDiv.style.display === "") {
+            notifDiv.style.display = "none";
+            if (notifications_exist =="True"){   
+                notifAlert.style.display = "block"
+            }
+                
+          
+            arrowPath.setAttribute('d', 'M1 1L7 7L13 1');
+        } else {
+            notifDiv.style.display = "block";
+            notifAlert.style.display = "none"
+            arrowPath.setAttribute('d', 'M13 7L7 1L1 7');
+        }
+    }
+
+    function handleNotificationClick(event,notifId, projectId,projectName) {
+      event.preventDefault();  // Prevent the default action (in case it's a link)
+      
+      // If the notification is linked to a project, use the project URL; otherwise, use the href for the section
+        let targetUrl = projectId ? `/project/dashboard/${projectId}/${projectName}/` : event.target.getAttribute('href');
+        const notifElement = document.getElementById(`notif-${notifId}`);
+
+        // Retrieve the type attribute from the child with the class `notif-review`
+        const triggerElement = notifElement.querySelector('.notif-review')?.getAttribute('type');
+        if (triggerElement == "payment_details"){
+            targetUrl = "/effort-report/" 
+        }
+      
+          // If the notification is unread, mark it as read first
+          fetch(`/project/notifications_read/`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  notif_id: notifId
+              }),
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  const notifElement = document.getElementById(`notif-${notifId}`);
+                  if (notifElement) {
+                    notifElement.remove();
+                  }
+                  // Once marked as read, navigate to the target URL
+                  window.location.href = targetUrl;
+              }
+          })
+          .catch(error => console.error('Error:', error));
+      }
+    
+      document.querySelectorAll('.assessment-row').forEach(row => {
+        const resultCell = row.querySelector('.result-cell');
+        const actionCell = row.querySelector('.action-cell');
+        const statusCell = row.querySelector('.assessment-status');
+
+        if (resultCell.textContent.trim() === "Failed") {
+            actionCell.innerHTML = '<a href="http://">Retake &#8635;</a>';
+            resultCell.style.color = '#DD1D43';
+        } else {
+            actionCell.innerHTML = '<a href="http://">Attempt Now</a>';
+        }
+
+        if (statusCell.textContent.toLowerCase().includes("late")) {
+            statusCell.style.backgroundColor = '#FFBEC0';
+        }
+    });
+
+    //function to view input box when checked
+    function toggleRowInputDisplay(checkbox) {
+        const row = checkbox.closest('tr');
+        const inputTd = row.querySelector('td:nth-child(2)');
+        const otherTds = row.querySelectorAll('td:not(:first-child):not(:nth-child(2))');
+
+        if (checkbox.checked) {
+            inputTd.style.display = '';
+            otherTds.forEach(td => {
+                td.style.display = 'none';
+            });
+        } else {
+            inputTd.style.display = 'none';
+            otherTds.forEach(td => {
+                td.style.display = '';
+            });
+        }
+    }
+
+
+    //fetch attendance data
+    async function fetchAttendanceData() {
+        try {
+            const response = await fetch('/attendance/');
+            const data = await response.json();
+
+            
+            const attendanceData = {};
+            data.forEach(entry => {
+                const dateKey = entry.date;
+                attendanceData[dateKey] = entry.leave
+                    ? 'holiday'
+                    : entry.present
+                    ? 'present'
+                    : 'absent';
+                attendanceData[dateKey + '_eod'] = entry.eod_text;
+                attendanceData[dateKey + '_leave_subject'] = entry.leave_subject;
+                // console.log(attendanceData)
+            });
+            // console.log(attendanceData)
+            generateDateBoxes('dateContainer', 14, attendanceData);
+        } catch (error) {
+            console.error("Error fetching attendance data:", error);
+        }
+    }
+    //generate boxes
+    function generateDateBoxes(dateContainerId, daysRange = 14, dateStatusData = {}) {
+        const dateContainer = document.getElementById(dateContainerId);
+        if (!dateContainer) {
+            console.error(`Element with ID ${dateContainerId} not found.`);
+            return;
+        }
+        dateContainer.innerHTML = '';
+        const today = new Date();
+
+        for (let i = daysRange; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            const day = date.getDate();
+            const dateKey = date.toISOString().split('T')[0];
+
+            
+            const dateBox = document.createElement('div');
+            dateBox.classList.add('date-box');
+            dateBox.textContent = day;
+            
+            
+            const status = dateStatusData[dateKey];
+            if (status) dateBox.classList.add(status);
+
+            // console.log("SFF",dateStatusData)
+           
+            const leaveSubject = dateStatusData[dateKey + '_leave_subject'];
+            const eodTextData = dateStatusData[dateKey + '_eod'];
+                   
+            if (leaveSubject) {
+                dateBox.addEventListener('mouseenter', () => eodHoverBox(dateBox, [], leaveSubject));
+            } else if (eodTextData) {
+
+                dateBox.addEventListener('mouseenter', () => eodHoverBox(dateBox, eodTextData));
+                // dateBox.addEventListener('mouseleave', hideEodHoverBox);
+            }
+            else{
+                dateBox.addEventListener('mouseenter', () => eodHoverBox(dateBox, []));
+            }
+            
+        
+            dateBox.addEventListener('mouseleave', hideEodHoverBox);
+            dateContainer.appendChild(dateBox);
+        }
+    }
+
+    //show eod on hover
+    function eodHoverBox(dateBox, eodTextData, leaveSubject = null) {
+       
+        const eodmodal = document.createElement('div');
+        eodmodal.classList.add('eod-modal');
+        
+        if (leaveSubject) {
+            
+            eodmodal.textContent = `Leave Reason: ${leaveSubject}`;
+        } else if (eodTextData && eodTextData.length > 0){
+
+            eodTextData.forEach(eod => {
+                const projectInfo = document.createElement('div');
+                projectInfo.classList.add('eod-info');
+                projectInfo.innerHTML = `<span style="color:#08090A">${eod.project_name}</span> ${eod.task_name}: ${eod.text}`;
+                eodmodal.appendChild(projectInfo);
+            });
+        }else {
+            
+            eodmodal.textContent = "No EOD update on this date";
+        }
+
+        
+        dateBox.appendChild(eodmodal);
+    }
+
+    function hideEodHoverBox(event) {
+        const eodmodal = event.currentTarget.querySelector('.eod-modal');
+        if (eodmodal) eodmodal.remove();
+    }
+
+   
+    fetchAttendanceData();
+
+    // new funtions for new eod logic 
+    // Toggle EOD input row when checkbox is clicked
+    function toggleEODInput(checkbox) {
+        const taskId = checkbox.getAttribute('data-task-id');
+        const eodRow = document.getElementById(`eod-row-${taskId}`);
+        const textarea = document.getElementById(`eod-text-${taskId}`);
+        
+        if (checkbox.checked) {
+            eodRow.style.display = 'table-row';
+            // Focus on textarea after a brief delay to ensure it's visible
+            setTimeout(() => textarea.focus(), 100);
+        } else {
+            eodRow.style.display = 'none';
+            textarea.value = ''; // Clear the textarea when unchecked
+        }
+    }
+
+    // Submit EOD for a single task
+    function submitSingleEOD(taskId) {
+        const textarea = document.getElementById(`eod-text-${taskId}`);
+        const checkbox = document.querySelector(`input.task-checkbox[data-task-id="${taskId}"]`);
+        const eodText = textarea.value.trim();
+        
+        if (!eodText) {
+            alert("Please enter your EOD update before submitting.");
+            return;
+        }
+        
+        const today = new Date().toISOString().split('T')[0];
+        const taskName = checkbox.getAttribute('data-task-name');
+        
+        const eodEntry = {
+            task: taskId,
+            date: today,
+            text: eodText,
+            name: taskName
+        };
+        
+        // Send API request
+        fetch('/api/eod/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({ eod_entries: [eodEntry] }),
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw err });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success_entries && data.success_entries.length > 0) {
+                alert(`EOD updated successfully for: ${taskName}`);
+                // Clear and hide the EOD input
+                textarea.value = '';
+                checkbox.checked = false;
+                document.getElementById(`eod-row-${taskId}`).style.display = 'none';
+                
+                // Refresh attendance data to show updated EOD
+                fetchAttendanceData();
+            }
+            
+            if (data.errors && data.errors.length > 0) {
+                const errorMessages = data.errors.map(error => {
+                    if (error.errors && error.errors.non_field_errors) {
+                        return error.errors.non_field_errors.join("\n");
+                    } else if (error.task_id && error.detail) {
+                        return `Task ID ${error.task_id}: ${error.detail}`;
+                    }
+                }).join("\n");
+                alert(errorMessages);
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting EOD:', error);
+            alert('An error occurred while submitting EOD data.');
+        });
+    }
+
+
+
+
+    //function for show update eod template
+    function updateEodTemplate() {
+        const updateTemplate = document.querySelector(".employee-assigned-task-update");
+        const assignedTemplate = document.querySelector(".employee-assigned-task");
+        const updateBtn = document.querySelector(".update-eod-btn");
+        const submitBtn = document.querySelector(".submit-eod-btn");
+
+        if (updateTemplate.style.display === "none" || updateTemplate.style.display === "") {
+            updateTemplate.style.display = "block";
+            assignedTemplate.style.display = "none";
+            updateBtn.innerHTML = `Cancel`
+            submitBtn.style.display = "block"
+        } else {
+            updateTemplate.style.display = "none";
+            assignedTemplate.style.display = "block";
+            updateBtn.innerHTML = `Update EOD`
+            submitBtn.style.display = "none"
+        }
+
+    }
+
+     // Helper function to get the CSRF token from the cookie
+     function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    if (!csrftoken) {
+        console.error('CSRF token not found!');
+    }
+
+
+    
+    
+    // function to send EOD update 
+    function submitEODData() {
+        const today = new Date().toISOString().split('T')[0];
+        const checkedCheckboxes = document.querySelectorAll('tr.assigned-task-details-row input[type="checkbox"]:checked');
+
+        // check if task is selected or not
+        if (checkedCheckboxes.length === 0) {
+            alert("Please select at least one task to submit.");
+            return;
+        }
+
+        let eodEntries = [];
+
+        // collect data from each checked checkbox
+        checkedCheckboxes.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            const inputField = row.querySelector('td:nth-child(2) input[type="text"]');
+            const taskName = checkbox.nextSibling.textContent.trim(); 
+
+            if (inputField && inputField.value) {
+                eodEntries.push({
+                    task: checkbox.id,
+                    date: today,
+                    text: inputField.value,
+                    name: taskName
+                });
+            }
+        });
+
+        // check input
+        if (eodEntries.length !== checkedCheckboxes.length) {
+            alert("Please fill in the details for all selected tasks.");
+            return;
+        }
+
+        // send api request
+        fetch('/api/eod/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({ eod_entries: eodEntries }),
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw err });
+            }
+            return response.json();
+        })
+        .then(data => {
+        
+            // console.log("DF",data)
+            if (data.success_entries && data.success_entries.length > 0) {
+                const successMessages = data.success_entries.map(entry => 
+                    `Task ID ${entry.task_id}: ${entry.detail}`
+                ).join("\n");
+                alert(successMessages);
+            }
+
+           
+            if (data.errors && data.errors.length > 0) {
+                const errorMessages = data.errors.map(error => {
+                    if (error.errors && error.errors.non_field_errors) {
+                        
+                        return error.errors.non_field_errors.join("\n");
+                    } else if (error.task_id && error.detail) {
+                        
+                        return `Task ID ${error.task_id}: ${error.detail}`;
+                    }
+                }).join("\n");
+                alert(errorMessages);
+            }
+            
+            // reset input field and checkbox
+            eodEntries.forEach(entry => {
+                const checkbox = document.getElementById(entry.task);
+                const inputField = checkbox.closest('tr').querySelector('td:nth-child(2) input[type="text"]');
+                if (inputField) inputField.value = '';
+                checkbox.checked = false;
+            });
+        })
+        .catch(error => {
+            console.error('thft', error);
+            alert('An error occurred while submitting EOD data.');
+        });
+    }
+
+
+    function hideprojecttaskrow(svgElement) {
+    
+        const tbody = svgElement.closest("tbody");
+        const taskRows = tbody.querySelectorAll(".assigned-task-details-row");
+
+        
+        taskRows.forEach(row => {
+            row.style.display = row.style.display === "none" ? "table-row" : "none";
+        });
+
+        
+        const arrowPath = svgElement.querySelector("path");
+        const isCollapsed = arrowPath.getAttribute("d") === "M13 7L7 1L1 7";
+
+    
+        arrowPath.setAttribute("d", isCollapsed ? "M1 1L7 7L13 1" : "M13 7L7 1L1 7");
+    }
+
+
+    function getDateHome (){
+        var now = new Date();
+        // var datetime = now.toLocaleString();
+
+        const option = {year: 'numeric', month: 'long', day: 'numeric'};
+        const formattedDate = now.toLocaleString('en-us',option);
+        // Insert date and time into HTML
+        document.getElementById("datetimehome").innerHTML = formattedDate;
+    }
+    getDateHome ()
+
+    //function to generate payslip
+    function PayslipGen(payment_id){
+        payment_id = parseInt(payment_id);
+        $.post({
+          url: '/Payroll/',
+          dataType: 'json',
+          data: {
+            'payment_id': payment_id,
+            csrfmiddlewaretoken : '{{ csrf_token }}'
+          },
+          success: res => {
+            if(res['html_res'] != ''){
+              var printWindow = window.open('', '_blank');
+              printWindow.document.write(res['html_res']);
+              printWindow.document.close();
+              setTimeout(function(){ printWindow.print(); },3*1000);  //To let the dynamic content to load
+            }else{
+              alert("There was an error in generating your Payslip");
+            }
+          },
+          error: err => {
+            console.log(err);
+          }
+        });
+      }
+      document.addEventListener('DOMContentLoaded', () => {
+    const filterSelect = document.getElementById('task-filter');
+    const taskRows = document.querySelectorAll('.task-row');
+
+    function filterTasks() {
+        const filter = filterSelect.value;
+
+        taskRows.forEach(row => {
+            const status = row.getAttribute('data-status');
+
+            if (filter === 'pending' && status === 'incomplete') {
+                row.style.display = '';
+            } else if (filter === 'completed' && status === 'completed') {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    filterSelect.addEventListener('change', filterTasks);
+    filterTasks(); // initialize on page load
+});
+    </script>
+    <script src="{% static 'users/js/homepage.js' %}" type="text/javascript" charset="utf-8" async defer></script>
+  {% endif %}
+{% endblock scripts %}

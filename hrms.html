@@ -3406,21 +3406,46 @@ function attachRemarksListeners() {
 }
 
 // Cache for attendance data
-let attendanceCache = {};
+// let attendanceCache = {};
+
+// Fetch attendance data for an employee (last 7 days)
+// Cache for attendance data - use Map for better key handling
+const attendanceCache = new Map();
 
 // Fetch attendance data for an employee (last 7 days)
 async function fetchEmployeeAttendance(userId) {
+    // Create a unique cache key
+    const cacheKey = `user_${userId}`;
+    
     // Check cache first
-    if (attendanceCache[userId]) {
-        return buildAttendanceHtml(attendanceCache[userId]);
+    if (attendanceCache.has(cacheKey)) {
+        console.log(`✓ Using cached attendance for user ${userId}`);
+        return buildAttendanceHtml(attendanceCache.get(cacheKey), userId);
     }
 
     try {
-        const response = await fetch(`/attendance/?user_id=${userId}`);
+        // Ensure userId is properly encoded
+        const url = `/attendance/?user_id=${encodeURIComponent(userId)}`;
+        console.log(`→ Fetching attendance from: ${url}`);
+        
+        const response = await fetch(url, {
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
         if (!response.ok) {
-            throw new Error('Failed to fetch attendance data');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
         const data = await response.json();
+        console.log(`← Received ${data.length} attendance records for user ${userId}`);
+        
+        // Verify we got data for the correct user (if your API returns user_id)
+        if (data.length > 0 && data[0].user_id && data[0].user_id != userId) {
+            console.error(`❌ WARNING: Received data for user ${data[0].user_id} instead of ${userId}`);
+        }
         
         // Process attendance data
         const attendanceData = {};
@@ -3436,16 +3461,28 @@ async function fetchEmployeeAttendance(userId) {
             attendanceData[dateKey + '_leave_subject'] = entry.leave_subject;
         });
 
-        // Cache the data
-        attendanceCache[userId] = attendanceData;
+        // Cache the data with the unique key
+        attendanceCache.set(cacheKey, attendanceData);
+        console.log(`✓ Cached attendance data for user ${userId}`);
         
-        return buildAttendanceHtml(attendanceData);
+        return buildAttendanceHtml(attendanceData, userId);
     } catch (error) {
-        console.error('Error fetching attendance:', error);
+        console.error(`❌ Error fetching attendance for user ${userId}:`, error);
         return buildDefaultAttendanceHtml();
     }
 }
 
+// Function to clear cache when needed
+function clearAttendanceCache(userId = null) {
+    if (userId) {
+        const cacheKey = `user_${userId}`;
+        attendanceCache.delete(cacheKey);
+        console.log(`Cleared cache for user ${userId}`);
+    } else {
+        attendanceCache.clear();
+        console.log('Cleared all attendance cache');
+    }
+}
 // Build attendance HTML from data
 function buildAttendanceHtml(attendanceData) {
     const today = new Date();

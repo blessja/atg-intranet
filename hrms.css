@@ -2124,3 +2124,215 @@ body {
 .calendar-day-wrapper {
     transition: all 0.2s ease;
 }
+.calendar-day-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.calendar-day {
+    margin: 0 !important;
+    padding: 10px !important;
+}
+
+.full-month-calendar {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0 !important;
+    margin: 0 !important;
+}
+
+.expanded-calendar {
+    width: 100% !important;
+}
+.three-dot-menu-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.three-dot-hover-menu {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.menu-item:hover {
+    background-color: #F5F5F5 !important;
+}
+
+.menu-item svg {
+    flex-shrink: 0;
+}
+
+.three-dot-icon:hover {
+    opacity: 0.7;
+}
+
+
+/* ===== SKILL LEVEL DROPDOWN ===== */
+.skill-level-wrapper {
+    position: relative !important;
+    display: inline-block !important;
+}
+
+.skill-level-container {
+    padding: 2px !important;
+    border-radius: 20px !important;
+    border: 1px solid #9B99F3 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    background: white !important;
+    position: relative !important;
+}
+
+.skill-level-badge {
+    padding: 4px 8px !important;
+    border-radius: 25px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.skill-level-text {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    font-family: Roboto, sans-serif !important;
+    line-height: 20px !important;
+    white-space: nowrap !important;
+}
+
+.skill-chevron {
+    width: 16px !important;
+    height: 16px !important;
+    position: relative !important;
+    transform: rotate(-180deg) !important;
+    transition: transform 0.2s ease !important;
+    flex-shrink: 0 !important;
+}
+
+.skill-chevron-inner {
+    width: 8px !important;
+    height: 4px !important;
+    border-bottom: 1.33px solid #08090A !important;
+    border-right: 1.33px solid #08090A !important;
+    transform: rotate(-45deg) !important;
+    position: absolute !important;
+    left: 4px !important;
+    top: 6px !important;
+}
+
+.skill-level-wrapper.active .skill-chevron {
+    transform: rotate(0deg) !important;
+}
+
+/* Dropdown Menu - Positioned below the badge */
+.skill-level-dropdown-menu {
+    position: absolute !important;
+    top: calc(100% + 4px) !important;
+    left: 0 !important;
+    width: 145px !important;
+    background: white !important;
+    box-shadow: 0px 1px 4px rgba(12, 12, 13, 0.05) !important;
+    border-radius: 4px !important;
+    border: 1px solid #D9D9D9 !important;
+    padding: 8px !important;
+    display: none !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    z-index: 9999 !important;
+}
+
+/* Dropdown Options */
+.skill-level-option {
+    padding: 4px 8px !important;
+    border-radius: 25px !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    font-family: Roboto, sans-serif !important;
+    line-height: 20px !important;
+    letter-spacing: 0.04px !important;
+    border: 2px solid transparent !important;
+    text-align: left !important;
+    transition: opacity 0.15s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+}
+
+.skill-level-option:hover {
+    opacity: 0.8 !important;
+}
+
+/* Selected option - border outline like in Figma */
+.skill-level-option.selected {
+    border: 2px solid #9B99F3 !important;
+    text-align: center !important;
+    justify-content: center !important;
+}
+
+/* Individual Option Colors - Match Figma exactly */
+.skill-level-option[data-skill="Intermediate"] {
+    background: #FDEFDD !important;
+    color: #A25D03 !important;
+}
+
+.skill-level-option[data-skill="Advance"] {
+    background: #EDEDFD !important;
+    color: #504CF5 !important;
+}
+
+.skill-level-option[data-skill="Basic"] {
+    background: #FDF9D8 !important;
+    color: #7F7300 !important;
+}
+
+.slide-panel {
+    position: fixed;
+    top: 0;
+    right: -40%;
+    width: 40%;
+    height: 100%;
+    background: #ffffff;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+    z-index: 2000;
+    transition: right 0.35s ease-in-out;
+}
+
+.slide-panel.open {
+    right: 0;
+}
+
+.slide-panel-content {
+    padding: 20px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.close-panel {
+    cursor: pointer;
+    font-size: 20px;
+    float: right;
+}
+
+.save-skill-btn {
+    width: 100%;
+    padding: 10px;
+    background: #4C6EF5;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    margin-top: 15px;
+    cursor: pointer;
+    font-size: 16px;
+}

@@ -363,32 +363,24 @@ Hrms
                 </div>
 
                 <!-- Goal Overview Modal -->
-                <div id="goalOverviewModal" class="modal">
-                    <div class="modal-content">
-                        <h2>Performance Overview</h2>
-                        
-                        <!-- Placeholder for dynamic overall feedback -->
-                        <p id="overallFeedbackText"><b>Overall Feedback: Loading...</b></p>
-                        
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Goals</th>
-                                    <th>Current Status</th>
-                                    <th>Assigned On</th>
-                                </tr>
-                            </thead>
-                            <tbody id="goalsTableBody">
-                                <!-- Goals will be dynamically populated here -->
-                            </tbody>
-                        </table>
 
-                        <!-- Close Button -->
-                        <div class="button-group">
-                            <button type="button" class="cancel-button" onclick="closeGoalOverviewModal()">Close</button>
+                                <!-- Right Slide Panel -->
+                <div id="skillSlidePanel" class="slide-panel">
+                    <div class="slide-panel-content">
+                        <div class="slide-panel-header">
+                            <h3>Skill Overview</h3>
+                            <span class="close-panel" onclick="closeSkillPanel()">✖</span>
                         </div>
+
+                        <div id="skillsContainer">
+                            <!-- Skills will load here dynamically -->
+                            <p style="padding: 10px;">Loading...</p>
+                        </div>
+
+                        <button class="save-skill-btn" onclick="saveSkillUpdates()">Save Changes</button>
                     </div>
                 </div>
+
             </div>
 
 
@@ -1833,30 +1825,25 @@ document.addEventListener('keydown', handleEnterKey);
     }
 
     function fetchNoticePeriodStatus(userId, deptId) {
-    const apiUrl = `/api/user/${userId}/on-notice/`;
-    fetch(apiUrl)
-        .then(response => {
-            if (!response.ok) {
-                // Log error but don't break the UI
-                console.warn(`Failed to fetch notice period status for user ${userId}:`, response.status);
-                return null;
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data && data.is_on_notice) {
-                noticePeriodClass = `.noticePeriod${deptId}_${userId}`;
-                const element = document.querySelector(noticePeriodClass);
-                if (element) {
-                    element.style.display = 'inline-block';
+        const apiUrl = `/api/user/${userId}/on-notice/`;
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
-            }
-        })
-        .catch(error => {
-            console.warn('Error fetching notice period status:', error);
-            // Don't break the UI - just log the error
-        });
-}
+                return response.json();
+            })
+            .then(data => {
+                if (data.is_on_notice){
+                    noticePeriodClass = `.noticePeriod${deptId}_${userId}`;
+                    document.querySelector(noticePeriodClass).style.display = 'inline-block';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching user status:', error);
+            });
+    }
+    
     function fetchUserBounties(userId, duration = 30, callback) {
         const apiUrl = `/api/user/${userId}/bounties/${duration}/`;
         
@@ -2194,11 +2181,11 @@ function formatDateee(date) {
 
 
 
-async function renderEmployeeData(tbody, data, departmentId = 'default') {
+function renderEmployeeData(tbody, data, departmentId = 'default') {
     tbody.innerHTML = '';
     const bountyDurationSelect = tbody.closest('.table-container').querySelector('#bountyDurationSelect');
     
-    for (const employee of data) {
+    data.forEach(employee => {
         const row = document.createElement('tr');
         row.style.borderBottom = '1px solid #EBEDF0';
         
@@ -2286,8 +2273,118 @@ Internship Ends: ${endDate}
 ${endDateWarning}
         `.trim();
 
-        // Fetch attendance data from backend
-        const attendanceHtml = await fetchEmployeeAttendance(employee.user_id);
+       // Get current month info for displaying last 7 days
+const today = new Date();
+const last7Days = [];
+for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
+    last7Days.push({
+        date: date.getDate(),
+        fullDate: date,
+        status: 'present' // This should come from employee.attendance data
+    });
+}
+
+// Build attendance calendar with dynamic dates
+const attendanceHtml = employee.attendance && employee.attendance.length > 0 
+    ? employee.attendance.slice(-7).map((day, index) => {
+        let bgColor = '#00B879'; // present (green)
+        let statusText = 'Present';
+        if (day.status === 'pending') { 
+            bgColor = '#A37D21';
+            statusText = 'Pending';
+        }
+        if (day.status === 'absent') { 
+            bgColor = '#DD1D43';
+            statusText = 'Absent';
+        }
+        if (day.status === 'leave') { 
+            // bgColor = '#E44A69';
+            statusText = 'On Leave';
+        }
+        
+        // Get actual date number from the attendance data
+        const actualDate = day.date; // Should be just the day number like 23, 24, etc.
+        
+        return `
+            <div class="calendar-day-wrapper" style="position: relative;">
+                <div class="calendar-day" style="
+                    width: 32px; 
+                    height: 32px; 
+                    padding: 10px; 
+                    background: ${bgColor}; 
+                    ${day.status === 'pending' || day.status === 'absent' ? 'opacity: 0.80;' : ''} 
+                    border-right: 1px rgba(255, 255, 255, 0.70) solid; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center;
+                    cursor: pointer;
+                ">
+                    <div style="color: white; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${actualDate}</div>
+                </div>
+                <div class="calendar-tooltip" style="
+                    visibility: hidden;
+                    opacity: 0;
+                    position: absolute;
+                    bottom: calc(100% + 8px);
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: white;
+                    color: #08090A;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    white-space: nowrap;
+                    z-index: 1000;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                    border: 1px solid #D9D9D9;
+                    pointer-events: none;
+                ">${statusText} - Day ${actualDate}</div>
+            </div>
+        `;
+    }).join('')
+    : (() => {
+        // Default calendar with last 7 days if no attendance data
+        return last7Days.map((day, index) => {
+            return `
+                <div class="calendar-day-wrapper" style="position: relative;">
+                    <div class="calendar-day" style="
+                        width: 32px; 
+                        height: 32px; 
+                        padding: 10px; 
+                        opacity: 0.80; 
+                        background: ${index === 0 ? '#A37D21' : index === 2 ? '#DD1D43' : '#00B879'}; 
+                        border-right: 1px rgba(255, 255, 255, 0.70) solid; 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center;
+                        cursor: pointer;
+                    ">
+                        <div style="color: white; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${day.date}</div>
+                    </div>
+                    <div class="calendar-tooltip" style="
+                        visibility: hidden;
+                        opacity: 0;
+                        position: absolute;
+                        bottom: calc(100% + 8px);
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: white;
+                        color: #08090A;
+                        padding: 8px 12px;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        white-space: nowrap;
+                        z-index: 1000;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                        border: 1px solid #D9D9D9;
+                        pointer-events: none;
+                    ">${index === 0 ? 'Pending' : index === 2 ? 'Absent' : 'Present'} - Day ${day.date}</div>
+                </div>
+            `;
+        }).join('');
+    })();
 
         row.innerHTML = `
             <td style="flex: 1; padding: 16px 8px 16px 16px; background: ${rowBg};">
@@ -2396,7 +2493,7 @@ ${endDateWarning}
                         : '<div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px;">-</div>'}
                 </div>
             </td>
-            <td style="width: 167px; padding: 16px 8px; background: ${rowBg};">
+             <td style="width: 167px; padding: 16px 8px; background: ${rowBg};">
                 ${employee.remark !== null && employee.remark !== undefined || employee.status === 'On Bench' ? `
                     <textarea class="remarks-field" data-user-id="${employee.user_id}" style="width: 100%; max-width: 150px; border: 1px solid #CED4DA; border-radius: 2px; padding: 8px; outline: none; color: ${employee.remark ? '#08090A' : '#6D747A'}; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px; resize: vertical; min-height: 60px; box-sizing: border-box;" placeholder="Add remarks...">${employee.remark || ''}</textarea>
                 ` : '<div style="height: 33px; border: 1px solid #EBEDF0;"></div>'}
@@ -2421,88 +2518,89 @@ ${endDateWarning}
                 </div>
             </td>
             <td style="width: 21px; padding: 16px 5px; background: ${rowBg}; position: relative;">
-                <div class="three-dot-menu-wrapper" style="position: relative; display: inline-block;">
-                    <svg class="three-dot-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
-                        <circle cx="8" cy="3" r="1.33" fill="#6D747A"/>
-                        <circle cx="8" cy="8" r="1.33" fill="#6D747A"/>
-                        <circle cx="8" cy="13" r="1.33" fill="#6D747A"/>
-                    </svg>
-                    
-                    <div class="three-dot-hover-menu" style="
-                        display: none;
-                        position: absolute;
-                        top: 100%;
-                        right: 0;
-                        background: white;
-                        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
-                        border-radius: 8px;
-                        min-width: 160px;
-                        z-index: 1000;
-                        padding: 8px 0;
-                        margin-top: 4px;
-                    ">
-                        <div class="menu-item" onclick="openAssignGoalModal(${employee.user_id})" style="
-                            padding: 12px 16px;
-                            cursor: pointer;
-                            font-size: 14px;
-                            font-family: Roboto;
-                            color: #08090A;
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            transition: background-color 0.2s ease;
-                        ">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M8 3V13M3 8H13" stroke="#6D747A" stroke-width="1.5" stroke-linecap="round"/>
-                            </svg>
-                            Assign Goal
-                        </div>
-                        
-                        <div class="menu-item" onclick="openGoalOverview(${employee.user_id})" style="
-                            padding: 12px 16px;
-                            cursor: pointer;
-                            font-size: 14px;
-                            font-family: Roboto;
-                            color: #08090A;
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            transition: background-color 0.2s ease;
-                        ">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8Z" stroke="#6D747A" stroke-width="1.5"/>
-                                <path d="M8 5V8L10 10" stroke="#6D747A" stroke-width="1.5" stroke-linecap="round"/>
-                            </svg>
-                            Goal Overview
-                        </div>
-                        
-                        <div class="menu-item" onclick="openEODSummary(${employee.user_id})" style="
-                            padding: 12px 16px;
-                            cursor: pointer;
-                            font-size: 14px;
-                            font-family: Roboto;
-                            color: #08090A;
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            transition: background-color 0.2s ease;
-                        ">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M13 2H3C2.44772 2 2 2.44772 2 3V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V3C14 2.44772 13.5523 2 13 2Z" stroke="#6D747A" stroke-width="1.5"/>
-                                <path d="M5 6H11M5 9H11" stroke="#6D747A" stroke-width="1.5" stroke-linecap="round"/>
-                            </svg>
-                            EOD Summary
-                        </div>
-                    </div>
-                </div>
-            </td>
+    <div class="three-dot-menu-wrapper" style="position: relative; display: inline-block;">
+        <svg class="three-dot-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
+            <circle cx="8" cy="3" r="1.33" fill="#6D747A"/>
+            <circle cx="8" cy="8" r="1.33" fill="#6D747A"/>
+            <circle cx="8" cy="13" r="1.33" fill="#6D747A"/>
+        </svg>
+        
+        <!-- Hover Menu -->
+        <div class="three-dot-hover-menu" style="
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            min-width: 160px;
+            z-index: 1000;
+            padding: 8px 0;
+            margin-top: 4px;
+        ">
+            <div class="menu-item" onclick="openAssignGoalModal(${employee.user_id})" style="
+                padding: 12px 16px;
+                cursor: pointer;
+                font-size: 14px;
+                font-family: Roboto;
+                color: #08090A;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: background-color 0.2s ease;
+            ">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 3V13M3 8H13" stroke="#6D747A" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Assign Goal
+            </div>
+            
+            <div class="menu-item" onclick="openSkillEditor(${employee.user_id})" style="
+                padding: 12px 16px;
+                cursor: pointer;
+                font-size: 14px;
+                font-family: Roboto;
+                color: #08090A;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: background-color 0.2s ease;
+            ">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8Z" stroke="#6D747A" stroke-width="1.5"/>
+                    <path d="M8 5V8L10 10" stroke="#6D747A" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Goal Overview
+            </div>
+            
+            <div class="menu-item" onclick="openEODSummary(${employee.user_id})" style="
+                padding: 12px 16px;
+                cursor: pointer;
+                font-size: 14px;
+                font-family: Roboto;
+                color: #08090A;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: background-color 0.2s ease;
+            ">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H3C2.44772 2 2 2.44772 2 3V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V3C14 2.44772 13.5523 2 13 2Z" stroke="#6D747A" stroke-width="1.5"/>
+                    <path d="M5 6H11M5 9H11" stroke="#6D747A" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                EOD Summary
+            </div>
+        </div>
+    </div>
+</td>
         `;
 
         tbody.appendChild(row);
         
         fetchNoticePeriodStatus(employee.user_id, departmentId);
         fetchUserFeedback(employee.user_id, departmentId);
-    }
+    });
 
     highlightUpcomingEndDates();
     attachSkillDropdownListeners();
@@ -3412,316 +3510,6 @@ function attachRemarksListeners() {
 
 
 
-// Cache for attendance data - use Map for better key handling
-const attendanceCache = new Map();
-
-// Fetch attendance data for an employee (last 7 days)
-async function fetchEmployeeAttendance(userId) {
-    // Create a unique cache key - IMPORTANT: Convert to string to ensure uniqueness
-    const cacheKey = `user_${String(userId)}`;
-    
-    // DEBUGGING: Log every fetch attempt
-    console.log(`🔍 fetchEmployeeAttendance called for userId: ${userId} (type: ${typeof userId})`);
-    
-    // Check cache first
-    if (attendanceCache.has(cacheKey)) {
-        console.log(`✓ Using cached attendance for user ${userId}`);
-        const cachedData = attendanceCache.get(cacheKey);
-        console.log(`📦 Cache contains ${Object.keys(cachedData).filter(k => !k.includes('_')).length} date entries`);
-        return buildAttendanceHtml(cachedData, userId);
-    }
-
-    console.log(`❌ No cache found for key: "${cacheKey}"`);
-    console.log(`📋 Current cache keys:`, Array.from(attendanceCache.keys()));
-
-    try {
-        // Ensure userId is properly encoded
-        const url = `/attendance/?user_id=${encodeURIComponent(userId)}`;
-        console.log(`→ Fetching attendance from: ${url}`);
-        
-        const response = await fetch(url, {
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        if (!response.ok) {
-            console.warn(`⚠ HTTP ${response.status} for user ${userId} - using default calendar`);
-            return buildDefaultAttendanceHtml();
-        }
-        
-        const data = await response.json();
-        console.log(`← Received ${data.length} attendance records for user ${userId}`);
-        
-        // Verify the data structure
-        if (!Array.isArray(data)) {
-            console.error(`❌ Invalid data format for user ${userId}:`, data);
-            return buildDefaultAttendanceHtml();
-        }
-        
-        // CRITICAL: Verify we got data for the correct user
-        if (data.length > 0) {
-            const firstRecord = data[0];
-            console.log(`🔬 First record inspection:`, {
-                user_id_from_response: firstRecord.user_id,
-                user_id_from_response_type: typeof firstRecord.user_id,
-                requested_userId: userId,
-                requested_userId_type: typeof userId,
-                match: firstRecord.user_id == userId,
-                strict_match: firstRecord.user_id === userId
-            });
-            
-            // Check if user_id matches (loose comparison to handle string/number mismatch)
-            if (firstRecord.user_id && firstRecord.user_id != userId) {
-                console.error(`❌ CRITICAL: API returned data for user ${firstRecord.user_id} but we requested user ${userId}!`);
-                console.error(`❌ This is a backend issue - the API is returning wrong user data`);
-                return buildDefaultAttendanceHtml();
-            }
-            
-            // Additional check: verify ALL records are for the correct user
-            const wrongUserRecords = data.filter(record => record.user_id && record.user_id != userId);
-            if (wrongUserRecords.length > 0) {
-                console.error(`❌ CRITICAL: Found ${wrongUserRecords.length} records for wrong users:`, 
-                    wrongUserRecords.map(r => r.user_id));
-                return buildDefaultAttendanceHtml();
-            }
-            
-            console.log(`✓ Data verified for user ${userId} - all ${data.length} records match`);
-        } else {
-            console.log(`ℹ No attendance records found for user ${userId} - showing default calendar`);
-            // For users with no data, still cache an empty object
-            attendanceCache.set(cacheKey, {});
-            return buildDefaultAttendanceHtml();
-        }
-        
-        // Process attendance data
-        const attendanceData = {};
-        let processedCount = 0;
-        
-        data.forEach(entry => {
-            const dateKey = entry.date;
-            // Determine status based on EOD submission
-            const hasEOD = entry.eod_text && entry.eod_text.length > 0;
-            
-            attendanceData[dateKey] = entry.leave
-                ? 'leave'
-                : hasEOD
-                ? 'present'
-                : 'absent';
-                
-            attendanceData[dateKey + '_eod'] = entry.eod_text || [];
-            attendanceData[dateKey + '_leave_subject'] = entry.leave_subject;
-            
-            processedCount++;
-            
-            // Debug first entry
-            if (processedCount === 1) {
-                console.log(`📝 Sample entry for user ${userId}:`, {
-                    date: dateKey,
-                    status: attendanceData[dateKey],
-                    hasEOD: hasEOD,
-                    eodCount: entry.eod_text ? entry.eod_text.length : 0
-                });
-            }
-        });
-
-        console.log(`✓ Processed ${processedCount} attendance records for user ${userId}`);
-        console.log(`📊 Status breakdown:`, {
-            dates_with_data: Object.keys(attendanceData).filter(k => !k.includes('_')).length,
-            present: Object.values(attendanceData).filter(v => v === 'present').length,
-            absent: Object.values(attendanceData).filter(v => v === 'absent').length,
-            leave: Object.values(attendanceData).filter(v => v === 'leave').length
-        });
-
-        // Cache the data with the unique key
-        attendanceCache.set(cacheKey, attendanceData);
-        console.log(`✅ Cached attendance data for user ${userId} with key: "${cacheKey}"`);
-        console.log(`📋 Cache now has ${attendanceCache.size} entries:`, Array.from(attendanceCache.keys()));
-        
-        return buildAttendanceHtml(attendanceData, userId);
-    } catch (error) {
-        console.error(`❌ Error fetching attendance for user ${userId}:`, error);
-        return buildDefaultAttendanceHtml();
-    }
-}
-
-
-// Build attendance HTML from data
-function buildAttendanceHtml(attendanceData, userId) {
-    console.log(`🎨 Building attendance HTML for user ${userId}`);
-    console.log(`📊 AttendanceData has ${Object.keys(attendanceData).filter(k => !k.includes('_')).length} date entries`);
-    
-    const today = new Date();
-    const last7Days = [];
-    
-    // Generate last 7 days
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - i);
-        const dateKey = date.toISOString().split('T')[0];
-        const dayNumber = date.getDate();
-        
-        // Check if we have data for this date - THIS IS THE KEY FIX
-        const hasData = attendanceData.hasOwnProperty(dateKey);
-        const status = hasData ? attendanceData[dateKey] : null;
-        const eodData = attendanceData[dateKey + '_eod'] || [];
-        const leaveSubject = attendanceData[dateKey + '_leave_subject'];
-        
-        // Log first day for debugging
-        if (i === 6) {
-            console.log(`📅 First day (${dateKey}) for user ${userId}:`, {
-                hasData,
-                status,
-                eodCount: eodData.length
-            });
-        }
-        
-        // Default to gray (no data) instead of red
-        let bgColor = '#EBEDF0'; // Gray for no data
-        let statusText = 'No data available';
-        let opacity = '0.30';
-        let textColor = '#6D747A';
-        let cursor = 'default';
-        
-        // Only apply colors if we have actual data
-        if (status === 'present') {
-            bgColor = '#00B879'; // Green for EOD submitted
-            statusText = 'EOD Submitted';
-            opacity = '1';
-            textColor = 'white';
-            cursor = 'pointer';
-        } else if (status === 'absent') {
-            bgColor = '#DD1D43'; // Red for no EOD
-            statusText = 'No EOD Submitted';
-            opacity = '0.80';
-            textColor = 'white';
-            cursor = 'pointer';
-        } else if (status === 'leave') {
-            bgColor = '#E44A69'; // Pink for leave
-            statusText = 'On Leave';
-            opacity = '1';
-            textColor = 'white';
-            cursor = 'pointer';
-            if (leaveSubject) {
-                statusText = `Leave: ${leaveSubject}`;
-            }
-        }
-        
-        // Build tooltip content
-        let tooltipContent = statusText;
-        if (eodData.length > 0 && status === 'present') {
-            tooltipContent = eodData.map(eod => 
-                `${eod.project_name}: ${eod.task_name}`
-            ).join('\n');
-        }
-        
-        last7Days.push(`
-            <div class="calendar-day-wrapper" style="position: relative;">
-                <div class="calendar-day" style="
-                    width: 32px; 
-                    height: 32px; 
-                    padding: 10px; 
-                    background: ${bgColor}; 
-                    opacity: ${opacity};
-                    border-right: 1px rgba(255, 255, 255, 0.70) solid; 
-                    display: flex; 
-                    align-items: center; 
-                    justify-content: center;
-                    cursor: ${cursor};
-                ">
-                    <div style="color: ${textColor}; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${dayNumber}</div>
-                </div>
-                <div class="calendar-tooltip" style="
-                    visibility: hidden;
-                    opacity: 0;
-                    position: absolute;
-                    bottom: calc(100% + 8px);
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: white;
-                    color: #08090A;
-                    padding: 8px 12px;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    white-space: pre-wrap;
-                    max-width: 200px;
-                    z-index: 1000;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                    border: 1px solid #D9D9D9;
-                    pointer-events: none;
-                ">${tooltipContent}</div>
-            </div>
-        `);
-    }
-    
-    console.log(`✅ Built calendar HTML for user ${userId} with ${last7Days.length} days`);
-    return last7Days.join('');
-}
-
-// Build default attendance HTML if fetch fails
-function buildDefaultAttendanceHtml() {
-    const today = new Date();
-    const last7Days = [];
-    
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - i);
-        const dayNumber = date.getDate();
-        
-        last7Days.push(`
-            <div class="calendar-day-wrapper" style="position: relative;">
-                <div class="calendar-day" style="
-                    width: 32px; 
-                    height: 32px; 
-                    padding: 10px; 
-                    opacity: 0.30; 
-                    background: #EBEDF0;
-                    border-right: 1px rgba(255, 255, 255, 0.70) solid; 
-                    display: flex; 
-                    align-items: center; 
-                    justify-content: center;
-                    cursor: default;
-                ">
-                    <div style="color: #6D747A; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${dayNumber}</div>
-                </div>
-                <div class="calendar-tooltip" style="
-                    visibility: hidden;
-                    opacity: 0;
-                    position: absolute;
-                    bottom: calc(100% + 8px);
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: white;
-                    color: #08090A;
-                    padding: 8px 12px;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    white-space: nowrap;
-                    z-index: 1000;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                    border: 1px solid #D9D9D9;
-                    pointer-events: none;
-                ">No data available</div>
-            </div>
-        `);
-    }
-    
-    return last7Days.join('');
-}
-
-function clearAttendanceCache(userId = null) {
-    if (userId) {
-        const cacheKey = `user_${userId}`;
-        attendanceCache.delete(cacheKey);
-        console.log(`Cleared cache for user ${userId}`);
-    } else {
-        attendanceCache.clear();
-        console.log('Cleared all attendance cache');
-    }
-}
-
-
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize skill dropdown listeners
     setTimeout(() => {
@@ -4023,6 +3811,73 @@ document.addEventListener('DOMContentLoaded', function() {
     function toggleCategory(element) {
         const category = element.parentElement;
         category.classList.toggle('expanded');
+    }
+    function openSkillEditor(userId) {
+        document.getElementById("skillSlidePanel").classList.add("open");
+
+        fetch(`/users/${userId}/skills-panel/`)
+            .then(resp => resp.json())
+            .then(data => {
+                let html = "";
+
+                data.skills.forEach(skill => {
+                    html += `
+                        <div class="skill-item">
+                            <div style="font-size:16px;margin-bottom:4px;">
+                                <b>${skill.name}</b> 
+                                <span style="color:#666;">(${skill.category})</span>
+                            </div>
+                            <input 
+                                type="range" 
+                                min="0" 
+                                max="10" 
+                                value="${skill.rating}"
+                                class="skill-slider"
+                                data-id="${skill.user_skill_id}"
+                            >
+                            <span class="skill-value">${skill.rating}</span>
+                        </div>
+                        <hr>
+                    `;
+                });
+
+                document.getElementById("skillsContainer").innerHTML = html;
+
+                // Live update score beside slider
+                document.querySelectorAll(".skill-slider").forEach(slider => {
+                    slider.addEventListener("input", function () {
+                        this.nextElementSibling.innerText = this.value;
+                    });
+                });
+            });
+    }
+    function closeSkillPanel() {
+        document.getElementById("skillSlidePanel").classList.remove("open");
+    }
+    function saveSkillUpdates() {
+        const sliders = document.querySelectorAll(".skill-slider");
+        const payload = [];
+
+        sliders.forEach(slider => {
+            payload.push({
+                user_skill_id: slider.dataset.id,
+                rating: slider.value
+            });
+        });
+
+        fetch("/users/update-skill-rating/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({ updates: payload })
+        })
+        .then(resp => resp.json())
+        .then(data => {
+            alert("Skill scores updated!");
+            closeSkillPanel();
+        });
     }
     function handleNotificationClick(event,notifId, projectId,projectName) {
       event.preventDefault();  // Prevent the default action (in case it's a link)

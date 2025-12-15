@@ -2892,83 +2892,128 @@ function showDayDetailsInline(dateStr, userId, dayElement) {
     // For now, we'll just log it
 }
 
+
 // Attach tooltip listeners for name, info icon, skill level, and calendar
 function attachTooltipListeners() {
-    // Name tooltip
+    // Name badge dropdown handler for performance status
     document.querySelectorAll('.name-badge-wrapper').forEach(wrapper => {
-        const badge = wrapper.querySelector('div[style*="cursor: pointer"]');
+        const badge = wrapper.querySelector('.name-badge');
         const tooltip = wrapper.querySelector('.name-tooltip');
+        const dropdown = wrapper.querySelector('.performance-dropdown');
+        const chevron = badge?.querySelector('svg');
         
-        if (badge && tooltip) {
+        if (badge) {
+            // Click to toggle dropdown
+            badge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Close all other dropdowns
+                document.querySelectorAll('.performance-dropdown').forEach(menu => {
+                    if (menu !== dropdown) {
+                        menu.style.display = 'none';
+                        const otherWrapper = menu.closest('.name-badge-wrapper');
+                        const otherChevron = otherWrapper?.querySelector('.name-badge svg');
+                        if (otherChevron) {
+                            otherChevron.style.transform = 'rotate(180deg)';
+                        }
+                    }
+                });
+                
+                // Toggle current dropdown
+                if (dropdown) {
+                    const isOpen = dropdown.style.display === 'block';
+                    dropdown.style.display = isOpen ? 'none' : 'block';
+                    
+                    // Rotate chevron
+                    if (chevron) {
+                        chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+                    }
+                }
+            });
+            
+            // Hover to show tooltip (only when dropdown is closed)
             badge.addEventListener('mouseenter', () => {
-                tooltip.style.visibility = 'visible';
-                tooltip.style.opacity = '1';
-                tooltip.style.transition = 'opacity 0.2s ease';
+                if (!dropdown || dropdown.style.display !== 'block') {
+                    if (tooltip) {
+                        tooltip.style.visibility = 'visible';
+                        tooltip.style.opacity = '1';
+                        tooltip.style.transition = 'opacity 0.2s ease';
+                    }
+                }
             });
             
             badge.addEventListener('mouseleave', () => {
-                tooltip.style.visibility = 'hidden';
-                tooltip.style.opacity = '0';
-                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+                if (tooltip) {
+                    tooltip.style.visibility = 'hidden';
+                    tooltip.style.opacity = '0';
+                    tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+                }
+            });
+        }
+        
+        // Handle performance status option clicks
+        if (dropdown) {
+            dropdown.querySelectorAll('.performance-status-option').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    const selectedStatus = option.getAttribute('performance-status');
+                    const userId = badge.getAttribute('data-user-id');
+                    
+                    // Update status via API
+                    fetch(`/api/user-status/${userId}/`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken,
+                        },
+                        body: JSON.stringify({ status: selectedStatus }),
+                        credentials: 'include'
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to update performance status');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Update cache
+                        updateEmployeeCache(userId, { status: selectedStatus, department_id: data.department_id });
+                        
+                        // Update UI
+                        setTeamMemberStatus(badge, selectedStatus);
+                        
+                        // Close dropdown
+                        dropdown.style.display = 'none';
+                        if (chevron) {
+                            chevron.style.transform = 'rotate(180deg)';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating status:', error);
+                        alert('Failed to update performance status. Please try again.');
+                    });
+                });
+                
+                // Hover effect on options
+                option.addEventListener('mouseenter', () => {
+                    option.style.backgroundColor = '#F5F5F5';
+                });
+                option.addEventListener('mouseleave', () => {
+                    option.style.backgroundColor = '';
+                });
             });
         }
     });
     
-    // Info icon tooltip
-    document.querySelectorAll('.info-icon-wrapper').forEach(wrapper => {
-        const icon = wrapper.querySelector('svg');
-        const tooltip = wrapper.querySelector('.info-tooltip');
-        
-        if (icon && tooltip) {
-            wrapper.addEventListener('mouseenter', () => {
-                tooltip.style.visibility = 'visible';
-                tooltip.style.opacity = '1';
-                tooltip.style.transition = 'opacity 0.2s ease';
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.name-badge-wrapper')) {
+            document.querySelectorAll('.performance-dropdown').forEach(menu => {
+                menu.style.display = 'none';
             });
-            
-            wrapper.addEventListener('mouseleave', () => {
-                tooltip.style.visibility = 'hidden';
-                tooltip.style.opacity = '0';
-                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
-            });
-        }
-    });
-    
-    // Skill level tooltip (on the container, not the badge)
-    document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
-        const tooltip = dropdown.querySelector('.skill-tooltip');
-        
-        if (tooltip) {
-            dropdown.addEventListener('mouseenter', () => {
-                tooltip.style.visibility = 'visible';
-                tooltip.style.opacity = '1';
-                tooltip.style.transition = 'opacity 0.2s ease';
-            });
-            
-            dropdown.addEventListener('mouseleave', () => {
-                tooltip.style.visibility = 'hidden';
-                tooltip.style.opacity = '0';
-                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
-            });
-        }
-    });
-    
-    // Calendar day tooltips
-    document.querySelectorAll('.calendar-day-wrapper').forEach(wrapper => {
-        const day = wrapper.querySelector('.calendar-day');
-        const tooltip = wrapper.querySelector('.calendar-tooltip');
-        
-        if (day && tooltip) {
-            day.addEventListener('mouseenter', () => {
-                tooltip.style.visibility = 'visible';
-                tooltip.style.opacity = '1';
-                tooltip.style.transition = 'opacity 0.2s ease';
-            });
-            
-            day.addEventListener('mouseleave', () => {
-                tooltip.style.visibility = 'hidden';
-                tooltip.style.opacity = '0';
-                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+            document.querySelectorAll('.name-badge svg').forEach(chevron => {
+                chevron.style.transform = 'rotate(180deg)';
             });
         }
     });

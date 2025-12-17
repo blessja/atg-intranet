@@ -2892,48 +2892,44 @@ function showDayDetailsInline(dateStr, userId, dayElement) {
     // For now, we'll just log it
 }
 
-
-// Attach tooltip listeners for name, info icon, skill level, and calendar
 function attachTooltipListeners() {
     // Name badge dropdown handler for performance status
     document.querySelectorAll('.name-badge-wrapper').forEach(wrapper => {
-        const badge = wrapper.querySelector('.name-badge');
+        const badge = wrapper.querySelector('div[style*="justify-content: space-between"]');
         const tooltip = wrapper.querySelector('.name-tooltip');
-        const dropdown = wrapper.querySelector('.performance-dropdown');
         const chevron = badge?.querySelector('svg');
         
         if (badge) {
-            // Click to toggle dropdown
+            const userId = badge.closest('tr')?.querySelector('.remarks-field')?.dataset?.userId;
+            
+            // Click to toggle performance modal
             badge.addEventListener('click', (e) => {
                 e.stopPropagation();
                 
-                // Close all other dropdowns
-                document.querySelectorAll('.performance-dropdown').forEach(menu => {
-                    if (menu !== dropdown) {
-                        menu.style.display = 'none';
-                        const otherWrapper = menu.closest('.name-badge-wrapper');
-                        const otherChevron = otherWrapper?.querySelector('.name-badge svg');
-                        if (otherChevron) {
-                            otherChevron.style.transform = 'rotate(180deg)';
-                        }
-                    }
-                });
+                const modal = document.getElementById('performance-modal');
+                const rect = badge.getBoundingClientRect();
                 
-                // Toggle current dropdown
-                if (dropdown) {
-                    const isOpen = dropdown.style.display === 'block';
-                    dropdown.style.display = isOpen ? 'none' : 'block';
-                    
-                    // Rotate chevron
-                    if (chevron) {
-                        chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-                    }
+                // Position modal below the badge
+                modal.style.position = 'absolute';
+                modal.style.top = `${rect.bottom + window.scrollY + 5}px`;
+                modal.style.left = `${rect.left + window.scrollX}px`;
+                modal.style.display = 'block';
+                modal.style.zIndex = '1000';
+                
+                // Store user ID in modal for later use
+                modal.setAttribute('data-user-id', userId);
+                
+                // Rotate chevron when opening
+                if (chevron) {
+                    chevron.style.transform = 'rotate(0deg)';
+                    chevron.style.transition = 'transform 0.2s ease';
                 }
             });
             
-            // Hover to show tooltip (only when dropdown is closed)
+            // Hover to show tooltip (only when modal is closed)
             badge.addEventListener('mouseenter', () => {
-                if (!dropdown || dropdown.style.display !== 'block') {
+                const modal = document.getElementById('performance-modal');
+                if (!modal || modal.style.display !== 'block') {
                     if (tooltip) {
                         tooltip.style.visibility = 'visible';
                         tooltip.style.opacity = '1';
@@ -2950,98 +2946,189 @@ function attachTooltipListeners() {
                 }
             });
         }
-        
-        // Handle performance status option clicks
-        if (dropdown) {
-            dropdown.querySelectorAll('.performance-status-option').forEach(option => {
-                option.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    
-                    const selectedStatus = option.getAttribute('performance-status');
-                    const userId = badge.getAttribute('data-user-id');
-                    
-                    // Update status via API
-                    fetch(`/api/user-status/${userId}/`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrftoken,
-                        },
-                        body: JSON.stringify({ status: selectedStatus }),
-                        credentials: 'include'
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Failed to update performance status');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // Update cache
-                        updateEmployeeCache(userId, { status: selectedStatus, department_id: data.department_id });
-                        
-                        // Update UI
-                        setTeamMemberStatus(badge, selectedStatus);
-                        
-                        // Close dropdown
-                        dropdown.style.display = 'none';
-                        if (chevron) {
-                            chevron.style.transform = 'rotate(180deg)';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error updating status:', error);
-                        alert('Failed to update performance status. Please try again.');
-                    });
-                });
-                
-                // Hover effect on options
-                option.addEventListener('mouseenter', () => {
-                    option.style.backgroundColor = '#F5F5F5';
-                });
-                option.addEventListener('mouseleave', () => {
-                    option.style.backgroundColor = '';
-                });
-            });
-        }
     });
     
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.name-badge-wrapper')) {
-            document.querySelectorAll('.performance-dropdown').forEach(menu => {
-                menu.style.display = 'none';
+    // Handle performance status option clicks
+    document.querySelectorAll('.performance-status-name').forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            const selectedStatus = option.getAttribute('performance-status');
+            const modal = document.getElementById('performance-modal');
+            const userId = modal.getAttribute('data-user-id');
+            
+            if (!userId) {
+                console.error('No user ID found');
+                return;
+            }
+            
+            // Update status via API
+            fetch(`/api/user-status/${userId}/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({ status: selectedStatus }),
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update performance status');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update cache
+                updateEmployeeCache(userId, { status: selectedStatus, department_id: data.department_id });
+                
+                // Find the badge and update its UI
+                const badges = document.querySelectorAll('.name-badge-wrapper');
+                badges.forEach(wrapper => {
+                    const remarksField = wrapper.closest('tr')?.querySelector('.remarks-field');
+                    if (remarksField?.dataset?.userId === userId) {
+                        const badge = wrapper.querySelector('div[style*="justify-content: space-between"]');
+                        setTeamMemberStatus(badge, selectedStatus);
+                    }
+                });
+                
+                // Close modal
+                modal.style.display = 'none';
+                
+                // Reset chevron rotation
+                document.querySelectorAll('.name-badge-wrapper svg').forEach(chevron => {
+                    chevron.style.transform = 'rotate(180deg)';
+                });
+            })
+            .catch(error => {
+                console.error('Error updating status:', error);
+                alert('Failed to update performance status. Please try again.');
             });
-            document.querySelectorAll('.name-badge svg').forEach(chevron => {
+        });
+        
+        // Hover effect on options
+        option.addEventListener('mouseenter', () => {
+            option.style.backgroundColor = '#F5F5F5';
+            option.style.cursor = 'pointer';
+        });
+        option.addEventListener('mouseleave', () => {
+            option.style.backgroundColor = '';
+        });
+    });
+    
+    // Close modal when clicking outside
+    document.addEventListener('click', (e) => {
+        const modal = document.getElementById('performance-modal');
+        if (modal && !e.target.closest('.name-badge-wrapper') && !e.target.closest('#performance-modal')) {
+            modal.style.display = 'none';
+            // Reset all chevrons
+            document.querySelectorAll('.name-badge-wrapper svg').forEach(chevron => {
                 chevron.style.transform = 'rotate(180deg)';
             });
         }
     });
-}
-// Skill dropdown functionality
-function attachSkillDropdownListeners() {
+    
+    // Close modal with X button
+    const closeBtn = document.getElementById('close-performance-modal');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            const modal = document.getElementById('performance-modal');
+            modal.style.display = 'none';
+            // Reset all chevrons
+            document.querySelectorAll('.name-badge-wrapper svg').forEach(chevron => {
+                chevron.style.transform = 'rotate(180deg)';
+            });
+        });
+    }
+    
+    // Info icon tooltips
+    document.querySelectorAll('.info-icon-wrapper').forEach(wrapper => {
+        const icon = wrapper.querySelector('svg');
+        const tooltip = wrapper.querySelector('.info-tooltip');
+        
+        if (icon && tooltip) {
+            icon.addEventListener('mouseenter', () => {
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+                tooltip.style.transition = 'opacity 0.2s ease';
+            });
+            
+            icon.addEventListener('mouseleave', () => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+            });
+        }
+    });
+    
+    // Skill level tooltips
     document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
         const badge = dropdown.querySelector('.skill-badge');
-        const menu = dropdown.querySelector('.skill-dropdown-menu');
-        const chevron = dropdown.querySelector('svg');
-
-        badge.addEventListener('click', (e) => {
-            e.stopPropagation();
-            
-            // Close all other dropdowns
-            document.querySelectorAll('.skill-dropdown-menu').forEach(m => {
-                if (m !== menu) {
-                    m.style.display = 'none';
-                    const otherChevron = m.previousElementSibling;
-                    if (otherChevron) otherChevron.style.transform = 'rotate(-180deg)';
+        const tooltip = dropdown.querySelector('.skill-tooltip');
+        
+        if (badge && tooltip) {
+            badge.addEventListener('mouseenter', () => {
+                const menu = dropdown.querySelector('.skill-dropdown-menu');
+                if (!menu || menu.style.display !== 'flex') {
+                    tooltip.style.visibility = 'visible';
+                    tooltip.style.opacity = '1';
+                    tooltip.style.transition = 'opacity 0.2s ease';
                 }
             });
             
+            badge.addEventListener('mouseleave', () => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+            });
+        }
+    });
+}
+
+
+// Skill dropdown functionality
+function attachSkillDropdownListeners() {
+    document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
+        // Get the OUTER container that includes both badge AND chevron
+        const outerContainer = dropdown.querySelector('div[style*="border: 1px solid #9B99F3"]');
+        const badge = dropdown.querySelector('.skill-badge');
+        const menu = dropdown.querySelector('.skill-dropdown-menu');
+        
+        // Get ONLY the chevron SVG (not the skill status icon inside badge)
+        const chevron = outerContainer?.querySelector('svg:not(.skill-badge svg)');
+
+        if (!outerContainer || !menu) return;
+
+        // Click handler on the ENTIRE outer container (badge + chevron)
+        chevron.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Close all other dropdowns first
+            document.querySelectorAll('.skill-dropdown-menu').forEach(m => {
+                if (m !== menu) {
+                    m.style.display = 'none';
+                    // Reset other chevrons
+                    const otherDropdown = m.closest('.skill-level-dropdown');
+                    const otherContainer = otherDropdown?.querySelector('div[style*="border: 1px solid #9B99F3"]');
+                    const otherChevron = otherContainer?.querySelector('svg:not(.skill-badge svg)');
+                    if (otherChevron) {
+                        otherChevron.style.transform = 'rotate(-180deg)';
+                    }
+                }
+            });
+            
+            // Toggle current menu
             const isOpen = menu.style.display === 'flex';
             menu.style.display = isOpen ? 'none' : 'flex';
-            chevron.style.transform = isOpen ? 'rotate(-180deg)' : 'rotate(0deg)';
+            
+            // Rotate ONLY the chevron (not the skill icon)
+            if (chevron) {
+                chevron.style.transform = isOpen ? 'rotate(-180deg)' : 'rotate(0deg)';
+                chevron.style.transition = 'transform 0.2s ease';
+            }
         });
 
+        // Handle skill option selection
         dropdown.querySelectorAll('.skill-option').forEach(option => {
             option.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -3050,10 +3137,14 @@ function attachSkillDropdownListeners() {
                 const skill = option.dataset.skill;
                 const employeeId = dropdown.dataset.employeeId;
                 
-                // Update UI immediately for better UX
+                // Update UI immediately
                 updateSkillBadgeUI(badge, skill);
                 menu.style.display = 'none';
-                chevron.style.transform = 'rotate(-180deg)';
+                
+                // Reset chevron rotation
+                if (chevron) {
+                    chevron.style.transform = 'rotate(-180deg)';
+                }
                 
                 // Send update to backend
                 fetch(`/api/user-status/${employeeId}/`, {
@@ -3068,11 +3159,12 @@ function attachSkillDropdownListeners() {
                 .then(response => response.json())
                 .then(data => {
                     console.log('Skill level updated successfully');
-                    // Update cache with new timestamp
+                    // Update cache
                     updateEmployeeCache(employeeId, { 
                         skill_level: skill,
                         skill_level_updated_at: new Date().toISOString()
                     });
+                    
                     // Update tooltip
                     const tooltip = dropdown.querySelector('.skill-tooltip');
                     if (tooltip) {
@@ -3084,6 +3176,14 @@ function attachSkillDropdownListeners() {
                     alert('Failed to update skill level. Please try again.');
                 });
             });
+            
+            // Hover effects
+            option.addEventListener('mouseenter', () => {
+                option.style.backgroundColor = '#F5F5F5';
+            });
+            option.addEventListener('mouseleave', () => {
+                option.style.backgroundColor = '';
+            });
         });
     });
 
@@ -3093,8 +3193,14 @@ function attachSkillDropdownListeners() {
             document.querySelectorAll('.skill-dropdown-menu').forEach(menu => {
                 menu.style.display = 'none';
             });
-            document.querySelectorAll('.skill-level-dropdown svg').forEach(chevron => {
-                chevron.style.transform = 'rotate(-180deg)';
+            
+            // Reset all chevrons (not skill icons!)
+            document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
+                const outerContainer = dropdown.querySelector('div[style*="border: 1px solid #9B99F3"]');
+                const chevron = outerContainer?.querySelector('svg:not(.skill-badge svg)');
+                if (chevron) {
+                    chevron.style.transform = 'rotate(-180deg)';
+                }
             });
         }
     });

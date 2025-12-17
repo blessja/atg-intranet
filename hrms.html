@@ -2678,21 +2678,34 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
         dateBox.classList.add('calendar-day-wrapper');
         dateBox.style.position = 'relative';
         
-        // Determine status and color
+       
+// Determine status and color
 const status = dateStatusData[dateKey];
-let bgColor = 'rgba(163, 125, 33, 1)'; // Default orange (EOD not submitted)
-let statusText = 'EOD not submitted';
+const eodData = dateStatusData[dateKey + '_eod'];
+let bgColor = 'rgba(163, 125, 33, 1)'; // Default orange (No EOD submitted)
+let statusText = 'No EOD submitted';
 
-if (status === 'present') {
-    bgColor = '#00B879'; // Green (EOD submitted)
-    statusText = 'EOD submitted';
-} else if (status === 'absent') {
-    bgColor = 'rgba(228, 74, 105, 1)'; // Red (Absent)
-    statusText = 'Absent';
+// Check if there's any EOD data for this date
+if (eodData && eodData.length > 0) {
+    // There is EOD data - check completion status
+    const allComplete = eodData.every(entry => entry.status === 'C');
+    const hasIncomplete = eodData.some(entry => entry.status === 'I');
+    
+    if (allComplete) {
+        bgColor = '#00B879'; // Green - all tasks complete
+        statusText = 'EOD submitted (All complete)';
+    } else if (hasIncomplete) {
+        bgColor = 'rgba(228, 74, 105, 1)'; // Red - has incomplete tasks
+        statusText = 'EOD submitted (Has incomplete)';
+    } else {
+        bgColor = 'rgba(163, 125, 33, 1)'; // Orange - pending
+        statusText = 'EOD submitted (Pending)';
+    }
 } else if (status === 'holiday') {
     bgColor = 'rgba(163, 125, 33, 1)'; // Orange (On Leave)
     statusText = 'On Leave';
 }
+// If no EOD data and not a holiday, keep default orange "No EOD submitted"
         
         dateBox.innerHTML = `
             <div class="calendar-day" style="
@@ -2757,10 +2770,44 @@ if (status === 'present') {
                 tooltip.style.transition = 'opacity 0.2s ease';
             });
             
+           calendarDay.addEventListener('mouseenter', () => {
+    if (leaveSubject) {
+        tooltip.innerHTML = `<strong>On Leave</strong><br>${leaveSubject}`;
+    } else if (eodTextData && eodTextData.length > 0) {
+        let tooltipContent = '<div style="max-width: 300px;">';
+        
+        // Add status summary at top
+        const allComplete = eodTextData.every(eod => eod.status === 'C');
+        const completeCount = eodTextData.filter(eod => eod.status === 'C').length;
+        const incompleteCount = eodTextData.filter(eod => eod.status === 'I').length;
+        
+        if (allComplete) {
+            tooltipContent += `<div style="margin-bottom: 8px; color: #00B879; font-weight: 600;">✓ All tasks completed</div>`;
+        } else {
+            tooltipContent += `<div style="margin-bottom: 8px;"><span style="color: #00B879;">✓ ${completeCount} complete</span> | <span style="color: rgba(228, 74, 105, 1);">✗ ${incompleteCount} incomplete</span></div>`;
+        }
+        
+        // Add task details
+        eodTextData.forEach(eod => {
+            const statusIcon = eod.status === 'C' ? '✓' : '✗';
+            const statusColor = eod.status === 'C' ? '#00B879' : 'rgba(228, 74, 105, 1)';
+            tooltipContent += `<div style="margin-bottom: 4px; padding-left: 8px; border-left: 2px solid ${statusColor};"><strong>${eod.project_name}:</strong><br><span style="color: ${statusColor};">${statusIcon}</span> ${eod.task_name}</div>`;
+        });
+        tooltipContent += '</div>';
+        tooltip.innerHTML = tooltipContent;
+        tooltip.style.whiteSpace = 'normal';
+    } else {
+        tooltip.innerHTML = `<div style="color: rgba(163, 125, 33, 1); font-weight: 600;">No EOD submitted</div><div style="font-size: 11px; color: #6D747A; margin-top: 4px;">Day ${day}</div>`;
+    }
+                
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+                tooltip.style.transition = 'opacity 0.2s ease';
+            });
+            
             calendarDay.addEventListener('mouseleave', () => {
                 tooltip.style.visibility = 'hidden';
                 tooltip.style.opacity = '0';
-                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
             });
         }
         
@@ -2926,30 +2973,32 @@ async function renderFullMonthCalendar(userId) {
             const isFutureDate = new Date(dateStr) > today;
             const isToday = isCurrentMonth && day === todayDate;
             
-           let bgColor = 'rgba(163, 125, 33, 1)'; // Default orange (EOD not submitted)
-let tooltipText = 'EOD not submitted';
+           let bgColor = 'rgba(163, 125, 33, 1)'; // Default orange (No EOD submitted)
+let tooltipText = 'No EOD submitted';
 
 if (isFutureDate) {
     bgColor = '#A5ADB2';
     tooltipText = 'Future date';
 } else if (dayData.length > 0) {
-    const hasComplete = dayData.some(item => item.task_status === 'C');
+    // There is EOD data for this day
+    const allComplete = dayData.every(item => item.task_status === 'C');
     const hasIncomplete = dayData.some(item => item.task_status === 'I');
+    const completeCount = dayData.filter(item => item.task_status === 'C').length;
+    const incompleteCount = dayData.filter(item => item.task_status === 'I').length;
     
-    if (hasComplete && !hasIncomplete) {
-        bgColor = '#00B879'; // Green - EOD submitted
-        tooltipText = 'All tasks completed';
-    } else if (hasIncomplete && !hasComplete) {
-        bgColor = 'rgba(228, 74, 105, 1)'; // Red - Absent
-        tooltipText = 'Has incomplete tasks';
-    } else if (hasIncomplete && hasComplete) {
-        bgColor = 'rgba(163, 125, 33, 1)'; // Orange - Mixed/Pending
-        tooltipText = 'Mixed status';
+    if (allComplete) {
+        bgColor = '#00B879'; // Green - all tasks complete
+        tooltipText = `EOD Submitted: All ${dayData.length} task${dayData.length > 1 ? 's' : ''} completed`;
+    } else if (hasIncomplete) {
+        bgColor = 'rgba(228, 74, 105, 1)'; // Red - has incomplete tasks
+        tooltipText = `EOD Submitted: ${completeCount} complete, ${incompleteCount} incomplete`;
     } else {
-        bgColor = 'rgba(163, 125, 33, 1)'; // Orange - Pending
-        tooltipText = 'Pending';
+        // All pending
+        bgColor = 'rgba(163, 125, 33, 1)'; // Orange
+        tooltipText = `EOD Submitted: ${dayData.length} task${dayData.length > 1 ? 's' : ''} pending`;
     }
 }
+// If no dayData, it stays orange with "No EOD submitted"
             
             // Check for leave status
             const isLeave = dayData.some(item => item.status === 'leave');

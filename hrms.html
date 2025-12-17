@@ -2448,10 +2448,10 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
             <td style="width: 161px; padding: 16px 8px; background: ${rowBg};">
                 <div class="skill-level-dropdown" data-employee-id="${employee.user_id}" style="position: relative; display: flex; align-items: center; gap: 8px;">
                     <div style="padding: 2px; border-radius: 20px; border: 1px solid #9B99F3; display: flex; align-items: center; gap: 8px; position: relative;">
-                        <div class="skill-badge" style="padding: 4px 8px; background: ${skillBg}; border-radius: 25px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            ${skillIcon}
-                            <span style="color: ${skillColor}; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px;">${skillText}</span>
-                        </div>
+                        <div class="skill-badge" style="padding: 4px 8px; background: ${skillBg}; border-radius: 25px; display: flex; align-items: center; gap: 4px;">
+    ${skillIcon}
+    <span onclick="openSkillEditor(${employee.user_id})" style="color: ${skillColor}; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px; cursor: pointer;">${skillText}</span>
+</div>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-180deg); margin-right: 4px;">
                             <path d="M4 10L8 6L12 10" stroke="#08090A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -2505,25 +2505,25 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
                 <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;">${bountyInfo.completed_bounties || 0}</div>
             </td>
             <td style="padding: 16px 8px; background: ${rowBg};">
-                <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
-                    <div style="display: flex;">
-                        ${attendanceHtml}
-                    </div>
-                    <div style="padding: 2px 7px; opacity: 0.90; border-radius: 4px; display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="openEODSummary(${employee.user_id})">
-                        <span style="color: #504CF5; font-size: 16px; font-family: Helvetica Neue; font-weight: 500; line-height: 18px; letter-spacing: 0.06px;">View more</span>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-180deg);">
-                            <path d="M19 15L12 9L5 15" stroke="#504CF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                </div>
-            </td>
+    <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+        <div class="date-container-inline" id="dateContainer-${employee.user_id}" style="display: flex; gap: 0;">
+            <!-- Calendar will be populated here -->
+        </div>
+        <div style="padding: 2px 7px; opacity: 0.90; border-radius: 4px; display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="openEODSummary(${employee.user_id})">
+            <span style="color: #504CF5; font-size: 16px; font-family: Helvetica Neue; font-weight: 500; line-height: 18px; letter-spacing: 0.06px;">View more</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-180deg);">
+                <path d="M19 15L12 9L5 15" stroke="#504CF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </div>
+</td>
             <td style="width: 21px; padding: 16px 5px; background: ${rowBg}; position: relative;">
     <div class="three-dot-menu-wrapper" style="position: relative; display: inline-block;">
-        <svg class="three-dot-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
+       <!-- <svg class="three-dot-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
             <circle cx="8" cy="3" r="1.33" fill="#6D747A"/>
             <circle cx="8" cy="8" r="1.33" fill="#6D747A"/>
             <circle cx="8" cy="13" r="1.33" fill="#6D747A"/>
-        </svg>
+        </svg> -->
         
         <!-- Hover Menu -->
         <div class="three-dot-hover-menu" style="
@@ -2607,6 +2607,165 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
     attachRemarksListeners();
     attachTooltipListeners();
     attachThreeDotMenuListeners();
+
+     data.forEach(employee => {
+        fetchUserAttendanceInline(employee.user_id, 7);
+    });
+}
+async function fetchUserAttendanceInline(userId, daysRange = 7) {
+    try {
+        // Fetch last 7 days of EOD data
+        const response = await fetch(`/tasks/api/eod-report/?user=${userId}&filter=last_7_days`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        
+        const eodData = await response.json();
+        
+        // Convert EOD data to attendance format
+        const attendanceData = {};
+        const dateSet = new Set();
+        
+        eodData.forEach(entry => {
+            const dateKey = entry.date;
+            dateSet.add(dateKey);
+            
+            if (!attendanceData[dateKey + '_eod']) {
+                attendanceData[dateKey + '_eod'] = [];
+            }
+            
+            attendanceData[dateKey + '_eod'].push({
+                project_name: entry.project_name,
+                task_name: entry.task_name,
+                text: entry.text,
+                status: entry.task_status
+            });
+            
+            // Determine status based on task completion
+            if (entry.task_status === 'C') {
+                attendanceData[dateKey] = 'present';
+            } else if (!attendanceData[dateKey]) {
+                attendanceData[dateKey] = 'absent';
+            }
+        });
+        
+        generateInlineDateBoxes(`dateContainer-${userId}`, daysRange, attendanceData);
+    } catch (error) {
+        console.error("Error fetching attendance data for user:", userId, error);
+        const container = document.getElementById(`dateContainer-${userId}`);
+        if (container) {
+            container.innerHTML = '<div style="color: #6D747A; font-size: 12px;">Unable to load</div>';
+        }
+    }
+}
+function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}) {
+    const dateContainer = document.getElementById(containerId);
+    if (!dateContainer) {
+        console.error(`Element with ID ${containerId} not found.`);
+        return;
+    }
+    dateContainer.innerHTML = '';
+    const today = new Date();
+
+    for (let i = daysRange - 1; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        const day = date.getDate();
+        const dateKey = date.toISOString().split('T')[0];
+
+        const dateBox = document.createElement('div');
+        dateBox.classList.add('calendar-day-wrapper');
+        dateBox.style.position = 'relative';
+        
+        // Determine status and color
+const status = dateStatusData[dateKey];
+let bgColor = 'rgba(163, 125, 33, 1)'; // Default orange (EOD not submitted)
+let statusText = 'EOD not submitted';
+
+if (status === 'present') {
+    bgColor = '#00B879'; // Green (EOD submitted)
+    statusText = 'EOD submitted';
+} else if (status === 'absent') {
+    bgColor = 'rgba(228, 74, 105, 1)'; // Red (Absent)
+    statusText = 'Absent';
+} else if (status === 'holiday') {
+    bgColor = 'rgba(163, 125, 33, 1)'; // Orange (On Leave)
+    statusText = 'On Leave';
+}
+        
+        dateBox.innerHTML = `
+            <div class="calendar-day" style="
+                width: 32px; 
+                height: 32px; 
+                padding: 10px; 
+                
+                background: ${bgColor}; 
+                border-right: 1px rgba(255, 255, 255, 0.70) solid; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center;
+                cursor: pointer;
+            ">
+                <div style="color: white; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${day}</div>
+            </div>
+            <div class="calendar-tooltip" style="
+                visibility: hidden;
+                opacity: 0;
+                position: absolute;
+                bottom: calc(100% + 8px);
+                left: 50%;
+                transform: translateX(-50%);
+                background: white;
+                color: #08090A;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                white-space: nowrap;
+                z-index: 1000;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                border: 1px solid #D9D9D9;
+                pointer-events: none;
+            ">${statusText} - Day ${day}</div>
+        `;
+        
+        const leaveSubject = dateStatusData[dateKey + '_leave_subject'];
+        const eodTextData = dateStatusData[dateKey + '_eod'];
+        
+        // Enhanced tooltip with EOD data
+        if (leaveSubject || eodTextData) {
+            const calendarDay = dateBox.querySelector('.calendar-day');
+            const tooltip = dateBox.querySelector('.calendar-tooltip');
+            
+            calendarDay.addEventListener('mouseenter', () => {
+                if (leaveSubject) {
+                    tooltip.innerHTML = `<strong>Leave:</strong><br>${leaveSubject}`;
+                } else if (eodTextData && eodTextData.length > 0) {
+                    let tooltipContent = '<div style="max-width: 300px;">';
+                    eodTextData.forEach(eod => {
+                        tooltipContent += `<div style="margin-bottom: 4px;"><strong>${eod.project_name}:</strong><br>${eod.task_name}: ${eod.text}</div>`;
+                    });
+                    tooltipContent += '</div>';
+                    tooltip.innerHTML = tooltipContent;
+                    tooltip.style.whiteSpace = 'normal';
+                } else {
+                    tooltip.textContent = `${statusText} - Day ${day}`;
+                }
+                
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+                tooltip.style.transition = 'opacity 0.2s ease';
+            });
+            
+            calendarDay.addEventListener('mouseleave', () => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+            });
+        }
+        
+        dateContainer.appendChild(dateBox);
+    }
 }
 
 // Function to handle three-dot menu hover
@@ -2767,41 +2926,30 @@ async function renderFullMonthCalendar(userId) {
             const isFutureDate = new Date(dateStr) > today;
             const isToday = isCurrentMonth && day === todayDate;
             
-            let bgColor = '#00B879'; // Default green
-            let opacity = '1';
-            let tooltipText = 'Present';
-            let borderStyle = '';
-            
-            if (isToday) {
-                borderStyle = 'outline: 1px #504CF5 solid; outline-offset: -1px;';
-            }
-            
-            if (isFutureDate) {
-                bgColor = '#A5ADB2';
-                opacity = '0.80';
-                tooltipText = 'Future date';
-            } else if (dayData.length > 0) {
-                const hasComplete = dayData.some(item => item.task_status === 'C');
-                const hasIncomplete = dayData.some(item => item.task_status === 'I');
-                
-                if (hasComplete && !hasIncomplete) {
-                    bgColor = '#00B879';
-                    opacity = '1';
-                    tooltipText = 'All tasks completed';
-                } else if (hasIncomplete && !hasComplete) {
-                    bgColor = '#DD1D43';
-                    opacity = '0.80';
-                    tooltipText = 'Has incomplete tasks';
-                } else if (hasIncomplete && hasComplete) {
-                    bgColor = '#B5974D'; // Mixed - yellowish
-                    opacity = '1';
-                    tooltipText = 'Mixed status';
-                } else {
-                    bgColor = '#A37D21';
-                    opacity = '0.80';
-                    tooltipText = 'Pending';
-                }
-            }
+           let bgColor = 'rgba(163, 125, 33, 1)'; // Default orange (EOD not submitted)
+let tooltipText = 'EOD not submitted';
+
+if (isFutureDate) {
+    bgColor = '#A5ADB2';
+    tooltipText = 'Future date';
+} else if (dayData.length > 0) {
+    const hasComplete = dayData.some(item => item.task_status === 'C');
+    const hasIncomplete = dayData.some(item => item.task_status === 'I');
+    
+    if (hasComplete && !hasIncomplete) {
+        bgColor = '#00B879'; // Green - EOD submitted
+        tooltipText = 'All tasks completed';
+    } else if (hasIncomplete && !hasComplete) {
+        bgColor = 'rgba(228, 74, 105, 1)'; // Red - Absent
+        tooltipText = 'Has incomplete tasks';
+    } else if (hasIncomplete && hasComplete) {
+        bgColor = 'rgba(163, 125, 33, 1)'; // Orange - Mixed/Pending
+        tooltipText = 'Mixed status';
+    } else {
+        bgColor = 'rgba(163, 125, 33, 1)'; // Orange - Pending
+        tooltipText = 'Pending';
+    }
+}
             
             // Check for leave status
             const isLeave = dayData.some(item => item.status === 'leave');
@@ -2818,7 +2966,7 @@ async function renderFullMonthCalendar(userId) {
                         height: 32px;
                         padding: 10px;
                         background: ${bgColor};
-                        opacity: ${opacity};
+                        
                         border-right: 1px rgba(255, 255, 255, 0.70) solid;
                         ${borderStyle}
                         display: flex;
@@ -3129,62 +3277,72 @@ function attachSkillDropdownListeners() {
         });
 
         // Handle skill option selection
-        dropdown.querySelectorAll('.skill-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const skill = option.dataset.skill;
-                const employeeId = dropdown.dataset.employeeId;
-                
-                // Update UI immediately
-                updateSkillBadgeUI(badge, skill);
-                menu.style.display = 'none';
-                
-                // Reset chevron rotation
-                if (chevron) {
-                    chevron.style.transform = 'rotate(-180deg)';
-                }
-                
-                // Send update to backend
-                fetch(`/api/user-status/${employeeId}/`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken,
-                    },
-                    body: JSON.stringify({ skill_level: skill }),
-                    credentials: 'include'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Skill level updated successfully');
-                    // Update cache
-                    updateEmployeeCache(employeeId, { 
-                        skill_level: skill,
-                        skill_level_updated_at: new Date().toISOString()
-                    });
-                    
-                    // Update tooltip
-                    const tooltip = dropdown.querySelector('.skill-tooltip');
-                    if (tooltip) {
-                        tooltip.textContent = `Last updated: Just now`;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating skill level:', error);
-                    alert('Failed to update skill level. Please try again.');
-                });
+       // Handle skill option selection
+dropdown.querySelectorAll('.skill-option').forEach(option => {
+    option.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const skill = option.dataset.skill;
+        const employeeId = dropdown.dataset.employeeId;
+        
+        // Store reference to the text span before updating UI
+        const textSpan = badge.querySelector('span');
+        const originalOnClick = textSpan ? textSpan.getAttribute('onclick') : null;
+        
+        // Update UI immediately
+        updateSkillBadgeUI(badge, skill);
+        menu.style.display = 'none';
+        
+        // Re-attach the onclick handler to the new span
+        if (originalOnClick) {
+            const newTextSpan = badge.querySelector('span');
+            if (newTextSpan) {
+                newTextSpan.setAttribute('onclick', originalOnClick);
+                newTextSpan.style.cursor = 'pointer';
+            }
+        }
+        
+        // Reset chevron rotation
+        if (chevron) {
+            chevron.style.transform = 'rotate(-180deg)';
+        }
+        
+        // Send update to backend
+        fetch(`/api/user-status/${employeeId}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({ skill_level: skill }),
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Skill level updated successfully');
+            // Update cache
+            updateEmployeeCache(employeeId, { 
+                skill_level: skill,
+                skill_level_updated_at: new Date().toISOString()
             });
             
-            // Hover effects
-            option.addEventListener('mouseenter', () => {
-                option.style.backgroundColor = '#F5F5F5';
-            });
-            option.addEventListener('mouseleave', () => {
-                option.style.backgroundColor = '';
-            });
+            // Update tooltip
+            const tooltip = dropdown.querySelector('.skill-tooltip');
+            if (tooltip) {
+                tooltip.textContent = `Last updated: Just now`;
+            }
+        })
+        .catch(error => {
+            console.error('Error updating skill level:', error);
+            alert('Failed to update skill level. Please try again.');
         });
+    });
     });
 
     // Close dropdowns when clicking outside
@@ -3203,6 +3361,7 @@ function attachSkillDropdownListeners() {
                 }
             });
         }
+    });
     });
 }
 
@@ -3241,10 +3400,14 @@ function updateSkillBadgeUI(badge, skill) {
     
     const config = skillConfig[skill.toLowerCase()];
     if (config) {
+        // Get the employee ID from parent dropdown
+        const dropdown = badge.closest('.skill-level-dropdown');
+        const employeeId = dropdown ? dropdown.dataset.employeeId : null;
+        
         badge.style.background = config.bg;
         badge.innerHTML = `
             ${config.icon}
-            <span style="color: ${config.color}; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px;">${config.text}</span>
+            <span onclick="openSkillEditor(${employeeId})" style="color: ${config.color}; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px; cursor: pointer;">${config.text}</span>
         `;
     }
 }
@@ -3473,7 +3636,7 @@ function getDaysUntil(dateString) {
                             width: 100%;
                             height: 48px;
                             background: ${bgColor};
-                            opacity: ${opacity};
+                            
                             display: flex;
                             align-items: center;
                             justify-content: center;
@@ -3964,13 +4127,21 @@ document.addEventListener('DOMContentLoaded', function() {
         category.classList.toggle('expanded');
     }
     function openSkillEditor(userId) {
-        document.getElementById("skillSlidePanel").classList.add("open");
+    document.getElementById("skillSlidePanel").classList.add("open");
 
-        fetch(`/users/${userId}/skills-panel/`)
-            .then(resp => resp.json())
-            .then(data => {
-                let html = "";
+    fetch(`/users/${userId}/skills-panel/`)
+        .then(resp => {
+            if (!resp.ok) {
+                throw new Error(`HTTP error! status: ${resp.status}`);
+            }
+            return resp.json();
+        })
+        .then(data => {
+            let html = "";
 
+            if (!data.skills || data.skills.length === 0) {
+                html = "<p style='padding: 20px; text-align: center;'>No skills found for this user.</p>";
+            } else {
                 data.skills.forEach(skill => {
                     html += `
                         <div class="skill-item">
@@ -3991,17 +4162,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         <hr>
                     `;
                 });
+            }
 
-                document.getElementById("skillsContainer").innerHTML = html;
+            document.getElementById("skillsContainer").innerHTML = html;
 
-                // Live update score beside slider
-                document.querySelectorAll(".skill-slider").forEach(slider => {
-                    slider.addEventListener("input", function () {
-                        this.nextElementSibling.innerText = this.value;
-                    });
+            // Live update score beside slider
+            document.querySelectorAll(".skill-slider").forEach(slider => {
+                slider.addEventListener("input", function () {
+                    this.nextElementSibling.innerText = this.value;
                 });
             });
-    }
+        })
+        .catch(error => {
+            console.error('Error fetching skills:', error);
+            document.getElementById("skillsContainer").innerHTML = 
+                `<p style='padding: 20px; text-align: center; color: #DD1D43;'>Error loading skills. Please try again.</p>`;
+        });
+}
     function closeSkillPanel() {
         document.getElementById("skillSlidePanel").classList.remove("open");
     }

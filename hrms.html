@@ -1887,16 +1887,104 @@ document.addEventListener('keydown', handleEnterKey);
 let currentEODUserId = null;
 
 function openEODSummary(userId) {
-  currentEODUserId = userId;
-  document.getElementById('eodSummaryModal').classList.remove('hidden');
-  fetchAndRenderEOD(userId, 'last_7_days'); // default filter
+    currentEODUserId = userId;
+    const modal = document.getElementById('eodSummaryModal');
+    modal.classList.remove('hidden');
+    
+    // Prevent body scroll
+    preventBodyScroll(true);
+    
+    fetchAndRenderEOD(userId, 'last_7_days');
 }
 
 function closeEODModal() {
-  document.getElementById('eodSummaryModal').classList.add('hidden');
+    const modal = document.getElementById('eodSummaryModal');
+    modal.classList.add('hidden');
+    
+    // Restore body scroll
+    preventBodyScroll(false);
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('eodSummaryModal');
+    
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            // Close if clicking on the overlay (not the content)
+            if (e.target === modal) {
+                closeEODModal();
+            }
+        });
+    }
+});
+// Close on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('eodSummaryModal');
+        if (modal && !modal.classList.contains('hidden')) {
+            closeEODModal();
+        }
+    }
+});
+let scrollPosition = 0;
+
+function preventBodyScroll(shouldPrevent) {
+    const body = document.body;
+    const html = document.documentElement;
+    
+    if (shouldPrevent) {
+        // Save current scroll position
+        scrollPosition = window.pageYOffset || html.scrollTop || body.scrollTop || 0;
+        
+        // Lock body scroll
+        body.style.overflow = 'hidden';
+        body.style.position = 'fixed';
+        body.style.top = `-${scrollPosition}px`;
+        body.style.width = '100%';
+        body.style.height = '100vh';
+        
+        // Also lock html scroll
+        html.style.overflow = 'hidden';
+    } else {
+        // Restore body scroll
+        body.style.overflow = '';
+        body.style.position = '';
+        body.style.top = '';
+        body.style.width = '';
+        body.style.height = '';
+        
+        html.style.overflow = '';
+        
+        // Restore scroll position
+        window.scrollTo(0, scrollPosition);
+    }
+}
+function attachModalScrollHandler() {
+    const modalContent = document.querySelector('#eodSummaryModal .popup-content');
+    
+    if (!modalContent) return;
+    
+    modalContent.addEventListener('wheel', function(e) {
+        const scrollTop = this.scrollTop;
+        const scrollHeight = this.scrollHeight;
+        const height = this.clientHeight;
+        const wheelDelta = e.deltaY;
+        const isDeltaPositive = wheelDelta > 0;
+
+        // Prevent scroll chaining
+        if (isDeltaPositive && wheelDelta > scrollHeight - height - scrollTop) {
+            this.scrollTop = scrollHeight;
+            e.preventDefault();
+        } else if (!isDeltaPositive && -wheelDelta > scrollTop) {
+            this.scrollTop = 0;
+            e.preventDefault();
+        }
+    }, { passive: false });
 }
 
 document.getElementById('closeEODModalBtn').addEventListener('click', closeEODModal);
+document.addEventListener('DOMContentLoaded', attachModalScrollHandler);
 
 document.getElementById('dateFilter').addEventListener('change', () => {
   const filterValue = document.getElementById('dateFilter').value;
@@ -2182,6 +2270,7 @@ function formatDateee(date) {
 
 
 function renderEmployeeData(tbody, data, departmentId = 'default') {
+    console.log('Render employees raw data:', data);
     tbody.innerHTML = '';
     const bountyDurationSelect = tbody.closest('.table-container').querySelector('#bountyDurationSelect');
     
@@ -2217,37 +2306,90 @@ function renderEmployeeData(tbody, data, departmentId = 'default') {
         if (employee.projects.length === 0) {
             rowBg = '#FFECEE';
         }
+        // Determine skill badge properties
+        const skillLevelLower = (employee.skill_level ?? 'basic').toLowerCase();
+        const skillUpdatedAt = employee.skill_level_updated_at ?? null;
 
-        // Determine skill level styling
-        let skillBg = '#FDF9D8';
-        let skillColor = '#7F7300';
-        let skillText = 'Basic';
-        let skillIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="8" cy="8" r="6.67" stroke="#28CF0A" stroke-width="1.33"/>
-            <path d="M5.33 8L7.33 10L10.67 6.67" stroke="#28CF0A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>`;
-        
-        const skillLevel = employee.skill_level || 'basic';
-        
-        if (skillLevel.toLowerCase() === 'intermediate') {
-            skillBg = '#FDEFDD';
-            skillColor = '#A25D03';
-            skillText = 'Intermediate';
-            skillIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="8" cy="8" r="6" stroke="#FF1A1A" stroke-width="1.67"/>
-                <circle cx="8" cy="5" r="0.83" fill="#FF1A1A"/>
-                <path d="M8 7v4" stroke="#FF1A1A" stroke-width="1.67" stroke-linecap="round"/>
-            </svg>`;
-        } else if (skillLevel.toLowerCase() === 'advance') {
-            skillBg = '#EDEDFD';
-            skillColor = '#504CF5';
-            skillText = 'Advance';
-            skillIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="8" cy="8" r="6" stroke="#FF1A1A" stroke-width="1.67"/>
-                <circle cx="8" cy="5" r="0.83" fill="#FF1A1A"/>
-                <path d="M8 7v4" stroke="#FF1A1A" stroke-width="1.67" stroke-linecap="round"/>
-            </svg>`;
+        // Skill level config
+        const skillConfig = {
+            basic: {
+                bg: '#FDF9D8',
+                color: '#7F7300',
+                text: 'Basic'
+            },
+            intermediate: {
+                bg: '#FDEFDD',
+                color: '#A25D03',
+                text: 'Intermediate'
+            },
+            advance: {
+                bg: '#EDEDFD',
+                color: '#504CF5',
+                text: 'Advance'
+            }
+        };
+
+        // Pick config based on skill level
+        const { bg: skillBg, color: skillColor, text: skillText } = skillConfig[skillLevelLower] || skillConfig.basic;
+
+        // Determine freshness icon based on last updated date
+        let skillIcon = '';
+        if (skillUpdatedAt) {
+            const updatedDate = new Date(skillUpdatedAt);
+            const now = new Date();
+            const diffDays = Math.floor((now - updatedDate) / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 14) {
+                // ✅ Tick for recent updates (within 2 weeks)
+                skillIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6.67" stroke="#28CF0A" stroke-width="1.33"/>
+                    <path d="M5.33 8L7.33 10L10.67 6.67" stroke="#28CF0A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>`;
+            } else if (diffDays < 28) {
+                // ⚠️ Exclamation for 2–4 weeks old
+                skillIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6.67" stroke="#FF1A1A" stroke-width="1.33"/>
+                    <path d="M8 4V9" stroke="#FF1A1A" stroke-width="1.33" stroke-linecap="round"/>
+                    <circle cx="8" cy="11.5" r="0.5" fill="#FF1A1A"/>
+                </svg>`;
+            } else {
+                // ❗ Alert for more than 4 weeks old
+                skillIcon = `<svg fill="red" stroke="red" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink"
+                    width="16" height="16" viewBox="0 0 100 100" xml:space="preserve">
+                    <g>
+                        <path d="M91.17,81.374l0.006-0.004l-0.139-0.24c-0.068-0.128-0.134-0.257-0.216-0.375l-37.69-65.283
+                            c-0.611-1.109-1.776-1.87-3.133-1.87c-1.47,0-2.731,0.887-3.285,2.153l-0.004-0.002L9.312,80.529l0.036,0.021
+                            c-0.505,0.618-0.82,1.397-0.82,2.257c0,1.982,1.607,3.59,3.588,3.59h0h75.767v0c1.982,0,3.589-1.607,3.589-3.589
+                            C91.472,82.297,91.362,81.814,91.17,81.374z M50.035,79.617c-2.874,0-5.201-2.257-5.201-5.13c0-2.874,2.326-5.2,5.201-5.2
+                            c2.803,0,5.13,2.325,5.13,5.2C55.166,77.36,52.838,79.617,50.035,79.617z M55.165,34.25v28.299h-0.002
+                            c0,0.005,0.002,0.01,0.002,0.016c0,1.173-0.95,2.094-2.094,2.094c-0.005,0-0.009-0.001-0.014-0.001v0.001h-6.093
+                            c-1.174,0-2.123-0.921-2.123-2.094c0-0.005,0.002-0.01,0.002-0.016h-0.002V34.326c-0.001-0.026-0.008-0.051-0.008-0.077
+                            c0-1.117,0.865-1.996,1.935-2.078v-0.016h6.288v0.001c1.149,0.007,2.074,0.897,2.103,2.039h0.005v0.053V34.25
+                            C55.166,34.25,55.165,34.25,55.165,34.25z"/>
+                    </g>
+                </svg>`
+                ;
+            }
+        } else {
+            // Default tick if never updated
+            skillIcon = `<svg width="16" height="16" viewBox="0 0 100 100" fill="red" stroke="red">
+        <g>
+            <path d="M91.17,81.374l0.006-0.004l-0.139-0.24c-0.068-0.128-0.134-0.257-0.216-0.375l-37.69-65.283
+                c-0.611-1.109-1.776-1.87-3.133-1.87c-1.47,0-2.731,0.887-3.285,2.153l-0.004-0.002L9.312,80.529l0.036,0.021
+                c-0.505,0.618-0.82,1.397-0.82,2.257c0,1.982,1.607,3.59,3.588,3.59h0h75.767v0c1.982,0,3.589-1.607,3.589-3.589
+                C91.472,82.297,91.362,81.814,91.17,81.374z M50.035,79.617c-2.874,0-5.201-2.257-5.201-5.13c0-2.874,2.326-5.2,5.201-5.2
+                c2.803,0,5.13,2.325,5.13,5.2C55.166,77.36,52.838,79.617,50.035,79.617z M55.165,34.25v28.299h-0.002
+                c0,0.005,0.002,0.01,0.002,0.016c0,1.173-0.95,2.094-2.094,2.094c-0.005,0-0.009-0.001-0.014-0.001v0.001h-6.093
+                c-1.174,0-2.123-0.921-2.123-2.094c0-0.005,0.002-0.01,0.002-0.016h-0.002V34.326c-0.001-0.026-0.008-0.051-0.008-0.077
+                c0-1.117,0.865-1.996,1.935-2.078v-0.016h6.288v0.001c1.149,0.007,2.074,0.897,2.103,2.039h0.005v0.053V34.25
+                C55.166,34.25,55.165,34.25,55.165,34.25z"/>
+        </g>
+    </svg>`;
         }
+
+// Now skillBg, skillColor, skillText, and skillIcon are ready to use
+
 
         const bountyInfo = employee.bounty_info || {
             allocated_bounties: 0,
@@ -2608,63 +2750,83 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
     attachTooltipListeners();
     attachThreeDotMenuListeners();
 
-     data.forEach(employee => {
-        fetchUserAttendanceInline(employee.user_id, 7);
-    });
+     const attendancePromises = data.map(employee => 
+        fetchUserAttendanceInline(employee.user_id, 7)
+    );
+     Promise.all(attendancePromises).catch(error => {
+         console.error("Error fetching one or more attendance records:", error);
+     });
 }
 async function fetchUserAttendanceInline(userId, daysRange = 7) {
     try {
-        // Fetch last 7 days of EOD data
-        const response = await fetch(`/tasks/api/eod-report/?user=${userId}&filter=last_7_days`, {
+        const response = await fetch(`/attendance/by-user/?user=${userId}`, {
             credentials: 'include'
         });
-        
+
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        
-        const eodData = await response.json();
-        
-        // Convert EOD data to attendance format
+
+        const attendanceApiData = await response.json();
+
         const attendanceData = {};
-        const dateSet = new Set();
-        
-        eodData.forEach(entry => {
+        const today = new Date();
+
+        // Initialize last N days
+        for (let i = daysRange - 1; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            const dateKey = date.toISOString().split('T')[0];
+
+            attendanceData[dateKey] = 'no_eod';
+            attendanceData[dateKey + '_eod'] = [];
+            attendanceData[dateKey + '_leave_subject'] = null;
+        }
+
+        // Map API data
+        attendanceApiData.forEach(entry => {
             const dateKey = entry.date;
-            dateSet.add(dateKey);
-            
-            if (!attendanceData[dateKey + '_eod']) {
-                attendanceData[dateKey + '_eod'] = [];
+
+            // Leave
+            if (entry.leave) {
+                attendanceData[dateKey] = 'holiday';
+                attendanceData[dateKey + '_leave_subject'] = entry.leave_subject;
+                return;
             }
-            
-            attendanceData[dateKey + '_eod'].push({
-                project_name: entry.project_name,
-                task_name: entry.task_name,
-                text: entry.text,
-                status: entry.task_status
-            });
-            
-            // Determine status based on task completion
-            if (entry.task_status === 'C') {
-                attendanceData[dateKey] = 'present';
-            } else if (!attendanceData[dateKey]) {
+
+            // Absent
+            if (!entry.present) {
                 attendanceData[dateKey] = 'absent';
+                return;
+            }
+
+            // Present + EOD submitted
+            if (entry.eod_text && entry.eod_text.length > 0) {
+                attendanceData[dateKey] = 'present';
+                attendanceData[dateKey + '_eod'] = entry.eod_text;
+            } 
+            // Present but no EOD
+            else {
+                attendanceData[dateKey] = 'no_eod';
             }
         });
-        
+
         generateInlineDateBoxes(`dateContainer-${userId}`, daysRange, attendanceData);
     } catch (error) {
-        console.error("Error fetching attendance data for user:", userId, error);
+        console.error("Error fetching attendance data:", error);
         const container = document.getElementById(`dateContainer-${userId}`);
         if (container) {
-            container.innerHTML = '<div style="color: #6D747A; font-size: 12px;">Unable to load</div>';
+            container.innerHTML = '<div style="color:#6D747A;font-size:12px;">Unable to load</div>';
         }
     }
 }
+
+
 function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}) {
     const dateContainer = document.getElementById(containerId);
     if (!dateContainer) {
         console.error(`Element with ID ${containerId} not found.`);
         return;
     }
+
     dateContainer.innerHTML = '';
     const today = new Date();
 
@@ -2677,51 +2839,47 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
         const dateBox = document.createElement('div');
         dateBox.classList.add('calendar-day-wrapper');
         dateBox.style.position = 'relative';
-        
-       
-// Determine status and color
-const status = dateStatusData[dateKey];
-const eodData = dateStatusData[dateKey + '_eod'];
-let bgColor = 'rgba(163, 125, 33, 1)'; // Default orange (No EOD submitted)
-let statusText = 'No EOD submitted';
 
-// Check if there's any EOD data for this date
-if (eodData && eodData.length > 0) {
-    // There is EOD data - check completion status
-    const allComplete = eodData.every(entry => entry.status === 'C');
-    const hasIncomplete = eodData.some(entry => entry.status === 'I');
-    
-    if (allComplete) {
-        bgColor = '#00B879'; // Green - all tasks complete
-        statusText = 'EOD submitted (All complete)';
-    } else if (hasIncomplete) {
-        bgColor = 'rgba(228, 74, 105, 1)'; // Red - has incomplete tasks
-        statusText = 'EOD submitted (Has incomplete)';
-    } else {
-        bgColor = 'rgba(163, 125, 33, 1)'; // Orange - pending
-        statusText = 'EOD submitted (Pending)';
-    }
-} else if (status === 'holiday') {
-    bgColor = 'rgba(163, 125, 33, 1)'; // Orange (On Leave)
-    statusText = 'On Leave';
-}
-// If no EOD data and not a holiday, keep default orange "No EOD submitted"
-        
+        const status = dateStatusData[dateKey];
+        const eodTextData = dateStatusData[dateKey + '_eod'];
+        const leaveSubject = dateStatusData[dateKey + '_leave_subject'];
+
+        let bgColor, statusText;
+
+        // 🔴 Leave
+        if (status === 'holiday') {
+            bgColor = 'rgba(228, 74, 105, 1)';
+            statusText = 'On Leave';
+        }
+        // 🟢 EOD submitted
+        else if (status === 'present') {
+            bgColor = '#00B879';
+            statusText = 'EOD submitted';
+        }
+        // 🟠 No EOD (present:false OR present:true without eod_text)
+        else {
+            bgColor = 'rgba(163, 125, 33, 1)';
+            statusText = 'EOD not submitted';
+        }
+
+
         dateBox.innerHTML = `
             <div class="calendar-day" style="
-                width: 32px; 
-                height: 32px; 
-                padding: 10px; 
-                
-                background: ${bgColor}; 
-                border-right: 1px rgba(255, 255, 255, 0.70) solid; 
-                display: flex; 
-                align-items: center; 
+                width: 32px;
+                height: 32px;
+                padding: 10px;
+                background: ${bgColor};
+                border-right: 1px rgba(255, 255, 255, 0.70) solid;
+                display: flex;
+                align-items: center;
                 justify-content: center;
                 cursor: pointer;
             ">
-                <div style="color: white; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${day}</div>
+                <div style="color:white;font-size:16px;font-family:Helvetica Neue;">
+                    ${day}
+                </div>
             </div>
+
             <div class="calendar-tooltip" style="
                 visibility: hidden;
                 opacity: 0;
@@ -2734,85 +2892,75 @@ if (eodData && eodData.length > 0) {
                 padding: 8px 12px;
                 border-radius: 4px;
                 font-size: 12px;
-                white-space: nowrap;
                 z-index: 1000;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                 border: 1px solid #D9D9D9;
                 pointer-events: none;
-            ">${statusText} - Day ${day}</div>
+                white-space: nowrap;
+            ">
+                ${statusText} - Day ${day}
+            </div>
         `;
-        
-        const leaveSubject = dateStatusData[dateKey + '_leave_subject'];
-        const eodTextData = dateStatusData[dateKey + '_eod'];
-        
-        // Enhanced tooltip with EOD data
-        if (leaveSubject || eodTextData) {
-            const calendarDay = dateBox.querySelector('.calendar-day');
-            const tooltip = dateBox.querySelector('.calendar-tooltip');
-            
-            calendarDay.addEventListener('mouseenter', () => {
-                if (leaveSubject) {
-                    tooltip.innerHTML = `<strong>Leave:</strong><br>${leaveSubject}`;
-                } else if (eodTextData && eodTextData.length > 0) {
-                    let tooltipContent = '<div style="max-width: 300px;">';
-                    eodTextData.forEach(eod => {
-                        tooltipContent += `<div style="margin-bottom: 4px;"><strong>${eod.project_name}:</strong><br>${eod.task_name}: ${eod.text}</div>`;
-                    });
-                    tooltipContent += '</div>';
-                    tooltip.innerHTML = tooltipContent;
-                    tooltip.style.whiteSpace = 'normal';
-                } else {
-                    tooltip.textContent = `${statusText} - Day ${day}`;
-                }
-                
-                tooltip.style.visibility = 'visible';
-                tooltip.style.opacity = '1';
-                tooltip.style.transition = 'opacity 0.2s ease';
-            });
-            
-           calendarDay.addEventListener('mouseenter', () => {
+
+        const calendarDay = dateBox.querySelector('.calendar-day');
+        const tooltip = dateBox.querySelector('.calendar-tooltip');
+
+       calendarDay.addEventListener('mouseenter', () => {
+    // 🔴 Leave
     if (leaveSubject) {
-        tooltip.innerHTML = `<strong>On Leave</strong><br>${leaveSubject}`;
-    } else if (eodTextData && eodTextData.length > 0) {
-        let tooltipContent = '<div style="max-width: 300px;">';
-        
-        // Add status summary at top
-        const allComplete = eodTextData.every(eod => eod.status === 'C');
-        const completeCount = eodTextData.filter(eod => eod.status === 'C').length;
-        const incompleteCount = eodTextData.filter(eod => eod.status === 'I').length;
-        
-        if (allComplete) {
-            tooltipContent += `<div style="margin-bottom: 8px; color: #00B879; font-weight: 600;">✓ All tasks completed</div>`;
-        } else {
-            tooltipContent += `<div style="margin-bottom: 8px;"><span style="color: #00B879;">✓ ${completeCount} complete</span> | <span style="color: rgba(228, 74, 105, 1);">✗ ${incompleteCount} incomplete</span></div>`;
-        }
-        
-        // Add task details
-        eodTextData.forEach(eod => {
-            const statusIcon = eod.status === 'C' ? '✓' : '✗';
-            const statusColor = eod.status === 'C' ? '#00B879' : 'rgba(228, 74, 105, 1)';
-            tooltipContent += `<div style="margin-bottom: 4px; padding-left: 8px; border-left: 2px solid ${statusColor};"><strong>${eod.project_name}:</strong><br><span style="color: ${statusColor};">${statusIcon}</span> ${eod.task_name}</div>`;
+        tooltip.innerHTML = `
+            <strong>On Leave</strong><br>
+            ${leaveSubject}
+        `;
+    }
+    // 🟢 EOD submitted → show EOD REPORT TEXT
+    else if (eodTextData && eodTextData.length > 0) {
+        let tooltipContent = '<div style="max-width:320px;">';
+
+        eodTextData.forEach((eod, index) => {
+            tooltipContent += `
+                <div style="
+                    margin-bottom: 8px;
+                    padding-left: 8px;
+                    border-left: 3px solid #00B879;
+                ">
+                    <div style="font-weight:600; margin-bottom:4px;">
+                        EOD ${index + 1}
+                    </div>
+                    <div style="color:#08090A;">
+                        ${eod.text}
+                    </div>
+                </div>
+            `;
         });
+
         tooltipContent += '</div>';
         tooltip.innerHTML = tooltipContent;
         tooltip.style.whiteSpace = 'normal';
-    } else {
-        tooltip.innerHTML = `<div style="color: rgba(163, 125, 33, 1); font-weight: 600;">No EOD submitted</div><div style="font-size: 11px; color: #6D747A; margin-top: 4px;">Day ${day}</div>`;
     }
-                
-                tooltip.style.visibility = 'visible';
-                tooltip.style.opacity = '1';
-                tooltip.style.transition = 'opacity 0.2s ease';
-            });
-            
-            calendarDay.addEventListener('mouseleave', () => {
-                tooltip.style.visibility = 'hidden';
-                tooltip.style.opacity = '0';
-            });
-        }
-        
-        dateContainer.appendChild(dateBox);
+    // 🟠 No EOD
+    else {
+        tooltip.innerHTML = `
+            <div style="color:rgba(163,125,33,1);font-weight:600;">
+                EOD not submitted
+            </div>
+            <div style="font-size:11px;color:#6D747A;margin-top:4px;">
+                Day ${day}
+            </div>
+        `;
     }
+
+    tooltip.style.visibility = 'visible';
+    tooltip.style.opacity = '1';
+});
+
+    calendarDay.addEventListener('mouseleave', () => {
+        tooltip.style.visibility = 'hidden';
+        tooltip.style.opacity = '0';
+    });
+
+    dateContainer.appendChild(dateBox);
+}
 }
 
 // Function to handle three-dot menu hover
@@ -3281,8 +3429,25 @@ function attachTooltipListeners() {
         }
     });
 }
+function formatDateTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString();
+}
 
+function getSkillFreshnessColor(updatedAt) {
+    if (!updatedAt) return '#28CF0A'; // green
 
+    const updatedDate = new Date(updatedAt);
+    const now = new Date();
+
+    const diffDays = Math.floor(
+        (now - updatedDate) / (1000 * 60 * 60 * 24)
+    );
+
+    if (diffDays > 28) return '#FF1A1A';   // red
+    if (diffDays > 14) return '#FF9F1C';   // orange
+    return '#28CF0A';                      // green
+}
 // Skill dropdown functionality
 function attachSkillDropdownListeners() {
     document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
@@ -3331,33 +3496,19 @@ dropdown.querySelectorAll('.skill-option').forEach(option => {
     option.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const skill = option.dataset.skill;
         const employeeId = dropdown.dataset.employeeId;
-        
-        // Store reference to the text span before updating UI
-        const textSpan = badge.querySelector('span');
-        const originalOnClick = textSpan ? textSpan.getAttribute('onclick') : null;
-        
-        // Update UI immediately
-        updateSkillBadgeUI(badge, skill);
-        menu.style.display = 'none';
-        
-        // Re-attach the onclick handler to the new span
-        if (originalOnClick) {
-            const newTextSpan = badge.querySelector('span');
-            if (newTextSpan) {
-                newTextSpan.setAttribute('onclick', originalOnClick);
-                newTextSpan.style.cursor = 'pointer';
-            }
+
+        const currentSkill = badge.dataset.currentSkill;
+
+        // ❌ Same skill → do nothing
+        if (currentSkill === skill) {
+            menu.style.display = 'none';
+            if (chevron) chevron.style.transform = 'rotate(-180deg)';
+            return;
         }
-        
-        // Reset chevron rotation
-        if (chevron) {
-            chevron.style.transform = 'rotate(-180deg)';
-        }
-        
-        // Send update to backend
+
         fetch(`/api/user-status/${employeeId}/`, {
             method: 'PUT',
             headers: {
@@ -3374,25 +3525,41 @@ dropdown.querySelectorAll('.skill-option').forEach(option => {
             return response.json();
         })
         .then(data => {
-            console.log('Skill level updated successfully');
-            // Update cache
-            updateEmployeeCache(employeeId, { 
-                skill_level: skill,
-                skill_level_updated_at: new Date().toISOString()
-            });
-            
-            // Update tooltip
+            // ✅ Update UI
+            updateSkillBadgeUI(
+                badge,
+                data.skill_level,
+                data.skill_level_updated_at
+            );
+
+            // ✅ Update stored skill
+            badge.dataset.currentSkill = data.skill_level;
+
+            menu.style.display = 'none';
+            if (chevron) chevron.style.transform = 'rotate(-180deg)';
+
+            // Tooltip
             const tooltip = dropdown.querySelector('.skill-tooltip');
-            if (tooltip) {
-                tooltip.textContent = `Last updated: Just now`;
+            if (tooltip && data.skill_level_updated_at) {
+                tooltip.textContent =
+                  `Last updated: ${formatRelativeTime(data.skill_level_updated_at)}`;
             }
+
+            updateEmployeeCache(employeeId, {
+                skill_level: data.skill_level,
+                skill_level_updated_at: data.skill_level_updated_at
+            });
+
+            console.log('Skill level updated successfully');
         })
         .catch(error => {
             console.error('Error updating skill level:', error);
             alert('Failed to update skill level. Please try again.');
         });
     });
-    });
+});
+
+
 
     // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
@@ -3414,52 +3581,63 @@ dropdown.querySelectorAll('.skill-option').forEach(option => {
     });
 }
 
-function updateSkillBadgeUI(badge, skill) {
+function updateSkillBadgeUI(badge, skill, updatedAt) {
     const skillConfig = {
-        'basic': {
-            bg: '#FDF9D8',
-            color: '#7F7300',
-            text: 'Basic',
-            icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        'basic': { bg: '#FDF9D8', color: '#7F7300', text: 'Basic' },
+        'intermediate': { bg: '#FDEFDD', color: '#A25D03', text: 'Intermediate' },
+        'advance': { bg: '#EDEDFD', color: '#504CF5', text: 'Advance' }
+    };
+
+    const config = skillConfig[skill.toLowerCase()];
+    if (!config) return;
+
+    const dropdown = badge.closest('.skill-level-dropdown');
+    const employeeId = dropdown ? dropdown.dataset.employeeId : null;
+
+    badge.style.background = config.bg;
+
+    // Determine icon based on updatedAt
+    let iconSvg = '';
+    if (updatedAt) {
+        const lastUpdated = new Date(updatedAt);
+        const today = new Date();
+        const diffDays = Math.floor((today - lastUpdated) / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 14) {
+            // ✅ Green tick
+            iconSvg = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="8" cy="8" r="6.67" stroke="#28CF0A" stroke-width="1.33"/>
                 <path d="M5.33 8L7.33 10L10.67 6.67" stroke="#28CF0A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>`
-        },
-        'intermediate': {
-            bg: '#FDEFDD',
-            color: '#A25D03',
-            text: 'Intermediate',
-            icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="8" cy="8" r="6" stroke="#FF1A1A" stroke-width="1.67"/>
-                <circle cx="8" cy="5" r="0.83" fill="#FF1A1A"/>
-                <path d="M8 7v4" stroke="#FF1A1A" stroke-width="1.67" stroke-linecap="round"/>
-            </svg>`
-        },
-        'advance': {
-            bg: '#EDEDFD',
-            color: '#504CF5',
-            text: 'Advance',
-            icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="8" cy="8" r="6" stroke="#FF1A1A" stroke-width="1.67"/>
-                <circle cx="8" cy="5" r="0.83" fill="#FF1A1A"/>
-                <path d="M8 7v4" stroke="#FF1A1A" stroke-width="1.67" stroke-linecap="round"/>
-            </svg>`
+            </svg>`;
+        } else if (diffDays < 28) {
+            // ⚠️ Orange exclamation
+            iconSvg = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="6.67" stroke="#FFA500" stroke-width="1.33"/>
+                <line x1="8" y1="5" x2="8" y2="10" stroke="#FFA500" stroke-width="1.33" stroke-linecap="round"/>
+                <circle cx="8" cy="11.5" r="0.5" fill="#FFA500"/>
+            </svg>`;
+        } else {
+            // ⚠️ Red alert
+            iconSvg = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="6.67" stroke="#FF1A1A" stroke-width="1.33"/>
+                <path d="M8 4V9" stroke="#FF1A1A" stroke-width="1.33" stroke-linecap="round"/>
+                <circle cx="8" cy="11.5" r="0.5" fill="#FF1A1A"/>
+            </svg>`;
         }
-    };
-    
-    const config = skillConfig[skill.toLowerCase()];
-    if (config) {
-        // Get the employee ID from parent dropdown
-        const dropdown = badge.closest('.skill-level-dropdown');
-        const employeeId = dropdown ? dropdown.dataset.employeeId : null;
-        
-        badge.style.background = config.bg;
-        badge.innerHTML = `
-            ${config.icon}
-            <span onclick="openSkillEditor(${employeeId})" style="color: ${config.color}; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px; cursor: pointer;">${config.text}</span>
-        `;
+    } else {
+        // Default tick for never updated
+        iconSvg = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="8" cy="8" r="6.67" stroke="#28CF0A" stroke-width="1.33"/>
+            <path d="M5.33 8L7.33 10L10.67 6.67" stroke="#28CF0A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`;
     }
+
+    badge.innerHTML = `
+        ${iconSvg}
+        <span onclick="openSkillEditor(${employeeId})" style="color: ${config.color}; font-size: 14px; font-family: Roboto; font-weight: 700; line-height: 20px; letter-spacing: 0.04px; cursor: pointer;">${config.text}</span>
+    `;
 }
+
 
 // ============================================
 // TOOLTIP HELPERS
@@ -4406,7 +4584,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Failed to fetch resignation request. Please try again later.');
                 });
         }
-        
+        //final changes
         // Function to toggle categories manually when clicked
         function toggleCategory(element) {
             const parent = element.closest('.notification-category');

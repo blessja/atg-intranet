@@ -285,44 +285,137 @@ Hrms
                 <div id="eodSummaryModal" class="popup hidden">
                     <div class="popup-content" >
                       <span id="closeEODModalBtn">&times;</span>
-                      <h2>Employee EOD Summary</h2>
+                      <h2 id="eodSummaryModalTitle">Employee EOD Summary</h2>
                   
-                      <div class="filter-section">
-                        <label for="dateFilter">Filter:</label>
-                        <select id="dateFilter">
-  <option value="last_7_days">Past 7 Days</option>
-  <option value="last_15_days">Past 15 Days</option>
-  <option value="january">January</option>
-  <option value="february">February</option>
-  <option value="march">March</option>
-  <option value="april">April</option>
-  <option value="may">May</option>
-  <option value="june">June</option>
-  <option value="july">July</option>
-  <option value="august">August</option>
-  <option value="september">September</option>
-  <option value="october">October</option>
-  <option value="november">November</option>
-  <option value="december">December</option>
-</select>
-
+                      <!-- Tabs Navigation -->
+                      <div class="eod-tabs" style="display: flex; gap: 0; border-bottom: 2px solid #EBEDF0; margin-bottom: 20px;">
+                        <button class="eod-tab-btn active" data-tab="calendar" style="
+                          flex: 1;
+                          padding: 12px 16px;
+                          background: none;
+                          border: none;
+                          color: #6D747A;
+                          font-size: 16px;
+                          font-family: Roboto;
+                          font-weight: 500;
+                          cursor: pointer;
+                          border-bottom: 3px solid transparent;
+                          transition: all 0.3s ease;
+                        ">Calendar</button>
+                        <button class="eod-tab-btn" data-tab="bounties" style="
+                          flex: 1;
+                          padding: 12px 16px;
+                          background: none;
+                          border: none;
+                          color: #6D747A;
+                          font-size: 16px;
+                          font-family: Roboto;
+                          font-weight: 500;
+                          cursor: pointer;
+                          border-bottom: 3px solid transparent;
+                          transition: all 0.3s ease;
+                        ">Bounties</button>
+                        <button class="eod-tab-btn" data-tab="summaries" style="
+                          flex: 1;
+                          padding: 12px 16px;
+                          background: none;
+                          border: none;
+                          color: #6D747A;
+                          font-size: 16px;
+                          font-family: Roboto;
+                          font-weight: 500;
+                          cursor: pointer;
+                          border-bottom: 3px solid transparent;
+                          transition: all 0.3s ease;
+                        ">EOD Summaries</button>
                       </div>
-                  
-                      <table id="eodTable">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Project name</th>
-                            <th>EOD Summary</th>
-                            <th>Bounty</th>
-                          </tr>
-                        </thead>
-                        <tbody id="eodTableBody">
-                          <!-- Filled via JS -->
-                        </tbody>
-                      </table>
+
+                      <!-- Tab Content: Calendar -->
+                      <div class="eod-tab-content active" data-content="calendar" style="display: block;">
+                        <div id="eodCalendarContainer" style="min-height: 400px;">
+                          <!-- Calendar will be rendered here -->
+                        </div>
+                      </div>
+
+                      <!-- Tab Content: Bounties -->
+                      <div class="eod-tab-content" data-content="bounties" style="display: none;">
+                        <div class="filter-section" style="margin-bottom: 20px;">
+                          <label for="bountiesFilter" style="margin-right: 10px; color: #08090A; font-weight: 500;">Filter:</label>
+                          <select id="bountiesFilter" style="padding: 8px 12px; border: 1px solid #CED4DA; border-radius: 4px; color: #08090A; font-size: 14px;">
+                            <option value="last_7_days">Past 7 Days</option>
+                            <option value="last_15_days">Past 15 Days</option>
+                            <option value="january">January</option>
+                            <option value="february">February</option>
+                            <option value="march">March</option>
+                            <option value="april">April</option>
+                            <option value="may">May</option>
+                            <option value="june">June</option>
+                            <option value="july">July</option>
+                            <option value="august">August</option>
+                            <option value="september">September</option>
+                            <option value="october">October</option>
+                            <option value="november">November</option>
+                            <option value="december">December</option>
+                          </select>
+                        </div>
+                        
+                        <div id="bountiesContainer" style="min-height: 400px; overflow-x: auto;">
+                          <table id="bountiesTable" style="width: 100%; border-collapse: collapse; border: 1px solid #EBEDF0;">
+                            <thead>
+                              <tr style="background: #F2F4FF; border-bottom: 2px solid #9B99F3;">
+                                <th style="padding: 16px 12px; text-align: left; font-weight: 600; color: #08090A; font-size: 14px; width: 120px; border-right: 1px solid #EBEDF0;">Date</th>
+                                <th style="padding: 16px 12px; text-align: left; font-weight: 600; color: #08090A; font-size: 14px; width: 180px; border-right: 1px solid #EBEDF0;">Project</th>
+                                <th style="padding: 16px 12px; text-align: left; font-weight: 600; color: #08090A; font-size: 14px; border-right: 1px solid #EBEDF0;">Task</th>
+                                <th style="padding: 16px 12px; text-align: left; font-weight: 600; color: #08090A; font-size: 14px; width: 140px; border-right: 1px solid #EBEDF0;">Status</th>
+                                <th style="padding: 16px 12px; text-align: left; font-weight: 600; color: #08090A; font-size: 14px; width: 100px;">Bounty</th>
+                              </tr>
+                            </thead>
+                            <tbody id="bountiesTableBody">
+                              <tr><td colspan="5" style="text-align: center; padding: 40px; color: #6D747A;">Loading...</td></tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <!-- Tab Content: EOD Summaries -->
+                      <div class="eod-tab-content" data-content="summaries" style="display: none;">
+                        <div class="filter-section" style="margin-bottom: 20px;">
+                          <label for="dateFilter" style="margin-right: 10px; color: #08090A; font-weight: 500;">Filter:</label>
+                          <select id="dateFilter" style="padding: 8px 12px; border: 1px solid #CED4DA; border-radius: 4px; color: #08090A; font-size: 14px;">
+                            <option value="last_7_days">Past 7 Days</option>
+                            <option value="last_15_days">Past 15 Days</option>
+                            <option value="january">January</option>
+                            <option value="february">February</option>
+                            <option value="march">March</option>
+                            <option value="april">April</option>
+                            <option value="may">May</option>
+                            <option value="june">June</option>
+                            <option value="july">July</option>
+                            <option value="august">August</option>
+                            <option value="september">September</option>
+                            <option value="october">October</option>
+                            <option value="november">November</option>
+                            <option value="december">December</option>
+                          </select>
+                        </div>
+                        
+                        <div id="eodSummariesContainer" style="min-height: 400px; overflow-x: auto;">
+                          <table id="eodTable" style="width: 100%; border-collapse: collapse; border: 1px solid #EBEDF0;">
+                            <thead>
+                              <tr style="background: #F2F4FF; border-bottom: 2px solid #9B99F3;">
+                                <th style="padding: 16px 12px; text-align: left; font-weight: 600; color: #08090A; font-size: 14px; width: 120px; border-right: 1px solid #EBEDF0;">Date</th>
+                                <th style="padding: 16px 12px; text-align: left; font-weight: 600; color: #08090A; font-size: 14px; width: 180px; border-right: 1px solid #EBEDF0;">Project name</th>
+                                <th style="padding: 16px 12px; text-align: left; font-weight: 600; color: #08090A; font-size: 14px;">EOD Summary</th>
+                              </tr>
+                            </thead>
+                            <tbody id="eodTableBody">
+                              <!-- Filled via JS -->
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     </div>
-                                  </div>
+                  </div>
 
                 <!-- Assign Goal Modal -->
                 <div id="assignGoalModal" class="modal">
@@ -1986,6 +2079,181 @@ function attachModalScrollHandler() {
 document.getElementById('closeEODModalBtn').addEventListener('click', closeEODModal);
 document.addEventListener('DOMContentLoaded', attachModalScrollHandler);
 
+// Tab Switching Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const tabBtns = document.querySelectorAll('.eod-tab-btn');
+    const tabContents = document.querySelectorAll('.eod-tab-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // Remove active class from all tabs and contents
+            tabBtns.forEach(b => {
+                b.classList.remove('active');
+                b.style.color = '#6D747A';
+                b.style.borderBottomColor = 'transparent';
+            });
+            tabContents.forEach(c => {
+                c.classList.remove('active');
+                c.style.display = 'none';
+            });
+            
+            // Add active class to clicked tab
+            this.classList.add('active');
+            this.style.color = '#504CF5';
+            this.style.borderBottomColor = '#504CF5';
+            
+            // Show corresponding content
+            const targetContent = document.querySelector(`[data-content="${targetTab}"]`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+                targetContent.style.display = 'block';
+                
+                // Load content when tab is activated
+                if (targetTab === 'bounties' && currentEODUserId) {
+                    const filterValue = document.getElementById('bountiesFilter').value;
+                    loadBountiesData(currentEODUserId, filterValue);
+                } else if (targetTab === 'summaries' && currentEODUserId) {
+                    const filterValue = document.getElementById('dateFilter').value;
+                    fetchAndRenderEOD(currentEODUserId, filterValue);
+                }
+            }
+        });
+    });
+});
+
+// Bounties Filter Change
+document.addEventListener('DOMContentLoaded', function() {
+    const bountiesFilter = document.getElementById('bountiesFilter');
+    if (bountiesFilter) {
+        bountiesFilter.addEventListener('change', () => {
+            const filterValue = bountiesFilter.value;
+            if (currentEODUserId) {
+                loadBountiesData(currentEODUserId, filterValue);
+            }
+        });
+    }
+});
+
+// Load Bounties Data
+async function loadBountiesData(userId, filterValue = 'last_7_days') {
+    const tbody = document.getElementById('bountiesTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #6D747A;">Loading...</td></tr>';
+    
+    try {
+        const response = await fetch(`/tasks/api/eod-report/?user=${userId}&filter=${filterValue}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        
+        const data = await response.json();
+        tbody.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #6D747A;">No tasks with bounties found</td></tr>';
+            return;
+        }
+        
+        // Group by date
+        const dateMap = {};
+        data.forEach(entry => {
+            if (entry.bounty && entry.bounty > 0) {
+                if (!dateMap[entry.date]) {
+                    dateMap[entry.date] = [];
+                }
+                dateMap[entry.date].push(entry);
+            }
+        });
+        
+        const sortedDates = Object.keys(dateMap).sort((a, b) => new Date(b) - new Date(a));
+        
+        if (sortedDates.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #6D747A;">No tasks with bounties found</td></tr>';
+            return;
+        }
+        
+        sortedDates.forEach(date => {
+            dateMap[date].forEach((entry, index) => {
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #EBEDF0';
+                row.style.transition = 'background-color 0.2s ease';
+                row.onmouseenter = function() { this.style.backgroundColor = '#F9FAFB'; };
+                row.onmouseleave = function() { this.style.backgroundColor = 'transparent'; };
+                
+                const dateCell = document.createElement('td');
+                dateCell.style.padding = '16px 12px';
+                dateCell.style.color = '#08090A';
+                dateCell.style.fontWeight = '500';
+                dateCell.style.fontSize = '14px';
+                dateCell.style.verticalAlign = 'top';
+                dateCell.style.borderRight = '1px solid #EBEDF0';
+                dateCell.textContent = index === 0 ? date : '';
+                
+                const projectCell = document.createElement('td');
+                projectCell.style.padding = '16px 12px';
+                projectCell.style.color = '#08090A';
+                projectCell.style.fontSize = '14px';
+                projectCell.style.verticalAlign = 'top';
+                projectCell.style.borderRight = '1px solid #EBEDF0';
+                projectCell.textContent = entry.project_name || '-';
+                
+                const taskCell = document.createElement('td');
+                taskCell.style.padding = '16px 12px';
+                taskCell.style.color = '#504CF5';
+                taskCell.style.fontWeight = '600';
+                taskCell.style.fontSize = '14px';
+                taskCell.style.verticalAlign = 'top';
+                taskCell.style.borderRight = '1px solid #EBEDF0';
+                taskCell.textContent = entry.task_name || '-';
+                
+                const statusCell = document.createElement('td');
+                statusCell.style.padding = '16px 12px';
+                statusCell.style.verticalAlign = 'top';
+                statusCell.style.borderRight = '1px solid #EBEDF0';
+                const statusBadge = document.createElement('span');
+                statusBadge.style.display = 'inline-block';
+                statusBadge.style.padding = '4px 12px';
+                statusBadge.style.borderRadius = '12px';
+                statusBadge.style.fontSize = '12px';
+                statusBadge.style.fontWeight = '600';
+                
+                if (entry.task_status === 'C') {
+                    statusBadge.style.background = '#E6F9F4';
+                    statusBadge.style.color = '#00B879';
+                    statusBadge.textContent = 'Completed';
+                } else {
+                    statusBadge.style.background = '#FFF3E6';
+                    statusBadge.style.color = '#F5A623';
+                    statusBadge.textContent = 'Incomplete';
+                }
+                statusCell.appendChild(statusBadge);
+                
+                const bountyCell = document.createElement('td');
+                bountyCell.style.padding = '16px 12px';
+                bountyCell.style.color = '#08090A';
+                bountyCell.style.fontWeight = '700';
+                bountyCell.style.fontSize = '16px';
+                bountyCell.style.verticalAlign = 'top';
+                bountyCell.textContent = entry.bounty || 0;
+                
+                row.appendChild(dateCell);
+                row.appendChild(projectCell);
+                row.appendChild(taskCell);
+                row.appendChild(statusCell);
+                row.appendChild(bountyCell);
+                
+                tbody.appendChild(row);
+            });
+        });
+        
+    } catch (error) {
+        console.error('Error loading bounties:', error);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #E44A69;">Error loading bounties. Please try again.</td></tr>';
+    }
+}
+
 document.getElementById('dateFilter').addEventListener('change', () => {
   const filterValue = document.getElementById('dateFilter').value;
   fetchAndRenderEOD(currentEODUserId, filterValue);
@@ -2023,32 +2291,58 @@ async function fetchAndRenderEOD(userId, filterValue) {
       if (entries.length > 0) {
         entries.forEach((entry, index) => {
           const row = document.createElement("tr");
+          row.style.borderBottom = '1px solid #EBEDF0';
+          row.style.transition = 'background-color 0.2s ease';
+          row.onmouseenter = function() { this.style.backgroundColor = '#F9FAFB'; };
+          row.onmouseleave = function() { this.style.backgroundColor = 'transparent'; };
 
           const dateCell = document.createElement("td");
           dateCell.textContent = index === 0 ? date : "";
+          dateCell.style.padding = '16px 12px';
+          dateCell.style.color = '#08090A';
+          dateCell.style.fontWeight = '500';
+          dateCell.style.fontSize = '14px';
+          dateCell.style.verticalAlign = 'top';
+          dateCell.style.borderRight = '1px solid #EBEDF0';
 
           const projectCell = document.createElement("td");
           projectCell.textContent = entry.project_name;
+          projectCell.style.padding = '16px 12px';
+          projectCell.style.color = '#08090A';
+          projectCell.style.fontSize = '14px';
+          projectCell.style.verticalAlign = 'top';
+          projectCell.style.borderRight = '1px solid #EBEDF0';
 
           const summaryCell = document.createElement("td");
-          summaryCell.innerHTML = `${entry.task_name} -- ${entry.text}
-            <span class="status-chip ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}">
+          summaryCell.style.padding = '16px 12px';
+          summaryCell.style.verticalAlign = 'top';
+          summaryCell.innerHTML = `
+            <div style="color: #08090A; font-size: 14px; line-height: 1.6; margin-bottom: 8px;">
+              <strong style="color: #504CF5;">${entry.task_name}</strong> — ${entry.text}
+            </div>
+            <span class="status-chip ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}" style="
+              display: inline-block;
+              padding: 4px 12px;
+              background: ${entry.task_status === 'C' ? '#E6F9F4' : '#FFF3E6'};
+              color: ${entry.task_status === 'C' ? '#00B879' : '#F5A623'};
+              border-radius: 12px;
+              font-size: 12px;
+              font-weight: 600;
+            ">
               ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}
-            </span>`;
+            </span>
+          `;
 
-          const bountyCell = document.createElement("td");
-          bountyCell.textContent = entry.bounty;
-
-          row.append(dateCell, projectCell, summaryCell, bountyCell);
+          row.append(dateCell, projectCell, summaryCell);
           tbody.appendChild(row);
         });
       } else {
         const row = document.createElement("tr");
+        row.style.borderBottom = '1px solid #EBEDF0';
         row.innerHTML = `
-          <td>${date}</td>
-          <td>-</td>
-          <td>No EOD submitted today</td>
-          <td>-</td>
+          <td style="padding: 16px 12px; color: #08090A; font-weight: 500; font-size: 14px; vertical-align: top; border-right: 1px solid #EBEDF0;">${date}</td>
+          <td style="padding: 16px 12px; color: #6D747A; font-size: 14px; text-align: center; vertical-align: top; border-right: 1px solid #EBEDF0;">-</td>
+          <td style="padding: 16px 12px; color: #6D747A; font-style: italic; font-size: 14px; vertical-align: top;">No EOD submitted today</td>
         `;
         tbody.appendChild(row);
       }
@@ -2056,7 +2350,7 @@ async function fetchAndRenderEOD(userId, filterValue) {
 
   } catch (err) {
     console.error(err);
-    tbody.innerHTML = '<tr><td colspan="4">Error loading data</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #E44A69; font-size: 14px;">Error loading data. Please try again.</td></tr>';
   }
 }
 
@@ -2303,9 +2597,9 @@ function renderEmployeeData(tbody, data, departmentId = 'default') {
         }
         
         // For "Not Assigned" status
-        if (employee.projects.length === 0) {
-            rowBg = '#FFECEE';
-        }
+        // if (employee.projects.length === 0) {
+        //     rowBg = '#FFECEE';
+        // }
         // Determine skill badge properties
         const skillLevelLower = (employee.skill_level ?? 'basic').toLowerCase();
         const skillUpdatedAt = employee.skill_level_updated_at ?? null;
@@ -2651,7 +2945,7 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
         <div class="date-container-inline" id="dateContainer-${employee.user_id}" style="display: flex; gap: 0;">
             <!-- Calendar will be populated here -->
         </div>
-        <div style="padding: 2px 7px; opacity: 0.90; border-radius: 4px; display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="openEODSummary(${employee.user_id})">
+        <div style="padding: 2px 7px; opacity: 0.90; border-radius: 4px; display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="openEODSummary(${employee.user_id}, '${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}')">
             <span style="color: #504CF5; font-size: 16px; font-family: Helvetica Neue; font-weight: 500; line-height: 18px; letter-spacing: 0.06px;">View more</span>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-180deg);">
                 <path d="M19 15L12 9L5 15" stroke="#504CF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -2716,7 +3010,7 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
                 Goal Overview
             </div>
             
-            <div class="menu-item" onclick="openEODSummary(${employee.user_id})" style="
+            <div class="menu-item" onclick="openEODSummary(${employee.user_id}, '${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}')" style="
                 padding: 12px 16px;
                 cursor: pointer;
                 font-size: 14px;
@@ -2925,7 +3219,7 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
                     border-left: 3px solid #00B879;
                 ">
                     <div style="font-weight:600; margin-bottom:4px;">
-                        EOD ${index + 1}
+                        ${eod.project_name || 'EOD REPORT'}
                     </div>
                     <div style="color:#08090A;">
                         ${eod.text}
@@ -3695,10 +3989,44 @@ function getDaysUntil(dateString) {
     let eodYear = new Date().getFullYear();
 
     // Override the global openEODSummary function
-    window.openEODSummary = function(userId) {
+    window.openEODSummary = function(userId, employeeName) {
         eodUserId = userId;
+        currentEODUserId = userId;
         eodMonth = new Date().getMonth();
         eodYear = new Date().getFullYear();
+        
+        // Update modal title with employee name
+        const modalTitle = document.getElementById('eodSummaryModalTitle');
+        if (modalTitle && employeeName) {
+            modalTitle.textContent = `${employeeName}'s EOD Summary`;
+        }
+        
+        // Reset to Calendar tab
+        const tabBtns = document.querySelectorAll('.eod-tab-btn');
+        const tabContents = document.querySelectorAll('.eod-tab-content');
+        
+        tabBtns.forEach(btn => {
+            btn.classList.remove('active');
+            btn.style.color = '#6D747A';
+            btn.style.borderBottomColor = 'transparent';
+        });
+        tabContents.forEach(content => {
+            content.classList.remove('active');
+            content.style.display = 'none';
+        });
+        
+        // Activate calendar tab
+        const calendarTab = document.querySelector('[data-tab="calendar"]');
+        const calendarContent = document.querySelector('[data-content="calendar"]');
+        if (calendarTab) {
+            calendarTab.classList.add('active');
+            calendarTab.style.color = '#504CF5';
+            calendarTab.style.borderBottomColor = '#504CF5';
+        }
+        if (calendarContent) {
+            calendarContent.classList.add('active');
+            calendarContent.style.display = 'block';
+        }
         
         document.getElementById('eodSummaryModal').classList.remove('hidden');
         renderEODCalendar(userId, eodMonth, eodYear);
@@ -3728,37 +4056,41 @@ function getDaysUntil(dateString) {
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                             'July', 'August', 'September', 'October', 'November', 'December'];
         
-        // Create or get calendar header
-        let calendarHeader = document.getElementById('eodCalendarHeader');
-        if (!calendarHeader) {
-            const modalContent = document.querySelector('#eodSummaryModal .popup-content');
-            const h2 = modalContent.querySelector('h2');
-            calendarHeader = document.createElement('div');
-            calendarHeader.id = 'eodCalendarHeader';
-            h2.after(calendarHeader);
+        // Get the calendar container
+        const calendarContainer = document.getElementById('eodCalendarContainer');
+        if (!calendarContainer) {
+            console.error('Calendar container not found');
+            return;
         }
         
-        calendarHeader.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 16px; margin: 24px 0;">
-                <button onclick="changeEODMonth(-1)" style="padding: 8px 16px; border: 1px solid #CED4DA; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
-                    ← Previous
-                </button>
-                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #08090A;">${monthNames[month]} ${year}</h3>
-                <button onclick="changeEODMonth(1)" style="padding: 8px 16px; border: 1px solid #CED4DA; border-radius: 4px; background: white; cursor: pointer; font-size: 14px;">
-                    Next →
-                </button>
+        // Create calendar header
+        const calendarHeader = `
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                <button onclick="changeEODMonth(-1)" style="
+                    padding: 8px 16px; 
+                    border: 1px solid #CED4DA; 
+                    border-radius: 4px; 
+                    background: white; 
+                    cursor: pointer; 
+                    font-size: 14px;
+                    color: #08090A;
+                    font-weight: 500;
+                ">← Previous</button>
+                <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: #08090A;">${monthNames[month]} ${year}</h3>
+                <button onclick="changeEODMonth(1)" style="
+                    padding: 8px 16px; 
+                    border: 1px solid #CED4DA; 
+                    border-radius: 4px; 
+                    background: white; 
+                    cursor: pointer; 
+                    font-size: 14px;
+                    color: #08090A;
+                    font-weight: 500;
+                ">Next →</button>
             </div>
         `;
         
-        // Create or get calendar grid
-        let calendarGrid = document.getElementById('eodCalendarGrid');
-        if (!calendarGrid) {
-            calendarGrid = document.createElement('div');
-            calendarGrid.id = 'eodCalendarGrid';
-            calendarHeader.after(calendarGrid);
-        }
-        
-        calendarGrid.innerHTML = '<div style="text-align: center; padding: 20px; color: #6D747A;">Loading calendar...</div>';
+        calendarContainer.innerHTML = calendarHeader + '<div style="text-align: center; padding: 40px; color: #6D747A;">Loading calendar...</div>';
         
         try {
             // Fetch EOD data for the month
@@ -3904,14 +4236,16 @@ function getDaysUntil(dateString) {
             }
             
             calendarHTML += '</div>';
-            calendarGrid.innerHTML = calendarHTML;
+            
+            // Update the calendar container with the complete HTML
+            calendarContainer.innerHTML = calendarHeader + calendarHTML;
             
             // Add hover listeners for tooltips
             attachCalendarTooltips();
             
         } catch (err) {
             console.error(err);
-            calendarGrid.innerHTML = '<div style="text-align: center; padding: 20px; color: #DD1D43;">Error loading calendar</div>';
+            calendarContainer.innerHTML = calendarHeader + '<div style="text-align: center; padding: 40px; color: #DD1D43;">Error loading calendar. Please try again.</div>';
         }
     }
 
@@ -3941,76 +4275,14 @@ function attachCalendarTooltips() {
     }
 
     window.showDayDetails = function(dateStr, userId) {
-        // Create or get details section
-        let detailsSection = document.getElementById('eodDayDetails');
-        if (!detailsSection) {
-            const calendarGrid = document.getElementById('eodCalendarGrid');
-            detailsSection = document.createElement('div');
-            detailsSection.id = 'eodDayDetails';
-            calendarGrid.after(detailsSection);
+        // Switch to summaries tab and filter by date
+        const summariesTab = document.querySelector('[data-tab="summaries"]');
+        if (summariesTab) {
+            summariesTab.click();
         }
         
-        detailsSection.innerHTML = `<div style="text-align: center; padding: 20px; color: #6D747A;">Loading details for ${dateStr}...</div>`;
-        
-        fetch(`/tasks/api/eod-report/?user=${userId}&date=${dateStr}`, {
-            credentials: 'include'
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.length === 0) {
-                detailsSection.innerHTML = `<p style="color: #6D747A; padding: 16px; text-align: center; background: #F5F5F5; border-radius: 4px; margin-top: 16px;">No EOD submitted for ${dateStr}</p>`;
-                return;
-            }
-            
-            let html = `<div style="margin-top: 24px; border-top: 2px solid #EBEDF0; padding-top: 16px;">
-                <h4 style="margin-bottom: 16px; color: #08090A; font-size: 16px; font-weight: 600;">EOD Details for ${dateStr}</h4>
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead style="background: #F0F5FF;">
-                        <tr>
-                            <th style="padding: 12px 8px; text-align: left; border-bottom: 1px solid #E0E1E1; font-size: 14px; font-weight: 600; color: #08090A;">Project</th>
-                            <th style="padding: 12px 8px; text-align: left; border-bottom: 1px solid #E0E1E1; font-size: 14px; font-weight: 600; color: #08090A;">Task</th>
-                            <th style="padding: 12px 8px; text-align: left; border-bottom: 1px solid #E0E1E1; font-size: 14px; font-weight: 600; color: #08090A;">Summary</th>
-                            <th style="padding: 12px 8px; text-align: left; border-bottom: 1px solid #E0E1E1; font-size: 14px; font-weight: 600; color: #08090A;">Status</th>
-                            <th style="padding: 12px 8px; text-align: left; border-bottom: 1px solid #E0E1E1; font-size: 14px; font-weight: 600; color: #08090A;">Bounty</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-            
-            data.forEach(entry => {
-                html += `
-                    <tr style="border-bottom: 1px solid #EBEDF0;">
-                        <td style="padding: 12px 8px; color: #08090A; font-size: 14px;">${entry.project_name}</td>
-                        <td style="padding: 12px 8px; color: #08090A; font-size: 14px;">${entry.task_name}</td>
-                        <td style="padding: 12px 8px; color: #6D747A; font-size: 14px;">${entry.text}</td>
-                        <td style="padding: 12px 8px;">
-                            <span class="status-chip ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}">
-                                ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}
-                            </span>
-                        </td>
-                        <td style="padding: 12px 8px; color: #08090A; font-size: 14px;">${entry.bounty || '-'}</td>
-                    </tr>
-                `;
-            });
-            
-            html += `</tbody></table>
-                <button onclick="document.getElementById('eodDayDetails').innerHTML = ''" style="
-                    margin-top: 16px;
-                    padding: 8px 16px;
-                    background: #504CF5;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 500;
-                ">Close Details</button>
-            </div>`;
-            detailsSection.innerHTML = html;
-        })
-        .catch(err => {
-            console.error(err);
-            detailsSection.innerHTML = `<p style="color: #DD1D43; padding: 16px; text-align: center;">Error loading details</p>`;
-        });
+        // Could add date-specific filtering here if needed
+        console.log('Showing details for:', dateStr, 'User:', userId);
     };
 })();
 

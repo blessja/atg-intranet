@@ -1330,14 +1330,66 @@ document.addEventListener('keydown', handleEnterKey);
         <th style="width: 13%; padding: 8px; text-align: left;">Project</th>
         <th style="width: 15%; padding: 8px; text-align: left;">Remarks</th>
         <th style="width: 5%; padding: 8px; text-align: left;">BA</th>
-        <th style="width: 10%; padding: 8px; text-align: left;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-                BC (30 d)
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 10L8 6L12 10" stroke="#08090A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-        </th>
+    <th style="width: 10%; padding: 8px; text-align: left; position: relative;">
+    <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="toggleBCDropdown(this, event)">
+        <span class="bc-duration-label">BC (30 d)</span>
+        <svg class="bc-dropdown-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transition: transform 0.2s ease;">
+            <path d="M4 6L8 10L12 6" stroke="#08090A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </div>
+    
+    <!-- Dropdown Menu -->
+    <div class="bc-duration-dropdown" style="
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: white;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+        min-width: 140px;
+        z-index: 1000;
+        padding: 8px 0;
+        margin-top: 4px;
+    ">
+        <div class="duration-option" data-days="7" style="
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #08090A;
+            transition: background-color 0.2s ease;
+        ">Last 7 days</div>
+        <div class="duration-option" data-days="15" style="
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #08090A;
+            transition: background-color 0.2s ease;
+        ">Last 15 days</div>
+        <div class="duration-option active" data-days="30" style="
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #08090A;
+            background: #F2F4FF;
+            transition: background-color 0.2s ease;
+        ">Last 30 days</div>
+        <div class="duration-option" data-days="60" style="
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #08090A;
+            transition: background-color 0.2s ease;
+        ">Last 60 days</div>
+        <div class="duration-option" data-days="90" style="
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #08090A;
+            transition: background-color 0.2s ease;
+        ">Last 90 days</div>
+    </div>
+</th>
         <th style="width: 22%; padding: 8px; text-align: left;">EOD Summary & Attendance</th>
         <th style="width: 5%; padding: 8px;"></th>
     </tr>
@@ -1471,6 +1523,7 @@ document.addEventListener('keydown', handleEnterKey);
     //stored team members for projects HRMS
     const teamMembersCache = {};
 
+
     //function to call team-member api for project
     function toggleTable(element) {
         const projectId = element.id;
@@ -1536,6 +1589,142 @@ document.addEventListener('keydown', handleEnterKey);
             tableBody.appendChild(row);
         });
     }
+
+    let currentBCDuration = 30;
+
+// Toggle BC duration dropdown
+function toggleBCDropdown(headerElement, event) {
+    event.stopPropagation();
+    
+    const dropdown = headerElement.nextElementSibling;
+    const arrow = headerElement.querySelector('.bc-dropdown-arrow');
+    const isOpen = dropdown.style.display === 'flex';
+    
+    // Close all other BC dropdowns first
+    document.querySelectorAll('.bc-duration-dropdown').forEach(dd => {
+        dd.style.display = 'none';
+    });
+    document.querySelectorAll('.bc-dropdown-arrow').forEach(arr => {
+        arr.style.transform = 'rotate(0deg)';
+    });
+    
+    if (!isOpen) {
+        dropdown.style.display = 'flex';
+        dropdown.style.flexDirection = 'column';
+        arrow.style.transform = 'rotate(180deg)';
+    }
+}
+
+// Handle duration option selection with event delegation
+function attachBCDropdownHandlers() {
+    // Use event delegation on the document to catch clicks on dynamically added elements
+    document.addEventListener('click', function(e) {
+        // Check if clicked element is a duration option
+        if (e.target.classList.contains('duration-option')) {
+            e.stopPropagation();
+            
+            const days = parseInt(e.target.getAttribute('data-days'));
+            const deptSection = e.target.closest('.dept-section');
+            const departmentId = deptSection?.querySelector('.toggle-icon')?.id;
+            
+            // Update label
+            const label = e.target.closest('th').querySelector('.bc-duration-label');
+            label.textContent = `BC (${days} d)`;
+            
+            // Update active state
+            e.target.closest('.bc-duration-dropdown').querySelectorAll('.duration-option').forEach(opt => {
+                opt.classList.remove('active');
+                opt.style.background = '';
+            });
+            e.target.classList.add('active');
+            e.target.style.background = '#F2F4FF';
+            
+            // Store current duration
+            currentBCDuration = days;
+            
+            // Close dropdown
+            e.target.closest('.bc-duration-dropdown').style.display = 'none';
+            e.target.closest('th').querySelector('.bc-dropdown-arrow').style.transform = 'rotate(0deg)';
+            
+            // Reload employee data with new duration
+            if (departmentId) {
+                reloadDepartmentWithDuration(departmentId, days);
+            }
+        }
+    });
+    
+    // Hover effects using event delegation
+    document.addEventListener('mouseover', function(e) {
+        if (e.target.classList.contains('duration-option') && !e.target.classList.contains('active')) {
+            e.target.style.background = '#F5F5F5';
+        }
+    });
+    
+    document.addEventListener('mouseout', function(e) {
+        if (e.target.classList.contains('duration-option') && !e.target.classList.contains('active')) {
+            e.target.style.background = '';
+        }
+    });
+}
+
+// Initialize handlers
+attachBCDropdownHandlers();
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('th')) {
+        document.querySelectorAll('.bc-duration-dropdown').forEach(dropdown => {
+            dropdown.style.display = 'none';
+        });
+        document.querySelectorAll('.bc-dropdown-arrow').forEach(arrow => {
+            arrow.style.transform = 'rotate(0deg)';
+        });
+    }
+});
+
+// Function to reload department data with new duration
+function reloadDepartmentWithDuration(departmentId, duration) {
+    const tbody = document.querySelector(`#${departmentId}`).closest('.dept-section').querySelector('tbody');
+    
+    // Show loading
+    tbody.innerHTML = `<tr>
+        <td colspan="8" style="text-align: center;">
+            <div class="loading-spinner"></div>
+        </td>
+    </tr>`;
+    
+    // Create cache key with new duration
+    const cacheKey = `${departmentId}_${duration}`;
+    
+    // Check cache first
+    if (employeeDataCache.has(cacheKey)) {
+        const data = employeeDataCache.get(cacheKey);
+        renderEmployeeData(tbody, data, departmentId);
+        return;
+    }
+    
+    // Fetch data with new duration
+    fetch(`/api/department/${departmentId}/employees/?duration=${duration}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Cache the fetched data
+            employeeDataCache.set(cacheKey, data);
+            renderEmployeeData(tbody, data, departmentId);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            tbody.innerHTML = `<tr>
+                <td colspan="8" style="text-align: center;">
+                    Error loading data
+                </td>
+            </tr>`;
+        });
+}
 
     //populate project finance 
 
@@ -1733,14 +1922,66 @@ document.addEventListener('keydown', handleEnterKey);
         <th style="width: 13%; padding: 8px; text-align: left;">Project</th>
         <th style="width: 15%; padding: 8px; text-align: left;">Remarks</th>
         <th style="width: 5%; padding: 8px; text-align: left;">BA</th>
-        <th style="width: 10%; padding: 8px; text-align: left;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-                BC (30 d)
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 10L8 6L12 10" stroke="#08090A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div>
-        </th>
+      <th style="width: 10%; padding: 8px; text-align: left; position: relative;">
+    <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="toggleBCDropdown(this, event)">
+        <span class="bc-duration-label">BC (30 d)</span>
+        <svg class="bc-dropdown-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transition: transform 0.2s ease;">
+            <path d="M4 6L8 10L12 6" stroke="#08090A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </div>
+    
+    <!-- Dropdown Menu -->
+    <div class="bc-duration-dropdown" style="
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: white;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+        min-width: 140px;
+        z-index: 1000;
+        padding: 8px 0;
+        margin-top: 4px;
+    ">
+        <div class="duration-option" data-days="7" style="
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #08090A;
+            transition: background-color 0.2s ease;
+        ">Last 7 days</div>
+        <div class="duration-option" data-days="15" style="
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #08090A;
+            transition: background-color 0.2s ease;
+        ">Last 15 days</div>
+        <div class="duration-option active" data-days="30" style="
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #08090A;
+            background: #F2F4FF;
+            transition: background-color 0.2s ease;
+        ">Last 30 days</div>
+        <div class="duration-option" data-days="60" style="
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #08090A;
+            transition: background-color 0.2s ease;
+        ">Last 60 days</div>
+        <div class="duration-option" data-days="90" style="
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #08090A;
+            transition: background-color 0.2s ease;
+        ">Last 90 days</div>
+    </div>
+</th>
         <th style="width: 22%; padding: 8px; text-align: left;">EOD Summary & Attendance</th>
         <th style="width: 5%; padding: 8px;"></th>
     </tr>
@@ -1763,6 +2004,56 @@ document.addEventListener('keydown', handleEnterKey);
             });
         }
     }
+
+    document.getElementById('userSearchInput').addEventListener('keypress', function(event) {
+    if (event.key === 'Enter' || event.keyCode === 13) {
+        event.preventDefault();
+        searchEmployee();
+    }
+});
+
+
+let bountySortOrder = 'asc'; // Track current sort order
+
+function sortBountyColumn(headerElement) {
+    // Get the table body
+    const table = headerElement.closest('table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Get the column index (BC is the 6th column, index 5)
+    const columnIndex = 5;
+    
+    // Sort rows based on bounty count
+    rows.sort((a, b) => {
+        const aCell = a.cells[columnIndex];
+        const bCell = b.cells[columnIndex];
+        
+        // Extract numeric value from the cell
+        const aValue = parseInt(aCell.textContent.trim()) || 0;
+        const bValue = parseInt(bCell.textContent.trim()) || 0;
+        
+        if (bountySortOrder === 'asc') {
+            return aValue - bValue;
+        } else {
+            return bValue - aValue;
+        }
+    });
+    
+    // Toggle sort order
+    bountySortOrder = bountySortOrder === 'asc' ? 'desc' : 'asc';
+    
+    // Update arrow direction
+    const arrow = headerElement.querySelector('.bounty-sort-arrow path');
+    if (bountySortOrder === 'asc') {
+        arrow.setAttribute('d', 'M4 10L8 6L12 10'); // Arrow up
+    } else {
+        arrow.setAttribute('d', 'M12 6L8 10L4 6'); // Arrow down
+    }
+    
+    // Reappend sorted rows to tbody
+    rows.forEach(row => tbody.appendChild(row));
+}
 
     function teamToggleTable(element){
         const departmentId = element.id;
@@ -4055,7 +4346,7 @@ function getDaysUntil(dateString) {
         renderEODCalendar(eodUserId, eodMonth, eodYear);
     };
 
-  async function renderEODCalendar(userId, month, year) {
+ async function renderEODCalendar(userId, month, year) {
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                         'July', 'August', 'September', 'October', 'November', 'December'];
     
@@ -4135,7 +4426,7 @@ function getDaysUntil(dateString) {
             let bgColor, opacity, tooltipText, borderStyle = '';
             
             if (isToday) {
-                borderStyle = 'border: 2px solid #504CF5;';
+                borderStyle = 'border: 2px solid #fff;';
             }
             
             if (isFutureDate) {
@@ -4143,20 +4434,10 @@ function getDaysUntil(dateString) {
                 opacity = '0.3';
                 tooltipText = 'Future date';
             } else if (dayData.length > 0) {
-                // Has EOD data - check if there are any incomplete tasks
-                const hasIncomplete = dayData.some(item => item.task_status === 'I');
-                const completeCount = dayData.filter(item => item.task_status === 'C').length;
-                const incompleteCount = dayData.filter(item => item.task_status === 'I').length;
-                
-                if (hasIncomplete) {
-                    bgColor = 'rgba(228, 74, 105, 1)';  // Red - has incomplete tasks
-                    opacity = '1';
-                    tooltipText = `${completeCount} completed, ${incompleteCount} incomplete`;
-                } else {
-                    bgColor = '#00B879';  // Green - all tasks complete
-                    opacity = '1';
-                    tooltipText = `All tasks completed (${dayData.length})`;
-                }
+                // HAS EOD DATA - Always show GREEN because EOD was submitted
+                bgColor = '#00B879';  // Green - EOD submitted
+                opacity = '1';
+                tooltipText = `EOD submitted (${dayData.length} task${dayData.length > 1 ? 's' : ''})`;
                 
                 // Build detailed tooltip with project info
                 const projectSummary = {};
@@ -4182,7 +4463,7 @@ function getDaysUntil(dateString) {
                     return `${proj}\n${taskDetails}`;
                 }).join('\n\n');
             } else {
-                // No EOD data submitted
+                // NO EOD DATA - Show orange (no EOD submitted)
                 bgColor = 'rgba(163, 125, 33, 1)';  // Orange
                 opacity = '0.8';
                 tooltipText = 'No EOD submitted';
@@ -4198,7 +4479,7 @@ function getDaysUntil(dateString) {
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        color: ${isToday ? '#504CF5' : 'white'};
+                        color: ${isToday ? '#ffff' : 'white'};
                         font-size: 16px;
                         font-weight: ${isToday ? '700' : '400'};
                         border-radius: 4px;
@@ -4208,7 +4489,7 @@ function getDaysUntil(dateString) {
                         ${borderStyle}
                     " ${!isFutureDate ? `onclick="showDayDetails('${dateStr}', ${userId})"` : ''}>
                         ${day}
-                        ${isToday ? '<div style="position: absolute; bottom: 2px; font-size: 8px; color: #504CF5;">Today</div>' : ''}
+                        ${isToday ? '<div style="position: absolute; bottom: 2px; font-size: 8px; color: #fff;">Today</div>' : ''}
                     </div>
                     <div class="calendar-tooltip" style="
                         visibility: hidden;
@@ -4289,17 +4570,145 @@ function attachCalendarTooltips() {
         });
     });
 }
-    window.showDayDetails = function(dateStr, userId) {
-        // Switch to summaries tab and filter by date
-        const summariesTab = document.querySelector('[data-tab="summaries"]');
-        if (summariesTab) {
-            summariesTab.click();
+   window.showDayDetails = function(dateStr, userId) {
+    // Switch to summaries tab
+    const summariesTab = document.querySelector('[data-tab="summaries"]');
+    if (summariesTab) {
+        summariesTab.click();
+    }
+    
+    // Filter the EOD table to show only the selected date
+    setTimeout(() => {
+        filterEODByDate(userId, dateStr);
+    }, 100); // Small delay to ensure tab switch completes
+};
+})();
+
+async function filterEODByDate(userId, dateStr) {
+    const tbody = document.getElementById('eodTableBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #6D747A;">Loading...</td></tr>';
+    
+    try {
+        // Fetch EOD data for the entire month containing this date
+        const date = new Date(dateStr);
+        const monthNames = ['january', 'february', 'march', 'april', 'may', 'june',
+                          'july', 'august', 'september', 'october', 'november', 'december'];
+        const filterValue = monthNames[date.getMonth()];
+        const year = date.getFullYear();
+        
+        const res = await fetch(`/tasks/api/eod-report/?user=${userId}&filter=${filterValue}&year=${year}`, {
+            credentials: 'include'
+        });
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! Status: ${res.status}`);
         }
         
-        // Could add date-specific filtering here if needed
-        console.log('Showing details for:', dateStr, 'User:', userId);
-    };
-})();
+        const data = await res.json();
+        tbody.innerHTML = '';
+        
+        // Filter data to only show the selected date
+        const dateEntries = data.filter(item => item.date === dateStr);
+        
+        if (dateEntries.length === 0) {
+            tbody.innerHTML = `
+                <tr style="border-bottom: 1px solid #EBEDF0;">
+                    <td style="padding: 16px 12px; color: #08090A; font-weight: 500; font-size: 14px; vertical-align: top; border-right: 1px solid #EBEDF0;">${dateStr}</td>
+                    <td style="padding: 16px 12px; color: #6D747A; font-size: 14px; text-align: center; vertical-align: top; border-right: 1px solid #EBEDF0;">-</td>
+                    <td style="padding: 16px 12px; color: #6D747A; font-style: italic; font-size: 14px; vertical-align: top;">No EOD submitted for this date</td>
+                </tr>
+            `;
+        } else {
+            // Display all EOD entries for the selected date
+            dateEntries.forEach((entry, index) => {
+                const row = document.createElement("tr");
+                row.style.borderBottom = '1px solid #EBEDF0';
+                row.style.transition = 'background-color 0.2s ease';
+                row.onmouseenter = function() { this.style.backgroundColor = '#F9FAFB'; };
+                row.onmouseleave = function() { this.style.backgroundColor = 'transparent'; };
+                
+                const dateCell = document.createElement("td");
+                dateCell.textContent = index === 0 ? dateStr : "";
+                dateCell.style.padding = '16px 12px';
+                dateCell.style.color = '#08090A';
+                dateCell.style.fontWeight = '500';
+                dateCell.style.fontSize = '14px';
+                dateCell.style.verticalAlign = 'top';
+                dateCell.style.borderRight = '1px solid #EBEDF0';
+                
+                const projectCell = document.createElement("td");
+                projectCell.textContent = entry.project_name;
+                projectCell.style.padding = '16px 12px';
+                projectCell.style.color = '#08090A';
+                projectCell.style.fontSize = '14px';
+                projectCell.style.verticalAlign = 'top';
+                projectCell.style.borderRight = '1px solid #EBEDF0';
+                
+                const summaryCell = document.createElement("td");
+                summaryCell.style.padding = '16px 12px';
+                summaryCell.style.verticalAlign = 'top';
+                summaryCell.innerHTML = `
+                    <div style="color: #08090A; font-size: 14px; line-height: 1.6; margin-bottom: 8px;">
+                        <strong style="color: #504CF5;">${entry.task_name}</strong> — ${entry.text}
+                    </div>
+                    <span class="status-chip ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}" style="
+                        display: inline-block;
+                        padding: 4px 12px;
+                        background: ${entry.task_status === 'C' ? '#E6F9F4' : '#FFF3E6'};
+                        color: ${entry.task_status === 'C' ? '#00B879' : '#F5A623'};
+                        border-radius: 12px;
+                        font-size: 12px;
+                        font-weight: 600;
+                    ">
+                        ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}
+                    </span>
+                `;
+                
+                row.append(dateCell, projectCell, summaryCell);
+                tbody.appendChild(row);
+            });
+            
+            // // Add a "Show All" button at the bottom
+            // const buttonRow = document.createElement("tr");
+            // buttonRow.innerHTML = `
+            //     <td colspan="3" style="text-align: center; padding: 16px;">
+            //         <button onclick="showAllEODForMonth(${userId}, '${filterValue}', ${year})" style="
+            //             padding: 8px 16px;
+            //             background: #504CF5;
+            //             color: white;
+            //             border: none;
+            //             border-radius: 4px;
+            //             cursor: pointer;
+            //             font-size: 14px;
+            //             font-weight: 500;
+            //         ">Show All Dates</button>
+            //     </td>
+            // `;
+            // tbody.appendChild(buttonRow);
+        }
+        
+    } catch (err) {
+        console.error(err);
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #E44A69; font-size: 14px;">Error loading data. Please try again.</td></tr>';
+    }
+}
+
+window.showAllEODForMonth = function(userId, monthName, year) {
+    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june',
+                      'july', 'august', 'september', 'october', 'november', 'december'];
+    const monthIndex = monthNames.indexOf(monthName.toLowerCase());
+    
+    // Update the date filter dropdown to match
+    const dateFilter = document.getElementById('dateFilter');
+    if (dateFilter) {
+        dateFilter.value = monthName.toLowerCase();
+    }
+    
+    // Fetch and render all EOD for this month
+    fetchAndRenderEOD(userId, monthName.toLowerCase());
+};
 
 
 function attachRemarksListeners() {

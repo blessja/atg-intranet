@@ -3114,6 +3114,7 @@ async function fetchUserAttendanceInline(userId, daysRange = 7) {
 }
 
 
+
 function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}) {
     const dateContainer = document.getElementById(containerId);
     if (!dateContainer) {
@@ -3156,7 +3157,6 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
             statusText = 'EOD not submitted';
         }
 
-
         dateBox.innerHTML = `
             <div class="calendar-day" style="
                 width: 32px;
@@ -3168,6 +3168,7 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
+                position: relative;
             ">
                 <div style="color:white;font-size:16px;font-family:Helvetica Neue;">
                     ${day}
@@ -3178,19 +3179,20 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
                 visibility: hidden;
                 opacity: 0;
                 position: absolute;
-                bottom: calc(100% + 8px);
+                bottom: calc(100% + 12px);
                 left: 50%;
                 transform: translateX(-50%);
                 background: white;
                 color: #08090A;
-                padding: 8px 12px;
-                border-radius: 4px;
+                padding: 10px 14px;
+                border-radius: 6px;
                 font-size: 12px;
-                z-index: 1000;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
                 border: 1px solid #D9D9D9;
                 pointer-events: none;
-                white-space: nowrap;
+                font-weight: 500;
+                min-width: max-content;
             ">
                 ${statusText} - Day ${day}
             </div>
@@ -3199,63 +3201,64 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
         const calendarDay = dateBox.querySelector('.calendar-day');
         const tooltip = dateBox.querySelector('.calendar-tooltip');
 
-       calendarDay.addEventListener('mouseenter', () => {
-    // 🔴 Leave
-    if (leaveSubject) {
-        tooltip.innerHTML = `
-            <strong>On Leave</strong><br>
-            ${leaveSubject}
-        `;
-    }
-    // 🟢 EOD submitted → show EOD REPORT TEXT
-    else if (eodTextData && eodTextData.length > 0) {
-        let tooltipContent = '<div style="max-width:320px;">';
+        calendarDay.addEventListener('mouseenter', () => {
+            // 🔴 Leave
+            if (leaveSubject) {
+                tooltip.innerHTML = `<strong>On Leave</strong><br>${leaveSubject}`;
+                tooltip.style.whiteSpace = 'normal';
+                tooltip.style.maxWidth = '250px';
+                tooltip.style.minWidth = 'auto';
+                tooltip.style.textAlign = 'left';
+                tooltip.style.wordWrap = 'break-word';
+            }
+            // 🟢 EOD submitted → show EOD REPORT TEXT
+            else if (eodTextData && eodTextData.length > 0) {
+                let tooltipContent = '';
+                
+                eodTextData.forEach((eod, index) => {
+                    tooltipContent += `
+                        <div style="margin-bottom: ${index < eodTextData.length - 1 ? '12px' : '0'};">
+                            <div style="font-weight:600; color:#504CF5; margin-bottom:4px;">
+                                ${eod.project_name || 'EOD REPORT'}
+                            </div>
+                            <div style="color:#08090A; font-size:11px; line-height:1.4;">
+                                ${eod.task_name ? '<strong>' + eod.task_name + ':</strong> ' : ''}${eod.text}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                tooltip.innerHTML = tooltipContent;
+                tooltip.style.whiteSpace = 'normal';
+                tooltip.style.maxWidth = '250px';
+                tooltip.style.minWidth = 'auto';
+                tooltip.style.textAlign = 'left';
+                tooltip.style.wordWrap = 'break-word';
+            }
+            // 🟠 No EOD
+            else {
+                tooltip.innerHTML = `
+                    <div style="color:rgba(163,125,33,1);font-weight:600;">EOD not submitted</div>
+                    <div style="font-size:11px;color:#6D747A;margin-top:4px;">Day ${day}</div>
+                `;
+                tooltip.style.whiteSpace = 'nowrap';
+                tooltip.style.minWidth = 'max-content';
+                tooltip.style.textAlign = 'center';
+            }
 
-        eodTextData.forEach((eod, index) => {
-            tooltipContent += `
-                <div style="
-                    margin-bottom: 8px;
-                    padding-left: 8px;
-                    border-left: 3px solid #00B879;
-                ">
-                    <div style="font-weight:600; margin-bottom:4px;">
-                        ${eod.project_name || 'EOD REPORT'}
-                    </div>
-                    <div style="color:#08090A;">
-                        ${eod.text}
-                    </div>
-                </div>
-            `;
+            tooltip.style.visibility = 'visible';
+            tooltip.style.opacity = '1';
         });
 
-        tooltipContent += '</div>';
-        tooltip.innerHTML = tooltipContent;
-        tooltip.style.whiteSpace = 'normal';
+        calendarDay.addEventListener('mouseleave', () => {
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.opacity = '0';
+        });
+
+        dateContainer.appendChild(dateBox);
     }
-    // 🟠 No EOD
-    else {
-        tooltip.innerHTML = `
-            <div style="color:rgba(163,125,33,1);font-weight:600;">
-                EOD not submitted
-            </div>
-            <div style="font-size:11px;color:#6D747A;margin-top:4px;">
-                Day ${day}
-            </div>
-        `;
-    }
-
-    tooltip.style.visibility = 'visible';
-    tooltip.style.opacity = '1';
-});
-
-    calendarDay.addEventListener('mouseleave', () => {
-        tooltip.style.visibility = 'hidden';
-        tooltip.style.opacity = '0';
-    });
-
-    dateContainer.appendChild(dateBox);
 }
-}
+
 
 // Function to handle three-dot menu hover
 function attachThreeDotMenuListeners() {
@@ -4052,228 +4055,240 @@ function getDaysUntil(dateString) {
         renderEODCalendar(eodUserId, eodMonth, eodYear);
     };
 
-    async function renderEODCalendar(userId, month, year) {
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                            'July', 'August', 'September', 'October', 'November', 'December'];
+  async function renderEODCalendar(userId, month, year) {
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const calendarContainer = document.getElementById('eodCalendarContainer');
+    if (!calendarContainer) {
+        console.error('Calendar container not found');
+        return;
+    }
+    
+    const calendarHeader = `
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+            <button onclick="changeEODMonth(-1)" style="
+                padding: 8px 16px; 
+                border: 1px solid #CED4DA; 
+                border-radius: 4px; 
+                background: white; 
+                cursor: pointer; 
+                font-size: 14px;
+                color: #08090A;
+                font-weight: 500;
+            ">← Previous</button>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: #08090A;">${monthNames[month]} ${year}</h3>
+            <button onclick="changeEODMonth(1)" style="
+                padding: 8px 16px; 
+                border: 1px solid #CED4DA; 
+                border-radius: 4px; 
+                background: white; 
+                cursor: pointer; 
+                font-size: 14px;
+                color: #08090A;
+                font-weight: 500;
+            ">Next →</button>
+        </div>
+    `;
+    
+    calendarContainer.innerHTML = calendarHeader + '<div style="text-align: center; padding: 40px; color: #6D747A;">Loading calendar...</div>';
+    
+    try {
+        const filterValue = monthNames[month].toLowerCase();
+        const res = await fetch(`/tasks/api/eod-report/?user=${userId}&filter=${filterValue}&year=${year}`, {
+            credentials: 'include'
+        });
         
-        // Get the calendar container
-        const calendarContainer = document.getElementById('eodCalendarContainer');
-        if (!calendarContainer) {
-            console.error('Calendar container not found');
-            return;
-        }
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
         
-        // Create calendar header
-        const calendarHeader = `
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
-                <button onclick="changeEODMonth(-1)" style="
-                    padding: 8px 16px; 
-                    border: 1px solid #CED4DA; 
-                    border-radius: 4px; 
-                    background: white; 
-                    cursor: pointer; 
-                    font-size: 14px;
-                    color: #08090A;
-                    font-weight: 500;
-                ">← Previous</button>
-                <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: #08090A;">${monthNames[month]} ${year}</h3>
-                <button onclick="changeEODMonth(1)" style="
-                    padding: 8px 16px; 
-                    border: 1px solid #CED4DA; 
-                    border-radius: 4px; 
-                    background: white; 
-                    cursor: pointer; 
-                    font-size: 14px;
-                    color: #08090A;
-                    font-weight: 500;
-                ">Next →</button>
-            </div>
+        const eodData = await res.json();
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const today = new Date();
+        const isCurrentMonth = (today.getMonth() === month && today.getFullYear() === year);
+        const todayDate = today.getDate();
+        
+        let calendarHTML = `
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px;">
+                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sun</div>
+                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Mon</div>
+                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Tue</div>
+                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Wed</div>
+                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Thu</div>
+                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Fri</div>
+                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sat</div>
         `;
         
-        calendarContainer.innerHTML = calendarHeader + '<div style="text-align: center; padding: 40px; color: #6D747A;">Loading calendar...</div>';
-        
-        try {
-            // Fetch EOD data for the month
-            const filterValue = monthNames[month].toLowerCase();
-            const res = await fetch(`/tasks/api/eod-report/?user=${userId}&filter=${filterValue}&year=${year}`, {
-                credentials: 'include'
-            });
-            
-            if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-            
-            const eodData = await res.json();
-            
-            // Build calendar
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const today = new Date();
-            const isCurrentMonth = (today.getMonth() === month && today.getFullYear() === year);
-            const todayDate = today.getDate();
-            
-            let calendarHTML = `
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px;">
-                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sun</div>
-                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Mon</div>
-                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Tue</div>
-                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Wed</div>
-                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Thu</div>
-                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Fri</div>
-                    <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sat</div>
-            `;
-            
-            // Empty cells before first day
-            for (let i = 0; i < firstDay; i++) {
-                calendarHTML += '<div style="min-height: 48px;"></div>';
-            }
-            
-            // Calendar days
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const dayData = eodData.filter(item => item.date === dateStr);
-                const isFutureDate = new Date(dateStr) > today;
-                const isToday = isCurrentMonth && day === todayDate;
-                
-                let bgColor = '#EBEDF0'; // Default gray for no data
-                let opacity = '0.5';
-                let tooltipText = 'No EOD submitted';
-                let borderStyle = '';
-                
-                // Highlight today
-                if (isToday) {
-                    borderStyle = 'border: 2px solid #504CF5;';
-                }
-                
-                // Future dates - lighter gray
-                if (isFutureDate) {
-                    bgColor = '#F5F5F5';
-                    opacity = '0.3';
-                    tooltipText = 'Future date';
-                } else if (dayData.length > 0) {
-                    const hasComplete = dayData.some(item => item.task_status === 'C');
-                    const hasIncomplete = dayData.some(item => item.task_status === 'I');
-                    
-                    if (hasComplete && !hasIncomplete) {
-                        bgColor = '#00B879'; // Green - all complete
-                        opacity = '1';
-                        tooltipText = `All tasks completed (${dayData.length})`;
-                    } else if (hasIncomplete && !hasComplete) {
-                        bgColor = '#DD1D43'; // Red - all incomplete
-                        opacity = '0.8';
-                        tooltipText = `Has incomplete tasks (${dayData.length})`;
-                    } else if (hasIncomplete && hasComplete) {
-                        bgColor = '#A37D21'; // Orange - mixed
-                        opacity = '0.8';
-                        tooltipText = `Mixed: ${dayData.filter(d => d.task_status === 'C').length} complete, ${dayData.filter(d => d.task_status === 'I').length} incomplete`;
-                    } else {
-                        bgColor = '#A37D21'; // Pending
-                        opacity = '0.8';
-                        tooltipText = `Pending tasks (${dayData.length})`;
-                    }
-                    
-                    // Build detailed tooltip
-                    const projectSummary = {};
-                    dayData.forEach(item => {
-                        if (!projectSummary[item.project_name]) {
-                            projectSummary[item.project_name] = { complete: 0, incomplete: 0 };
-                        }
-                        if (item.task_status === 'C') {
-                            projectSummary[item.project_name].complete++;
-                        } else {
-                            projectSummary[item.project_name].incomplete++;
-                        }
-                    });
-                    
-                    tooltipText = Object.keys(projectSummary).map(proj => {
-                        const stats = projectSummary[proj];
-                        return `${proj}: ${stats.complete}✓ ${stats.incomplete}✗`;
-                    }).join('\n');
-                }
-                
-                calendarHTML += `
-                    <div class="calendar-day-wrapper" style="position: relative;">
-                        <div class="calendar-day" style="
-                            width: 100%;
-                            height: 48px;
-                            background: ${bgColor};
-                            
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            color: ${isToday ? '#504CF5' : 'white'};
-                            font-size: 16px;
-                            font-weight: ${isToday ? '700' : '400'};
-                            border-radius: 4px;
-                            cursor: ${isFutureDate ? 'default' : 'pointer'};
-                            position: relative;
-                            transition: all 0.2s ease;
-                            ${borderStyle}
-                        " ${!isFutureDate ? `onclick="showDayDetails('${dateStr}', ${userId})"` : ''}>
-                            ${day}
-                            ${isToday ? '<div style="position: absolute; bottom: 2px; font-size: 8px; color: #504CF5;">Today</div>' : ''}
-                        </div>
-                        <div class="calendar-tooltip" style="
-                            visibility: hidden;
-                            opacity: 0;
-                            position: absolute;
-                            bottom: calc(100% + 8px);
-                            left: 50%;
-                            transform: translateX(-50%);
-                            background: white;
-                            color: #08090A;
-                            padding: 8px 12px;
-                            border-radius: 4px;
-                            font-size: 12px;
-                            white-space: pre-wrap;
-                            max-width: 200px;
-                            z-index: 1000;
-                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                            border: 1px solid #D9D9D9;
-                            pointer-events: none;
-                            transition: opacity 0.2s ease, visibility 0s 0.2s;
-                        ">${tooltipText}</div>
-                    </div>
-                `;
-            }
-            
-            calendarHTML += '</div>';
-            
-            // Update the calendar container with the complete HTML
-            calendarContainer.innerHTML = calendarHeader + calendarHTML;
-            
-            // Add hover listeners for tooltips
-            attachCalendarTooltips();
-            
-        } catch (err) {
-            console.error(err);
-            calendarContainer.innerHTML = calendarHeader + '<div style="text-align: center; padding: 40px; color: #DD1D43;">Error loading calendar. Please try again.</div>';
+        // Empty cells before first day
+        for (let i = 0; i < firstDay; i++) {
+            calendarHTML += '<div style="min-height: 48px;"></div>';
         }
+        
+        // Calendar days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayData = eodData.filter(item => item.date === dateStr);
+            const isFutureDate = new Date(dateStr) > today;
+            const isToday = isCurrentMonth && day === todayDate;
+            
+            let bgColor, opacity, tooltipText, borderStyle = '';
+            
+            if (isToday) {
+                borderStyle = 'border: 2px solid #504CF5;';
+            }
+            
+            if (isFutureDate) {
+                bgColor = '#F5F5F5';
+                opacity = '0.3';
+                tooltipText = 'Future date';
+            } else if (dayData.length > 0) {
+                // Has EOD data - check if there are any incomplete tasks
+                const hasIncomplete = dayData.some(item => item.task_status === 'I');
+                const completeCount = dayData.filter(item => item.task_status === 'C').length;
+                const incompleteCount = dayData.filter(item => item.task_status === 'I').length;
+                
+                if (hasIncomplete) {
+                    bgColor = 'rgba(228, 74, 105, 1)';  // Red - has incomplete tasks
+                    opacity = '1';
+                    tooltipText = `${completeCount} completed, ${incompleteCount} incomplete`;
+                } else {
+                    bgColor = '#00B879';  // Green - all tasks complete
+                    opacity = '1';
+                    tooltipText = `All tasks completed (${dayData.length})`;
+                }
+                
+                // Build detailed tooltip with project info
+                const projectSummary = {};
+                dayData.forEach(item => {
+                    if (!projectSummary[item.project_name]) {
+                        projectSummary[item.project_name] = [];
+                    }
+                    projectSummary[item.project_name].push({
+                        task: item.task_name,
+                        text: item.text,
+                        status: item.task_status
+                    });
+                });
+                
+                // Format tooltip with line breaks and truncation
+                tooltipText = Object.keys(projectSummary).map(proj => {
+                    const tasks = projectSummary[proj];
+                    const taskDetails = tasks.map(t => {
+                        // Truncate long text to prevent UI breaking
+                        const truncatedText = t.text.length > 100 ? t.text.substring(0, 100) + '...' : t.text;
+                        return `${t.task}: ${truncatedText}`;
+                    }).join('\n');
+                    return `${proj}\n${taskDetails}`;
+                }).join('\n\n');
+            } else {
+                // No EOD data submitted
+                bgColor = 'rgba(163, 125, 33, 1)';  // Orange
+                opacity = '0.8';
+                tooltipText = 'No EOD submitted';
+            }
+            
+            calendarHTML += `
+                <div class="calendar-day-wrapper" style="position: relative;">
+                    <div class="calendar-day" style="
+                        width: 100%;
+                        height: 48px;
+                        background: ${bgColor};
+                        opacity: ${opacity};
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: ${isToday ? '#504CF5' : 'white'};
+                        font-size: 16px;
+                        font-weight: ${isToday ? '700' : '400'};
+                        border-radius: 4px;
+                        cursor: ${isFutureDate ? 'default' : 'pointer'};
+                        position: relative;
+                        transition: all 0.2s ease;
+                        ${borderStyle}
+                    " ${!isFutureDate ? `onclick="showDayDetails('${dateStr}', ${userId})"` : ''}>
+                        ${day}
+                        ${isToday ? '<div style="position: absolute; bottom: 2px; font-size: 8px; color: #504CF5;">Today</div>' : ''}
+                    </div>
+                    <div class="calendar-tooltip" style="
+                        visibility: hidden;
+                        opacity: 0;
+                        position: absolute;
+                        bottom: calc(100% + 12px);
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: white;
+                        color: #08090A;
+                        padding: 10px 14px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        z-index: 10000;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                        border: 1px solid #D9D9D9;
+                        pointer-events: none;
+                        transition: opacity 0.2s ease, visibility 0s 0.2s;
+                        line-height: 1.5;
+                        font-weight: 500;
+                        min-width: max-content;
+                    ">${tooltipText}</div>
+                </div>
+            `;
+        }
+        
+        calendarHTML += '</div>';
+        
+        calendarContainer.innerHTML = calendarHeader + calendarHTML;
+        
+        attachCalendarTooltips();
+        
+    } catch (err) {
+        console.error(err);
+        calendarContainer.innerHTML = calendarHeader + '<div style="text-align: center; padding: 40px; color: #DD1D43;">Error loading calendar. Please try again.</div>';
     }
+}
 
 function attachCalendarTooltips() {
-        document.querySelectorAll('.calendar-day-wrapper').forEach(wrapper => {
-            const day = wrapper.querySelector('.calendar-day');
-            const tooltip = wrapper.querySelector('.calendar-tooltip');
+    document.querySelectorAll('.calendar-day-wrapper').forEach(wrapper => {
+        const day = wrapper.querySelector('.calendar-day');
+        const tooltip = wrapper.querySelector('.calendar-tooltip');
+        
+        if (!day || !tooltip) return;
+        
+        day.addEventListener('mouseenter', () => {
+            // Check if tooltip has detailed project info (multi-line with project names)
+            const tooltipContent = tooltip.textContent;
             
-            if (!day || !tooltip) return;
+            if (tooltipContent.includes(':') && tooltipContent.split('\n').length > 1) {
+                // Has project details - format nicely with fixed width
+                tooltip.style.whiteSpace = 'pre-wrap';
+                tooltip.style.maxWidth = '280px';
+                tooltip.style.minWidth = '200px';
+                tooltip.style.textAlign = 'left';
+                tooltip.style.wordWrap = 'break-word';
+                tooltip.style.overflowWrap = 'break-word';
+            } else {
+                // Simple message - keep it compact
+                tooltip.style.whiteSpace = 'nowrap';
+                tooltip.style.maxWidth = 'max-content';
+                tooltip.style.textAlign = 'center';
+            }
             
-            day.addEventListener('mouseenter', () => {
-                tooltip.style.visibility = 'visible';
-                tooltip.style.opacity = '1';
-                tooltip.style.transition = 'opacity 0.2s ease';
-                day.style.transform = 'scale(1.05)';
-                day.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
-            });
-            
-            day.addEventListener('mouseleave', () => {
-                tooltip.style.visibility = 'hidden';
-                tooltip.style.opacity = '0';
-                tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
-                day.style.transform = 'scale(1)';
-                day.style.boxShadow = 'none';
-            });
+            tooltip.style.visibility = 'visible';
+            tooltip.style.opacity = '1';
+            tooltip.style.transition = 'opacity 0.2s ease';
+            day.style.transform = 'scale(1.05)';
+            day.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
         });
-    }
-
+        
+        day.addEventListener('mouseleave', () => {
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.opacity = '0';
+            tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
+            day.style.transform = 'scale(1)';
+            day.style.boxShadow = 'none';
+        });
+    });
+}
     window.showDayDetails = function(dateStr, userId) {
         // Switch to summaries tab and filter by date
         const summariesTab = document.querySelector('[data-tab="summaries"]');

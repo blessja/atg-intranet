@@ -284,7 +284,7 @@ Hrms
                 <!-- EOD Summary Modal -->
                 <div id="eodSummaryModal" class="popup hidden">
                     <div class="popup-content" >
-                      <span id="closeEODModalBtn">&times;</span>
+                      <span id="closeEODModalBtn" style="cursor: pointer;">&times;</span>
                       <h2 id="eodSummaryModalTitle">Employee EOD Summary</h2>
                   
                       <!-- Tabs Navigation -->
@@ -3432,18 +3432,13 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
 
         let bgColor, statusText;
 
-        // 🔴 Leave
         if (status === 'holiday') {
             bgColor = 'rgba(228, 74, 105, 1)';
             statusText = 'On Leave';
-        }
-        // 🟢 EOD submitted
-        else if (status === 'present') {
+        } else if (status === 'present') {
             bgColor = '#00B879';
             statusText = 'EOD submitted';
-        }
-        // 🟠 No EOD (present:false OR present:true without eod_text)
-        else {
+        } else {
             bgColor = 'rgba(163, 125, 33, 1)';
             statusText = 'EOD not submitted';
         }
@@ -3477,13 +3472,17 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
                 color: #08090A;
                 padding: 10px 14px;
                 border-radius: 6px;
-                font-size: 12px;
+                font-size: 11px;
                 z-index: 10000;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.2);
                 border: 1px solid #D9D9D9;
                 pointer-events: none;
                 font-weight: 500;
-                min-width: max-content;
+                max-width: 280px;
+                max-height: 200px;
+                overflow-y: auto;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
             ">
                 ${statusText} - Day ${day}
             </div>
@@ -3493,27 +3492,26 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
         const tooltip = dateBox.querySelector('.calendar-tooltip');
 
         calendarDay.addEventListener('mouseenter', () => {
-            // 🔴 Leave
             if (leaveSubject) {
                 tooltip.innerHTML = `<strong>On Leave</strong><br>${leaveSubject}`;
                 tooltip.style.whiteSpace = 'normal';
-                tooltip.style.maxWidth = '250px';
-                tooltip.style.minWidth = 'auto';
                 tooltip.style.textAlign = 'left';
-                tooltip.style.wordWrap = 'break-word';
-            }
-            // 🟢 EOD submitted → show EOD REPORT TEXT
-            else if (eodTextData && eodTextData.length > 0) {
+            } else if (eodTextData && eodTextData.length > 0) {
                 let tooltipContent = '';
                 
                 eodTextData.forEach((eod, index) => {
+                    // TRUNCATE LONG TEXT TO PREVENT OVERFLOW
+                    const truncatedText = eod.text.length > 150 
+                        ? eod.text.substring(0, 150) + '...' 
+                        : eod.text;
+                    
                     tooltipContent += `
                         <div style="margin-bottom: ${index < eodTextData.length - 1 ? '12px' : '0'};">
                             <div style="font-weight:600; color:#504CF5; margin-bottom:4px;">
                                 ${eod.project_name || 'EOD REPORT'}
                             </div>
                             <div style="color:#08090A; font-size:11px; line-height:1.4;">
-                                ${eod.task_name ? '<strong>' + eod.task_name + ':</strong> ' : ''}${eod.text}
+                                ${eod.task_name ? '<strong>' + eod.task_name + ':</strong> ' : ''}${truncatedText}
                             </div>
                         </div>
                     `;
@@ -3521,19 +3519,13 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
                 
                 tooltip.innerHTML = tooltipContent;
                 tooltip.style.whiteSpace = 'normal';
-                tooltip.style.maxWidth = '250px';
-                tooltip.style.minWidth = 'auto';
                 tooltip.style.textAlign = 'left';
-                tooltip.style.wordWrap = 'break-word';
-            }
-            // 🟠 No EOD
-            else {
+            } else {
                 tooltip.innerHTML = `
                     <div style="color:rgba(163,125,33,1);font-weight:600;">EOD not submitted</div>
                     <div style="font-size:11px;color:#6D747A;margin-top:4px;">Day ${day}</div>
                 `;
                 tooltip.style.whiteSpace = 'nowrap';
-                tooltip.style.minWidth = 'max-content';
                 tooltip.style.textAlign = 'center';
             }
 
@@ -4268,9 +4260,6 @@ function getDaysUntil(dateString) {
     const diffDays = Math.ceil(diffMs / 86400000);
     return diffDays;
 }
-// ============================================
-// EOD CALENDAR - Full Month View with Tooltips
-// ============================================
 
 // ============================================
 // EOD CALENDAR - Full Month View with Tooltips
@@ -4543,14 +4532,19 @@ function attachCalendarTooltips() {
                 // Has project details - format nicely with fixed width
                 tooltip.style.whiteSpace = 'pre-wrap';
                 tooltip.style.maxWidth = '280px';
+                tooltip.style.maxHeight = '200px';
                 tooltip.style.minWidth = '200px';
                 tooltip.style.textAlign = 'left';
                 tooltip.style.wordWrap = 'break-word';
                 tooltip.style.overflowWrap = 'break-word';
+                tooltip.style.overflowY = 'auto'; 
+                tooltip.style.fontSize = '11px'; 
+                tooltip.style.lineHeight = '1.4';
             } else {
                 // Simple message - keep it compact
                 tooltip.style.whiteSpace = 'nowrap';
                 tooltip.style.maxWidth = 'max-content';
+                tooltip.style.maxHeight = '60px';
                 tooltip.style.textAlign = 'center';
             }
             
@@ -5286,6 +5280,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const parent = element.closest('.notification-category');
             parent.classList.toggle('expanded');
         }
+        document.getElementById('closeEODModalBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    closeEODModal();
+});
         
 </script>
 {% endblock %}

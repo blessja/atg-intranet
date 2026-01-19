@@ -583,15 +583,24 @@ function updateTagsFilter() {
     td.innerHTML = `
         <div style="display: flex; align-items: center; gap: 8px;">
             ${actionIndicatorHtml}
-            <span class="lead-name-hover" 
+            <span class="lead-name-clickable" 
+                  data-lead-id="${lead.id}"
+                  style="cursor: pointer;"
                   ${lead.action_item && lead.action_item.trim() !== '' ? 
                     `onmouseover="showActionTooltip(event, '${lead.action_item.replace(/'/g, "&apos;")}')" 
                      onmouseout="hideActionTooltip()"` : ''}>
                 ${lead.full_name || ""}
             </span>
         </div>`;
+    
+    // Add click handler to the entire cell for navigation
     td.style.cursor = 'pointer';
-    td.onclick = () => window.location.href = `/lms/lead/${lead.id}`;
+    td.onclick = (e) => {
+        // Prevent navigation if clicking on action indicator (it has its own hover)
+        if (!e.target.closest('.action-indicator')) {
+            window.location.href = `/lms/lead/${lead.id}`;
+        }
+    };
     break;
                         case 'origin':
                             td.innerHTML = originValue;
@@ -2432,66 +2441,69 @@ function updateTagsFilter() {
         //         .catch(err => console.error("Failed to fetch leads:", err));
         // }
 
- function renderJrbaLeadTable(leads) {
-    const tbody = document.getElementById("jrba-lead-table-body");
-    tbody.innerHTML = "";
+        function renderJrbaLeadTable(leads) {
+            const tbody = document.getElementById("jrba-lead-table-body");
+            tbody.innerHTML = "";
 
-    leads.forEach(lead => {
-        const statusText = workflowStatusMap[lead.workflow_status] || "-";
-        const originValue = originMap[lead.origin] || "-";
-        const style = getStatusStyle(statusText);
+            leads.forEach(lead => {
+                const statusText = workflowStatusMap[lead.workflow_status] || "-";
+                const originValue = originMap[lead.origin] || "-";
+                const style = getStatusStyle(statusText);
+                // const callStatusText = callStatusMap[lead.call_status] || "-";
+                // const callstyle = getCallStatusStyle(callStatusText);
 
-        const row = document.createElement("tr");
-        row.style.borderBottom = "1px solid #00000033";
-        row.style.height = "40px";
-        row.style.backgroundColor = `${lead.Mark_Imp ? "#EBEBEB" : ""}`;
-        
-        row.innerHTML = `
-            <td><input type="checkbox" class="lead-checkbox" data-id="${lead.id}"/></td>
-            <td onClick="window.location.href='/lms/lead/${lead.id}'" style="cursor: pointer;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    ${lead.action_item && lead.action_item.trim() !== '' ? 
-                        `<div class="action-indicator" 
-                             onmouseover="showActionTooltip(event, '${(lead.action_item || '').replace(/'/g, "&apos;")}')"
-                             onmouseout="hideActionTooltip()" 
-                             style="cursor: pointer;">
-                            <div class="action-circle red"></div>
-                        </div>` : 
-                        `<div class="action-indicator" style="width: 12px; height: 12px;"></div>`
-                    }
-                    <span class="lead-name-hover"
-                          ${lead.action_item && lead.action_item.trim() !== '' ? 
-                            `onmouseover="showActionTooltip(event, '${(lead.action_item || '').replace(/'/g, "&apos;")}')" 
-                             onmouseout="hideActionTooltip()"` : ''}>
-                        ${lead.full_name || ""}
-                    </span>
-                </div>
-            </td>
-            <td>${originValue}</td>
-            <td data-status="${statusText}">
-                <div style="
-                    background-color: ${style.bg};
-                    color: ${style.color};
-                    border-radius: 3px;
-                    padding: 1px 4px;
-                    width: fit-content;">${statusText}</div>
-            </td>
-            <td>${lead.lead_notes_count || "-"}</td>
-            <td>${lead.company_name || "-"}</td>
-            <td>${lead.contact_name || "-"}</td>
-            <td style="padding: 0px 8px;">${lead.emails?.join(", ") || "-"}</td>
-            <td>${lead.phones?.join(", ") || "-"}</td>
-            <td>${lead.assigned_to?.join(", ") || "-"}</td>
-            <td>${lead.created_at || "-"}</td>
-            <td>${lead.last_updated_note || "-"}</td>
-            <td>${lead.next_follow_up_date || "-"}</td>
-        `;
-        tbody.appendChild(row);
-    });
+                const row = document.createElement("tr");
+                row.style.borderBottom = "1px solid #00000033";
+                row.style.height = "40px";
+                row.style.backgroundColor = `${lead.Mark_Imp ? "#EBEBEB" : ""}`
 
-    updateSelectionCount();
-    addCheckboxListeners();
-}
+                row.innerHTML = `
+    <td><input type="checkbox" class="lead-checkbox" data-id="${lead.id}"/></td>
+    <td style="cursor: pointer;" onclick="if (!event.target.closest('.action-indicator')) window.location.href='/lms/lead/${lead.id}'">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            ${lead.action_item && lead.action_item.trim() !== '' ? 
+                `<div class="action-indicator" 
+                     onmouseover="showActionTooltip(event, '${(lead.action_item || '').replace(/'/g, "&apos;")}')"
+                     onmouseout="hideActionTooltip()" 
+                     style="cursor: pointer;">
+                    <div class="action-circle red"></div>
+                </div>` : 
+                `<div class="action-indicator" style="width: 12px; height: 12px;"></div>`
+            }
+            <span style="cursor: pointer;"
+                  ${lead.action_item && lead.action_item.trim() !== '' ? 
+                    `onmouseover="showActionTooltip(event, '${(lead.action_item || '').replace(/'/g, "&apos;")}')" 
+                     onmouseout="hideActionTooltip()"` : ''}>
+                ${lead.full_name || ""}
+            </span>
+        </div>
+    </td>
+    <td>${originValue}</td>
+    <td data-status="${statusText}">
+        <div style="
+            background-color: ${style.bg};
+            color: ${style.color};
+            border-radius: 3px;
+            padding: 1px 4px;
+            width: fit-content;">${statusText}</div>
+    </td>
+    <td>${lead.lead_notes_count || "-"}</td>
+    <td>${lead.company_name || "-"}</td>
+    <td>${lead.contact_name || "-"}</td>
+    <td style="padding: 0px 8px;">${lead.emails?.join(", ") || "-"}</td>
+    <td>${lead.phones?.join(", ") || "-"}</td>
+    <td>${lead.assigned_to?.join(", ") || "-"}</td>
+    <td>${lead.created_at || "-"}</td>
+    <td>${lead.last_updated_note || "-"}</td>
+    <td>${lead.next_follow_up_date || "-"}</td>
+`;
+                tbody.appendChild(row);
+            });
+
+            // Update selection count and add listeners after rendering table
+            updateSelectionCount();
+            addCheckboxListeners();
+        }
 
 
 
@@ -2792,78 +2804,79 @@ function updateTagsFilter() {
 
 
 
-       function renderCheckLeadTable(leads) {
-    const tbody = document.getElementById("check-lead-table-body");
-    const loaderRow = document.getElementById("loader-row");
-    const noDataRow = document.getElementById("no-data-row");
+        function renderCheckLeadTable(leads) {
+            const tbody = document.getElementById("check-lead-table-body");
+            const loaderRow = document.getElementById("loader-row");
+            const noDataRow = document.getElementById("no-data-row");
 
-    tbody.querySelectorAll("tr:not(#loader-row):not(#no-data-row)").forEach(tr => tr.remove());
 
-    loaderRow.style.display = "none";
+            tbody.querySelectorAll("tr:not(#loader-row):not(#no-data-row)").forEach(tr => tr.remove());
 
-    if (!leads || leads.length === 0) {
-        noDataRow.style.display = "table-row";
-        return;
-    } else {
-        noDataRow.style.display = "none";
-    }
+            loaderRow.style.display = "none";
 
-    leads.forEach(lead => {
-        const statusText = workflowStatusMap[lead.workflow_status] || "-";
-        const originValue = originMap[lead.origin] || "-";
-        const style = getStatusStyle(statusText);
+            if (!leads || leads.length === 0) {
+                noDataRow.style.display = "table-row";
+                return;
+            } else {
+                noDataRow.style.display = "none";
+            }
 
-        const row = document.createElement("tr");
-        row.style.borderBottom = "1px solid #00000033";
-        row.style.height = "40px";
-        row.style.backgroundColor = `${lead.Mark_Imp ? "#EBEBEB" : ""}`;
-        
-        row.innerHTML = `
-            <td><input type="checkbox" class="lead-checkbox" data-id="${lead.id}"/></td>
-            <td onClick="window.location.href='/lms/lead/${lead.id}'" style="cursor: pointer;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    ${lead.action_item && lead.action_item.trim() !== '' ? 
-                        `<div class="action-indicator" 
-                             onmouseover="showActionTooltip(event, '${(lead.action_item || '').replace(/'/g, "&apos;")}')"
-                             onmouseout="hideActionTooltip()" 
-                             style="cursor: pointer;">
-                            <div class="action-circle red"></div>
-                        </div>` : 
-                        `<div class="action-indicator" style="width: 12px; height: 12px;"></div>`
-                    }
-                    <span class="lead-name-hover"
-                          ${lead.action_item && lead.action_item.trim() !== '' ? 
-                            `onmouseover="showActionTooltip(event, '${(lead.action_item || '').replace(/'/g, "&apos;")}')" 
-                             onmouseout="hideActionTooltip()"` : ''}>
-                        ${lead.full_name || ""}
-                    </span>
-                </div>
-            </td>
-            <td>${originValue}</td>
-            <td data-status="${statusText}">
-                <div style="
-                    background-color: ${style.bg};
-                    color: ${style.color};
-                    border-radius: 3px;
-                    padding: 1px 4px;
-                    width: fit-content;">${statusText}</div>
-            </td>
-            <td>${lead.lead_notes_count}</td>
-            <td>${lead.company_name || "-"}</td>
-            <td>${lead.contact_name || "-"}</td>
-            <td style="padding: 0px 8px;">${lead.emails?.join(", ") || "-"}</td>
-            <td>${lead.phones?.join(", ") || "-"}</td>
-            <td>${lead.assigned_to?.join(", ") || "-"}</td>
-            <td>${lead.created_at || "-"}</td>
-            <td>${lead.last_updated_note || "-"}</td>
-            <td>${lead.next_follow_up_date || "-"}</td>
-        `;
-        tbody.appendChild(row);
-    });
+            // console.log(currentCheckData);
 
-    updateSelectionCount();
-    addCheckboxListeners();
-}
+            leads.forEach(lead => {
+                const statusText = workflowStatusMap[lead.workflow_status] || "-";
+                const originValue = originMap[lead.origin] || "-";
+                const style = getStatusStyle(statusText);
+                // const callStatusText = callStatusMap[lead.call_status] || "-";
+                // const callstyle = getCallStatusStyle(callStatusText);
+
+                const row = document.createElement("tr");
+                row.style.borderBottom = "1px solid #00000033";
+                row.style.height = "40px";
+                row.style.backgroundColor = `${lead.Mark_Imp ? "#EBEBEB" : ""}`
+                //  console.log(lead.id);
+                row.innerHTML = `
+                                    <td><input type="checkbox" class="lead-checkbox" data-id="${lead.id}"/></td>
+                                    <td onClick="window.location.href='/lms/lead/${lead.id}'" style="cursor: pointer;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            ${lead.action_item && lead.action_item.trim() !== '' ? 
+                                                `<div class="action-indicator" 
+                                                     onmouseover="showActionTooltip(event, '${(lead.action_item || '').replace(/'/g, "&apos;")}')"
+                                                     onmouseout="hideActionTooltip()" 
+                                                     style="cursor: pointer;">
+                                                    <div class="action-circle red"></div>
+                                                </div>` : 
+                                                `<div class="action-indicator" style="width: 12px; height: 12px;"></div>`
+                                            }
+                                            <span>${lead.full_name || ""}</span>
+                                        </div>
+                                    </td>
+                                    <td>${originValue}</td>
+                                    <td data-status="${statusText}">
+                                        <div style="
+                                            background-color: ${style.bg};
+                                            color: ${style.color};
+                                            border-radius: 3px;
+                                            padding: 1px 4px;
+                                            width: fit-content;">${statusText}</div>
+                                    </td>
+                                    <td>${lead.lead_notes_count}</td>
+                                    <td>${lead.company_name || "-"}</td>
+                                    <td>${lead.contact_name || "-"}</td>
+                                    <td style="padding: 0px 8px;">${lead.emails?.join(", ") || "-"}</td>
+                                    <td>${lead.phones?.join(", ") || "-"}</td>
+                                    <td>${lead.assigned_to?.join(", ") || "-"}</td>
+                                    <td>${lead.created_at || "-"}</td>
+                                    <td>${lead.last_updated_note || "-"}</td>
+                                    <td>${lead.next_follow_up_date || "-"}</td>
+                                `;
+                tbody.appendChild(row);
+            });
+
+            // Update selection count and add listeners after rendering table
+            updateSelectionCount();
+            addCheckboxListeners();
+        }
 
         // Function to update selection count displays
         function updateSelectionCount() {

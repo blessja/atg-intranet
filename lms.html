@@ -1,0 +1,1174 @@
+{% extends "mainapp/base.html" %}
+{% load static %}
+{% block title %}
+Lms
+{% endblock %}
+
+{% block content %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS</title>
+
+    <!-- <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"> -->
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <link rel="stylesheet" href="{% static 'lms.css' %}">
+   <style>
+.sort-arrow {
+    margin-left: 3px;
+    font-size: 12px;
+    color: #ccc;
+    transition: color 0.2s ease;
+    pointer-events: none; /* Prevents separate clicks on arrows */
+}
+
+.sort-arrow.active {
+    color: #007bff !important;
+    font-weight: bold;
+}
+
+.date-header {
+    cursor: pointer !important;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.date-header:hover {
+    background-color: #f8f9fa;
+}
+
+/* Ensure only one arrow is active at a time */
+.down-arrow.active ~ .up-arrow {
+    color: #ccc !important;
+}
+
+.up-arrow.active ~ .down-arrow {
+    color: #ccc !important;
+}
+
+/* Draggable table headers */
+th.draggable-header {
+    cursor: grab;
+    user-select: none;
+    position: relative;
+     text-align:center;
+}
+
+th.draggable-header:active {
+    cursor: grabbing;
+}
+
+th.draggable-header.drag-over {
+    background-color: #e3f2fd;
+    border-left: 3px solid #2196f3;
+}
+
+th.draggable-header.dragging {
+    opacity: 0.5;
+}
+
+</style>
+
+
+</head>
+
+<body>
+
+
+    <div class="lms-dashboard" style="width:100%;  background-color: #F0F4F9;">
+        <div class="lms-home-navbar">
+            <!-- <div class="lms-navbar-top">Welcome, User Name. View site / Change password / Log out</div> -->
+            <div class="lms-home-navigation">
+                <a href="{% url 'homepage' %}" class="breadcrumb-link">Home</a> /
+                <span class="breadcrumb-current">BANAO/LMS</span>
+            </div>
+        </div>
+        <div class="lms-main-dashboard">
+            <div>
+                <div style="display:flex; flex-direction: row; justify-content: space-between;">
+                    <div style="color: #060606; font-size: 22px; font-weight: 500;">Lead Overview</div>
+                    <!-- <div> Filter by Date</div> -->
+                </div>
+                <div class="lead-sources-container" id="lead-sources-container">
+                    <div class="lead-data-box">
+                        <div><img src="{% static 'images/banao.png' %}" alt=""></div>
+                        <div>
+                            <div id="count-w" class="lead-count">-</div>
+                            <div class="lead-label">Banao Website</div>
+                        </div>
+                    </div>
+                    <div class="lead-data-box">
+                        <div><img src="{% static 'images/insta.png' %}" alt=""></div>
+                        <div>
+                            <div id="count-i" class="lead-count">-</div>
+                            <div class="lead-label">Instagram</div>
+                        </div>
+                    </div>
+                    <div class="lead-data-box">
+                        <div><img src="{% static 'images/website.png' %}" alt=""></div>
+                        <div>
+                            <div id="count-cw" class="lead-count">-</div>
+                            <div class="lead-label">Client Website</div>
+                        </div>
+                    </div>
+                    <div class="lead-data-box">
+                        <div><img src="{% static 'images/linkedin.png' %}" alt=""></div>
+                        <div>
+                            <div id="count-l" class="lead-count">-</div>
+                            <div class="lead-label">LinkedIn</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lms-dashboard-page-menu">
+                    <div class="search-wrapper-main-dashboard">
+                        <div class="search-box-main-dashboard">
+
+                            <input class="search-input-main-dashboard" type="text" placeholder="Search name" />
+                            <div class="search-icon-main-dashboard">
+                                <svg width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                        d="M9.541 1.52a8.02 8.02 0 100 16.042 8.02 8.02 0 000-16.041zM.146 9.543a9.396 9.396 0 1118.791 0 9.396 9.396 0 01-18.791 0zM16.847 16.847a.687.687 0 01.972 0l1.834 1.833a.688.688 0 11-.973.973l-1.833-1.834a.688.688 0 010-.972z"
+                                        fill="#000" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if not is_user_jr_ba %}
+                    <div class="menu-actions-lms-dash desktop-menu-lms-dash">
+                        <div id="track-performance-toggle" style="cursor: pointer; display: flex; text-align: center;"
+                            onclick="window.location.href='/lms/eod-performance'" class="nav-option">Track
+                            Performance</div>
+                        <div class="nav-option" onclick="window.location.href='/lms/checks/'"
+                            style="cursor: pointer; display: flex; align-items: center; text-align: center;">Checks
+                        </div>
+                        <div class="nav-option" onclick="window.location.href='/lms/add_lead'" style="cursor: pointer;">
+                            Add Lead
+                        </div>
+                    </div>
+                    <div class="mobile-menu-wrapper">
+                        <div class="mobile-menu-icon-lms-dash" onclick="toggleMobileMenuDash()">
+                            &#8942;
+                        </div>
+                        <div id="mobile-menu-modal-lms-dash" class="mobile-menu-modal-lms-dash">
+                            <div onclick="window.location.href='/lms/eod-performance'" class="nav-option" style="width: 155px;">Track
+                                Performance</div>
+                            <div onclick="toggleChecksDashboard()" class="nav-option">Checks</div>
+                            <div class="nav-option" onclick="window.location.href='/lms/add_lead'" style="cursor: pointer;">
+                                Add Lead
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+
+            </div>
+
+            <div style="background-color: white; margin-top: 10px; border-radius: 10px; padding: 8px 0px 40px 22px;">
+                <div class="lms-dashbaord-table-header" style="border-bottom: 1px solid#00000033; ">
+                    <div style="display: flex; flex-direction: row; justify-content: space-between;">
+                        <div style="color: #000000; font-size: 20px; font-weight: 600;">Leads <span
+                                id="selection-count-main" style="color: #171A1F7A; font-weight: 400; font-size: 12px;">0
+                                of 100 Selected</span>
+                        </div>
+                        <div id="reset-filters" style="cursor: pointer; margin-right: 10px; font-size: 22px;">⟲</div>
+                    </div>
+                    <div
+                        style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; flex-direction: row; gap: 10px; position: relative;">
+                            <div class="more-option" onclick="toggleMoreDropdown()"
+                                style="font-size: 20px;  font-weight: 800; cursor: pointer;">&vellip;
+                            </div>
+                            {% if is_lms_manager %}
+                            <div class="material-icons" style="cursor: pointer;" onclick="bulkDelete()">&#xe872;</div>
+                            {% endif %}
+                            <div onclick="bulkMarkImportant()"
+                                style="cursor: pointer; font-size: 28px; margin-top: -8px; font-weight: 500;">★</div>
+                            <div class="fas fa-user-plus" id="change-assignee-btn"
+                                style="text-align: center; margin-top: 4px; cursor: pointer;"></div>
+
+                            <div id="assignee-dropdown" class="custom-dropdown"
+                                style="display: none; position: absolute; background: white; border: 1px solid #ccc; padding: 10px; z-index: 999;">
+                                <select id="assignee-select" multiple size="5">
+                                    <option value="">Select user</option>
+
+                                </select>
+                                <button id="assign-btn"
+                                    style="background-color: #504CF5; border: none; color: white;">Assign</button>
+                            </div>
+
+
+                            <div id="more-dropdown" class="more-dropdown-action">
+                                <!-- <div onclick="showWorkflowDropdown()" 
+                                    style="padding: 8px 12px; width: fit-content; cursor: pointer;">Change Workflow
+                                    Status</div> -->
+
+                                <select onchange="handleWorkflowChange(this.value)" class="lead-filter-select"
+                                    id="lead-workflow-change-dash">
+                                    <option value="">Change Workflow</option>
+                                </select>
+
+
+                                <select onchange="handleCallStatusChange(this.value)" class="lead-filter-select"
+                                    id="lead-callStatus-change-dash">
+                                    <option value="">Change Call Status</option>
+                                    <option value="call_didnot_pickup">Call didn't pickup</option>
+                                    <option value="call_connected">Call connected</option>
+                                    <option value="call_failed">Call failed</option>
+                                </select>
+
+                                <div class="lead-filter-select" style=" cursor: pointer;"
+                                    onclick="openFollowUpDatePicker()">
+                                    Change Follow-up Date
+                                </div>
+
+                                <input type="date" id="followup-date-picker" class="lead-filter-select"
+                                    onchange="handleFollowUpUpdate(this.value)" style="display:none;" />
+
+                                <!-- <div style="padding: 8px 12px; width: fit-content; cursor: pointer;">Change Type</div>
+                                <div style="padding: 8px 12px; width: fit-content; cursor: pointer;">Change Origin</div> -->
+
+                                <div id="workflow-options"
+                                    style="display: none; margin-top: 5px; border-top: 1px solid #eee;">
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lead-filter-container-desktop">
+                            <!-- Add this in your existing filters section -->
+                            <div id="tags-filter" class="lead-filter-select" style="width: 180px; position: relative;">
+                                <div class="tags-dropdown-selected dropdownapble" onclick="toggleTagsDropdown()" style="width: 160px; cursor: pointer;">
+                                    By Tags
+                                </div>
+                                <div class="tags-dropdown-list hidden" id="tags-list"
+                                    style="position: absolute; background: white; border: 1px solid #ccc; padding: 8px; z-index: 100;">
+
+                                </div>
+                            </div>
+
+                            <div>
+                                <select id="mark-imp-filter" name="" id="" class="mark-imp-filter lead-filter-select">
+                                    <option value="">By Mark Imp</option>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            <div id="assigned-to-filter" class="lead-filter-select"
+                                style="width: 180px; position: relative;">
+                                <div class="assigned-dropdown-selected dropdownapble" onclick="toggleAssignedDropdown()"
+                                    style="width: 160px; cursor: pointer;">
+                                    By Assigned To
+                                </div>
+                                <div class="assigned-dropdown-list hidden" id="assigned-list"
+                                    style="position: absolute; background: white; border: 1px solid #ccc; padding: 8px; z-index: 100;">
+
+                                </div>
+                            </div>
+
+                            <!-- <div>
+                                <select id="call-status-filter" name="" id=""
+                                    class="call-status-filter lead-filter-select">
+                                    <option value="">By Call Status</option>
+                                    <option value="call_failed">Call Failed</option>
+                                    <option value="call_connected">Call Connected</option>
+                                    <option value="call_didnot_pickup">Call Didn't Pickup</option>
+                                </select>
+                            </div> -->
+                            <div id="workflow-status-filter" class="workflow-status-filter lead-filter-select"
+                                style="max-width: 200px; position: relative; ">
+                                <div class="workflow-dropdown-selected dropdownapble" onclick="toggleWorkflowDropdown()"
+                                    style=" max-width: 180px;">By
+                                    Workflow Status</div>
+                                <div class="workflow-dropdown-list hidden" id="workflow-list">
+                                    <!-- <label><input type="checkbox" onchange="updateWorkflowFilter()" value=""> By
+                                        Workflow Status</label> -->
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="0"> New Lead</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="1"> Contact Attempted</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="2"> Engaged</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="3"> Discovery / Demo Scheduled</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="4"> Discovery / Demo Completed</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="5"> Proposal Sent</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="6"> Closed - Won</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="7"> Closed - Lost</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="8"> Nurture / Recycle</label>
+
+
+                                    <!-- <label><input type="checkbox" onchange="updateWorkflowFilter()" value="7"> Audit
+                                        Pending</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="8"> Audit
+                                        Sent</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="1"> Call To
+                                        Be Made</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="11">
+                                        Confirmed</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="14">
+                                        InterviewGod</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="0">
+                                        Negative</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="13"> New Call
+                                        To Be Made</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="12"> Priority
+                                        Audit Pending</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="3"> Proposal
+                                        Pending</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="4"> Proposal
+                                        Sent</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="2">
+                                        Requirement Pending</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="9"> Soft
+                                        Confirmed</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="15"> 1st
+                                        email message sent after initial call</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="16"> 2nd
+                                        Follow-up</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="17"> 3rd
+                                        Follow-up</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="18"> Call
+                                        Unresponsive</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="19"> Demo
+                                        Booked</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="20"> Demo
+                                        Completed</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="21"> Whatsapp
+                                        Group Onboarding</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="22"> JD
+                                        Request Sent</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="23"> Pilot
+                                        Started</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="24"> Account
+                                        Setup & Interview Creation</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="25"> Swap
+                                        Confirmed / POC Successful</label>
+                                    <label><input type="checkbox" onchange="updateWorkflowFilter()" value="26"> Email
+                                        Sent</label> -->
+                                </div>
+                            </div>
+
+                            <div id="lead-origin-filter" class="lead-origin-filter lead-filter-select"
+                                style="max-width: 200px; position: relative;">
+                                <div class="lead-origin-dropdown-selected dropdownapble" onclick="toggleOriginDropdown()"
+                                    style="width: 120px;">
+                                    By Lead Origin
+                                </div>
+                                <div class="lead-origin-dropdown-list hidden" id="lead-origin-list">
+                                    <label><input type="checkbox" value="w" onchange="updateOriginFilter()"> Banao
+                                        Website</label>
+                                        <label><input type="checkbox" value="ig" onchange="updateOriginFilter()"> InterviewGod</label>
+                                    <label><input type="checkbox" value="l" onchange="updateOriginFilter()">
+                                        LinkedIn</label>
+                                    <label><input type="checkbox" value="i" onchange="updateOriginFilter()">
+                                        Instagram</label>
+                                    <label><input type="checkbox" value="cw" onchange="updateOriginFilter()"> Client
+                                        Website</label>
+                                        
+                                </div>
+                            </div>
+
+                            <div>
+                                <select name="" id="" class="lead-filter-select" style="margin-right: 10px;">
+                                    <option value="">More Filters</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mobile-menu-wrapper">
+                            <div class="mobile-filter-icon-lms-dash" onclick="toggleMobileFiltersLMS()"> &#8942;</div>
+
+                            <div id="mobile-filter-modal-lms-dash" class="mobile-filter-modal-lms-dash">
+                                 <div id="mobile-tags-filter" class="lead-filter-select"
+                                    style="position: relative;">
+                                    <div class="mobile-tags-dropdown-selected dropdownapble"
+                                        onclick="toggleMobileTagsDropdown()" style="width: 160px; cursor: pointer;">
+                                        By Tags
+                                    </div>
+                                    <div class="tags-dropdown-list hidden" id="mobile-tags-list"
+                                        style="position: absolute; background: white; border: 1px solid #ccc; padding: 8px; z-index: 100;">
+
+                                    </div>
+                                </div>
+                                <div>
+                                    <select id="mark-imp-filter" name="" id=""
+                                        class="mark-imp-filter lead-filter-select">
+                                        <option value="">By Mark Imp</option>
+                                        <option value="true">Yes</option>
+                                        <option value="false">No</option>
+                                    </select>
+                                </div>
+                                <div id="mobile-assigned-to-filter" class="lead-filter-select"
+                                    style="position: relative;">
+                                    <div class="mobile-assigned-dropdown-selected dropdownapble"
+                                        onclick="toggleMobileAssignedDropdown()" style="width: 160px; cursor: pointer;">
+                                        By Assigned To
+                                    </div>
+                                    <div class="assigned-dropdown-list hidden" id="mobile-assigned-list"
+                                        style="position: absolute; background: white; border: 1px solid #ccc; padding: 8px; z-index: 100;">
+
+                                    </div>
+                                </div>
+
+                                <!-- <div>
+                                    <select id="call-status-filter" name="" id=""
+                                        class="call-status-filter lead-filter-select" style="max-width: 200px;">
+                                        <option value="">By Call Status</option>
+                                        <option value="call_failed">Call Failed</option>
+                                        <option value="call_connected">Call Connected</option>
+                                        <option value="call_didnot_pickup">Call Didn't Pickup</option>
+                                    </select>
+                                </div> -->
+                                <div id="mobile-workflow-status-filter" class="lead-filter-select"
+                                    style="position: relative;">
+                                    <div class="mobile-workflow-dropdown-selected dropdownapble"
+                                        onclick="toggleMobileWorkflowDropdown()" style="width: 180px; cursor: pointer;">
+                                        By Workflow Status
+                                    </div>
+                                    <div class="workflow-dropdown-list hidden" id="mobile-workflow-list"
+                                        style="position: absolute; background: white; border: 1px solid #ccc; padding: 8px; z-index: 100; max-height: 200px; overflow-y: auto;">
+
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="0"> New Lead</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="1"> Contact Attempted</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="2"> Engaged</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="3"> Discovery / Demo Scheduled</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="4"> Discovery / Demo Completed</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="5"> Proposal Sent</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="6"> Closed - Won</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="7"> Closed - Lost</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="8"> Nurture / Recycle</label>
+
+                                        <!-- <label><input type="checkbox" onchange="updateWorkflowFilter()" value="7"> Audit
+                                            Pending</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="8"> Audit
+                                            Sent</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="1"> Call
+                                            To
+                                            Be Made</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="11">
+                                            Confirmed</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="14">
+                                            InterviewGod</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="0">
+                                            Negative</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="13"> New
+                                            Call
+                                            To Be Made</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="12">
+                                            Priority
+                                            Audit Pending</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="3">
+                                            Proposal
+                                            Pending</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="4">
+                                            Proposal
+                                            Sent</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="2">
+                                            Requirement Pending</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="9"> Soft
+                                            Confirmed</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="15"> 1st
+                                            email message sent after initial call</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="16"> 2nd
+                                            Follow-up</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="17"> 3rd
+                                            Follow-up</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="18"> Call
+                                            Unresponsive</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="19"> Demo
+                                            Booked</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="20"> Demo
+                                            Completed</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="21">
+                                            Whatsapp
+                                            Group Onboarding</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="22"> JD
+                                            Request Sent</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="23">
+                                            Pilot
+                                            Started</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="24">
+                                            Account
+                                            Setup & Interview Creation</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="25"> Swap
+                                            Confirmed / POC Successful</label>
+                                        <label><input type="checkbox" onchange="updateWorkflowFilter()" value="26">
+                                            Email
+                                            Sent</label> -->
+                                    </div>
+                                </div>
+
+                                <div id="mobile-lead-origin-filter" class="lead-filter-select"
+                                    style="position: relative;">
+                                    <div class="mobile-origin-dropdown-selected dropdownapble" onclick="toggleMobileOriginDropdown()"
+                                        style="width: 180px; cursor: pointer;">
+                                        By Lead Origin
+                                    </div>
+                                    <div class="lead-origin-dropdown-list hidden" id="mobile-origin-list"
+                                        style="position: absolute; background: white; border: 1px solid #ccc; padding: 8px; z-index: 100; max-height: 200px; overflow-y: auto;">
+                                        <label><input type="checkbox" value="w" onchange="updateOriginFilter()"> Banao
+                                            Website</label>
+                                            <label><input type="checkbox" value="ig" onchange="updateOriginFilter()"> InterviewGod</label>
+                                        <label><input type="checkbox" value="l" onchange="updateOriginFilter()">
+                                            LinkedIn</label>
+                                        <label><input type="checkbox" value="i" onchange="updateOriginFilter()">
+                                            Instagram</label>
+                                        <label><input type="checkbox" value="cw" onchange="updateOriginFilter()"> Client
+                                            Website</label>
+                                    </div>
+                                </div>
+
+                                <!-- <div>
+                                    <select name="" id="" class="lead-filter-select" style="margin-right: 10px;">
+                                        <option value="">More Filters</option>
+                                    </select>
+                                </div> -->
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width:100%; border-collapse: collapse; ">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #00000033; height: 40px;" id="table-header-row">
+                                <!-- Dynamic table headers will be populated here by JavaScript -->
+                                <!-- Fallback headers in case JavaScript fails -->
+                                <th style="white-space: nowrap; padding: 0px 10px;"><input type="checkbox" name="" id=""></th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Lead/Client Name</th>
+                                {% comment %} <th style="white-space: nowrap; padding: 0px 10px;">Type</th> {% endcomment %}
+                                <th>Origin</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Work flow status</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Lead note count</th>
+                                {% comment %} <th style="white-space: nowrap; padding: 0px 10px;">Call status</th> {% endcomment %}
+                                <th style="white-space: nowrap; padding: 0px 10px;">Company name</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Email</th>
+                                {% comment %} <th style="white-space: nowrap; padding: 0px 10px;">Proposal Link</th> {% endcomment %}
+                                {% comment %} <th style="white-space: nowrap; padding: 0px 10px;">Audit Link</th> {% endcomment %}
+                                <th style="white-space: nowrap; padding: 0px 10px;">Phone No's</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Assigned To</th>
+                                {% comment %} <th style="white-space: nowrap; padding: 0px 10px;">Industry</th> {% endcomment %}
+                                <th style="white-space: nowrap; padding: 0px 10px;" id="created-at-header">Created At</th>
+                                {% comment %} <th style="white-space: nowrap; padding: 0px 10px;" id="updated-at-header">Updated At</th> {% endcomment %}
+                                <th style="white-space: nowrap; padding: 0px 10px;" id="last-updated-note-header">Last Update note</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;" id="next-follow-up-header">Next Follow-update</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lead-table-body"
+                            style="font-weight: 400; font-size: 14px; color: #222222; text-align: center;">
+                            <tr style="border-bottom: 1px solid #00000033; height: 40px;">
+                                <td colspan="18"><div class="loading-spinner"></div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pagination-container" style="margin-top: 20px;"></div>
+
+            </div>
+        </div>
+
+        <div class="lead-details-dashboard" style="display: none; flex-direction: row; padding-bottom: 40px;">
+            <div id="lead-details-loader"
+                style="display: none; justify-content: center; width: 100%; align-items: center; text-align: center; height: 500px;">
+                <div class="loading-spinner"></div>
+            </div>
+            <div class="lead-details-content" id="lead-details-content">
+                <div class="lead-details-container">
+                    <div class="lead-details-name-container" style="border-bottom: 1px solid #00000033;">
+                        <div style="display: flex; flex-direction: row; justify-content: end;">
+                            <input id="star2" class="star" type="checkbox" title="bookmark page" disabled><br /><br />
+                            <label for="star2" title="Amazing"
+                                style="margin-top: 10px; margin-left: 14px; padding-right: 14px;">Mark Imp</label>
+                        </div>
+                        <div
+                            style="display: flex; flex-direction: row; gap: 10px; padding-left: 10px; margin-bottom: 10px;">
+                            <div style=" border-radius: 12px; width: 90px; height: 90px; background-color: #7c976a;">
+                            </div>
+                            <div>
+                                <div style="color: #171A1F; font-weight: 700; font-size: 24px;"
+                                    id="lead-details-form-client-name"></div>
+                                <div style="color: #171A1F; font-weight: 400; font-size: 15px;">Created at : <span
+                                        id="lead-details-form-createdAt"></span>
+                                </div>
+                                <div style="color: #171A1F; font-weight: 400; font-size: 15px;">Updated at : <span
+                                        id="lead-details-form-updatedAt"></span>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div
+                            style="display: flex; justify-content: flex-end; padding-bottom: 4px; position: relative; padding-right: 4px;">
+                            <button onclick="takeOverLead()" class="take-over-lead" id="take-over-lead"
+                                style="display: none; background-color: #4CAF50; color: white; padding: 8px 16px; outline: none; border-radius: 4px; border: none;">
+                                Take Over
+                            </button>
+                            <select name="" id="take-over-select"
+                                style="display: none; outline: none; position: absolute; top: 100%; right: 0; margin-top: 4px; padding: 6px; border-radius: 4px; border: 1px solid #ccc; background-color: white; z-index: 10;">
+
+                            </select>
+                        </div>
+                        <div
+                            style="display: flex; flex-wrap: wrap; flex-direction: row; gap: 20px; justify-content: center; height: 69px; font-size: 14px; font-weight: 400; color: #171A1F;">
+                            <!-- <div style="display: flex; flex-direction: column;">
+                                <img src="{% static 'images/note.png' %}" alt=""  style="width: 31px; height: 31px;">
+                                Note
+                            </div> -->
+                            <div style="display: flex; flex-direction: column;">
+                                <img src="{% static 'images/iconemail.png' %}" alt=""
+                                    style="width: 31px; height: 31px;">
+                                Email
+                            </div>
+                            <div style="display: flex; flex-direction: column;">
+                                <a href="#" id="lead-details-form-call-icon"
+                                    style="text-decoration: none; color: inherit;">
+                                    <img src="{% static 'images/ion_call.png' %}" alt=""
+                                        style="width: 31px; height: 31px;">
+                                </a>
+                                Call
+                            </div>
+                            <!-- <div style="display: flex; flex-direction: column;">
+                                 <img src="{% static 'images/task-add.png' %}" alt=""  style="width: 31px; height: 31px;">
+                                Task
+                            </div> -->
+                            <!-- <div style="display: flex; flex-direction: column;">
+                                 <img src="{% static 'images/meet-now.png' %}" alt=""  style="width: 31px; height: 31px;">
+                                Meeting
+                            </div> -->
+                        </div>
+                    </div>
+                    <div>
+                        <h6>Lead Details</h6>
+                        <form id="lead-details-form" class="lead-details-form"
+                            style="gap: 12px; padding-left: 10px; display: flex; flex-direction: column;">
+                            <div class="absolute right-0 px-6 py-10">
+                                <button id="edit-lead-btn" onclick="enableLeadEdit(event)"
+                                    style="background-color: #4CAF50; color: white; padding: 8px 16px; border-radius: 4px; border: none;">Edit</button>
+                                <button id="submit-lead-edit" onclick="submitLeadEdit(event)"
+                                    style="background-color: #6b46c1; color: white; padding: 8px 16px; border-radius: 4px; border: none; display: none;">Submit</button>
+                                <button id="cancel-lead-edit" onclick="disableLeadEdit(event)"
+                                    style="background-color: #e2e8f0; color: black; padding: 8px 16px; border-radius: 4px; border: none; display: none;">Cancel</button>
+                            </div>
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Type</label>
+                                <select class="lead-details-select" name="" id="lead-details-form-type" disabled>
+                                    <option value="">Type</option>
+                                    <option value="DEV">Development</option>
+                                    <option value="MKT">Marketing</option>
+                                    <option value="DEV_MKT">Dev+Markt</option>
+                                    <option value="OTH">Others</option>
+                                    <option value="NG">Not Gathered</option>
+                                </select>
+                            </div>
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Origin</label>
+                                <select class="lead-details-select" name="" id="lead-details-form-origin" disabled>
+                                    <option value="">Origin</option>
+                                    <option value="w">Banao Website</option>
+                                    <option value="l">LinkedIn</option>
+                                    <option value="i">Instagram</option>
+                                    <option value="cw">Client Website</option>
+                                </select>
+                            </div>
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Workflow Status</label>
+                                <select class="lead-details-select" name="" id="lead-details-form-workflow" disabled>
+                                    <option value="">Workflow Status</option>
+                                    <option value="0">New Lead</option>
+                                    <option value="1">Contact Attempted</option>
+                                    <option value="2">Engaged</option>
+                                    <option value="3">Discovery / Demo Scheduled</option>
+                                    <option value="4">Discovery / Demo Completed</option>
+                                    <option value="5">Proposal Sent</option>
+                                    <option value="6">Closed - Won</option>
+                                    <option value="7">Closed - Lost</option>
+                                    <option value="8">Nurture / Recycle</option>
+
+                                </select>
+                            </div>
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Call Status</label>
+                                <select class="lead-details-select" name="" id="lead-details-form-call-status" disabled>
+                                    <option value="">Call Status</option>
+                                    <option value="call_failed">Call Failed</option>
+                                    <option value="call_connected">Call Connected</option>
+                                    <option value="call_didnot_pickup">Call Didn't Pickup</option>
+                                </select>
+                            </div>
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Next Follow-up Date</label>
+                                <!-- <select class="lead-details-select" name="" id="lead-details-form-next-followup" disabled>
+                                    <option value="">Call Status</option>
+                                    <option value="call_failed">Call Failed</option>
+                                    <option value="call_connected">Call Connected</option>
+                                    <option value="call_didnot_pickup">Call Didn't Pickup</option>
+                                </select> -->
+                                <input id="lead-details-form-next-followup-display" class="lead-details-select"
+                                    type="text" readonly />
+
+                                <input id="lead-details-form-next-followup" class="lead-details-select" type="date"
+                                    style="display: none;" disabled />
+
+                            </div>
+
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Company Name</label>
+                                <input id="lead-details-form-company-name" class="lead-details-select" disabled />
+                            </div>
+
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Contact Name</label>
+                                <input id="lead-details-form-contact-name" class="lead-details-select" disabled />
+                            </div>
+
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Email</label>
+                                <input id="lead-details-form-email" class="lead-details-select" disabled />
+                            </div>
+
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Phone No</label>
+                                <input id="lead-details-form-phone" class="lead-details-select" disabled />
+                            </div>
+
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">URL</label>
+                                <input class="lead-details-select" id="lead-details-form-url" disabled />
+                            </div>
+
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Message</label>
+                                <textarea id="lead-details-form-message" class="lead-details-select"
+                                    style="height: 100px;" disabled>  </textarea>
+                            </div>
+
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Intern Name</label>
+                                <input class="lead-details-select" disabled />
+                            </div>
+
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Assigned To</label>
+                                <select style="height: 150px;" class="lead-details-select" name=""
+                                    id="lead-details-form-assignee" multiple disabled>
+                                    <option value="">Assigned To</option>
+                                </select>
+                            </div>
+
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Comment</label>
+                                <input type="text" class="lead-details-select" disabled />
+                            </div>
+
+                            <div class="lead-details-div">
+                                <label class="lead-details-label" for="">Industry</label>
+                                <select class="lead-details-select" name="" id="lead-details-form-industry" disabled>
+                                    <option value="LMS">LMS</option>
+                                    <option value="Ed-Tech (Education)">Ed-Tech (Education)</option>
+                                    <option value="Agriculture">Agriculture</option>
+                                    <option value="Automobile / Automotive">Automobile / Automotive</option>
+                                    <option value="Business">Business</option>
+                                    <option value="Architecture & Design">Architecture & Design</option>
+                                    <option value="Real Estate & Construction">Real Estate & Construction</option>
+                                    <option value="HRMS/CRM">HRMS/CRM</option>
+                                    <option value="E-Commerce">E-Commerce</option>
+                                    <option value="Finance/FinTech">Finance/FinTech</option>
+                                    <option value="Health / Wellness">Health / Wellness</option>
+                                    <option value="Fitness">Fitness</option>
+                                    <option value="Government/NGO">Government/NGO</option>
+                                    <option value="Security / Defence">Security / Defence</option>
+                                    <option value="Social Network">Social Network</option>
+                                    <option value="Beauty and Wellness">Beauty and Wellness</option>
+                                    <option value="Animal Welfare">Animal Welfare</option>
+                                    <option value="Biotech/Nanotech">Biotech/Nanotech</option>
+                                    <option value="Restaurants/ Foodtech">Restaurants/ Foodtech</option>
+                                    <option value="ERP">ERP</option>
+                                    <option value="Entertainment">Entertainment</option>
+                                    <option value="SaaS">SaaS</option>
+                                    <option value="Sports">Sports</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                            </div>
+                            <!-- <div class="absolute right-0 px-6 py-10 ">
+                            <button id="submit-lead-edit" class="bg-purple-600 text-white py-2 px-4 rounded">Submit</button>
+                            <button id="cancel-lead-edit" class="bg-gray-200 text-black py-2 px-4 rounded">Cancel</button>
+                        </div> -->
+                        </form>
+                    </div>
+                </div>
+                <div class="lead-details-r-container">
+                    <div id="lead-details-close" class="lead-details-close" onclick="closeLeadDetails()"><svg width="30"
+                            height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd"
+                                d="M5.293 5.293a1 1 0 011.414 0L12 10.586l5.293-5.293a1 1 0 111.414 1.414L13.414 12l5.293 5.293a1 1 0 01-1.414 1.414L12 13.414l-5.293 5.293a1 1 0 01-1.414-1.414L10.586 12 5.293 6.707a1 1 0 010-1.414z"
+                                fill="#0F1729" />
+                        </svg></div>
+                    <div
+                        style="display: flex; flex-direction: column; gap: 16px; margin-left: 20px; margin-top: 10px; justify-items: center;">
+                        <!-- <div class="lead-details-div">
+                            <label class="lead-details-label" for="">Upcoming</label>
+                            <select class="lead-details-select" style="height: 80px;" name="" id="">
+                                <option value="">Email</option>
+                            </select>
+                        </div> -->
+                        <!-- <div class="lead-details-div">
+                            <label class="lead-details-label" for="">Feb 26, 2025</label>
+                            <select class="lead-details-select" style="height: 80px;" name="" id="">
+                                <option value="">Meeting Schedule</option>
+                            </select>
+                        </div> -->
+                        <!-- <div class="lead-details-div">
+                        <label class="lead-details-label" for="">Feb 26, 2025</label>
+                        <select class="lead-details-select" style="height: 80px;" name="" id="">
+                            <option value="">Emails</option>
+                        </select>
+                    </div> -->
+
+                        <div class="lead-details-div">
+                            <label class="lead-details-label" for="">Proposal link</label>
+                            <div class="lead-proposal-dropdown" style="width: 80%;" id="lead-proposal-container">
+                                <div class="lead-proposal-header">
+                                    <div>Proposal </div> <span>
+                                        <svg class="toggle-icon" onclick="toggleProposalDropdown()"
+                                            style="cursor: pointer;" width="14" height="8" viewBox="0 0 14 8"
+                                            fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="lead-proposal-body" id="lead-proposal-body"></div>
+                                <div class="" id="add-proposal-link-body">
+                                    <button class="submit-proposal" onclick="submitProposal()">Update Proposal</button>
+                                    <span class="add-proposal" onclick="addProposal()">➕</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lead-details-div">
+                            <label class="lead-details-label" for="">Lead Notes</label>
+                            <div class="lead-notes-dropdown" style="width: 80%;" id="lead-notes-container">
+                                <div class="lead-notes-header">
+                                    <div>Notes </div> <span>
+                                        <svg class="toggle-icon" onclick="toggleNotesDropdown()"
+                                            style="cursor: pointer;" width="14" height="8" viewBox="0 0 14 8"
+                                            fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="lead-notes-body" id="lead-notes-body"></div>
+                                <div class="" id="add-lead-notes-body">
+                                    <button class="submit-notes" onclick="submitNotes()">Update Notes</button>
+                                    <span class="add-notes" onclick="addNote()">➕</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% comment %} <div class="lead-details-div">
+                            <label class="lead-details-label" for="">Audit Link</label>
+                            <div class="lead-audit-dropdown" style="width: 80%;" id="lead-audit-container">
+                                <div class="lead-audit-header">
+                                    <div>Audit Link </div> <span>
+                                        <svg onclick="toggleAuditDropdown()" style="cursor: pointer;" width="14"
+                                            height="8" viewBox="0 0 14 8" fill="none"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="lead-audit-body" id="lead-audit-body"></div>
+                                <div class="" id="add-lead-audit-body">
+                                    <button class="submit-audit" onclick="submitAudit()">Update Audit</button>
+                                    <span class="add-audit" onclick="addAudit()">➕</span>
+                                </div>
+                            </div>
+                        </div> {% endcomment %}
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="checks-main-dashboard" style="display: none;">
+
+            <div class="search-top-bar-check" style="margin: 20px 0px; display: flex; flex-direction: row;">
+                <span onclick="toggleChecksDashboard()" style="font-size: 30px; cursor: pointer; text-align: center;">
+                    <svg style="cursor: pointer;" width="20" height="20" viewBox="0 0 8 14" fill="none"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7 1L1 7L7 13" stroke="#6D747A" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </span>
+                <div class="search-wrapper-jrba">
+                    <div class="search-box-jrba">
+                        <div class="search-icon-jrba">
+                            <svg width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                    d="M9.541 1.52a8.02 8.02 0 100 16.042 8.02 8.02 0 000-16.041zM.146 9.543a9.396 9.396 0 1118.791 0 9.396 9.396 0 01-18.791 0zM16.847 16.847a.687.687 0 01.972 0l1.834 1.833a.688.688 0 11-.973.973l-1.833-1.834a.688.688 0 010-.972z"
+                                    fill="#000" />
+                            </svg>
+                        </div>
+                        <input class="search-input-jrba" type="text" placeholder="Search name" />
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div class="check-tab-container" style="margin-top: 10px;">
+                <div class="check-tab main-check-active">Morning Checks</div>
+                <div class="check-tab">Mid-Day Checks</div>
+                <div class="check-tab">EOD Checks</div>
+            </div>
+
+
+            <div class="check-tab-bar-group" data-type="morning">
+                <div class="check-tab-bar">
+                    <div class="check-lower-tab check-tab-active">New Leads</div>
+                    <div class="check-lower-tab">Pending Follow-up</div>
+                    <div class="check-lower-tab">Pending Proposal</div>
+                    <div class="check-lower-tab">IG Pending Follow-up</div>
+                </div>
+            </div>
+
+
+            <div class="check-tab-bar-group" data-type="mid-day" style="display: none;">
+                <div class="check-tab-bar">
+                    <div class="check-lower-tab check-tab-active">Warm lead</div>
+                    <div class="check-lower-tab">IG Warm Leads Followup Updates</div>
+                    <div class="check-lower-tab">Pending Follow-ups</div>
+                </div>
+            </div>
+
+
+            <div class="check-tab-bar-group" data-type="end-day" style="display: none;">
+                <div class="check-tab-bar">
+                    <div class="check-lower-tab check-tab-active">LMS Updation</div>
+                    <div class="check-lower-tab">IG Leads</div>
+                    <div class="check-lower-tab">Proposal Follow-up</div>
+                </div>
+            </div>
+
+
+            <div class="check-leads-container"
+                style="background-color: white;  border-radius: 10px; padding: 8px 0px 40px 22px;">
+                <div style="border-bottom: 1px solid#00000033; ">
+                    <div style="display: flex; flex-direction: row; justify-content: space-between;">
+                        <div style="color: #000000; font-size: 20px; font-weight: 600;">Leads <span
+                                id="selection-count-check"
+                                style="color: #171A1F7A; font-weight: 400; font-size: 12px;">0 of 100 Selected</span>
+                        </div>
+                        <div id="reset-filters" style="cursor: pointer; margin-right: 20px; font-size: 22px;">⟲</div>
+                    </div>
+                    <div style="display: flex; flex-direction: row; justify-content: space-between;">
+                        <div style="display: flex; flex-direction: row; gap: 10px; position: relative;">
+                            <div class="more-option" style="font-size: 20px;  font-weight: 800; cursor: pointer;">
+                                &vellip;</div>
+
+
+
+
+                            <div id="more-dropdown"
+                                style="display: none; width: 250px; position: absolute; font-size: 14px; top: 30px; left: 0; background: white; border: 1px solid #ccc; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); z-index: 10;">
+
+                                <select onchange="handleWorkflowChange(this.value)" class="lead-filter-select">
+                                    <option value="">Change Workflow Status</option>
+                                    <option value="0">New Lead</option>
+                                    <option value="1">Contact Attempted</option>
+                                    <option value="2">Engaged</option>
+                                    <option value="3">Discovery / Demo Scheduled</option>
+                                    <option value="4">Discovery / Demo Completed</option>
+                                    <option value="5">Proposal Sent</option>
+                                    <option value="6">Closed - Won</option>
+                                    <option value="7">Closed - Lost</option>
+                                    <option value="8">Nurture / Recycle</option>
+
+                                </select>
+                                <div id="workflow-options"
+                                    style="display: none; margin-top: 5px; border-top: 1px solid #eee;">
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width:100%; border-collapse: collapse; ">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #00000033; height: 40px;">
+                                <th style="white-space: nowrap; padding: 0px 10px;"><input type="checkbox" name=""
+                                        id=""></th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Lead/Client Name</th>
+                                <th>Origin</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Work flow status</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Lead note count</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Company name</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Name</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Email</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Phone No's</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Assigned To</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Created At</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Last Update note</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Next Follow-update</th>
+
+                            </tr>
+                        </thead>
+                        <tbody id="check-lead-table-body"
+                            style="font-weight: 400; font-size: 14px; color: #222222; text-align: center;">
+                            <tr style="border-bottom: 1px solid #00000033; height: 40px;">
+                                <!-- <td><input type="checkbox" name="" id=""></td>
+                              <td>Rishikesh</td>
+                              <td>Not Gathered</td>
+                              <td></td>
+                              <td data-status="Audit Pending">
+                                  <div></div>
+                              </td>
+                              <td>1</td>
+                              <td> all didn't pickup</td>
+                              <td>Tech solution</td>
+                              <td>John Doe</td>
+                              <td>john.doe@exampleasacac.com,</td> -->
+                                <!-- <td colspan="15"><div class="loading-spinner"></div></td> -->
+                            </tr>
+                            <tr id="loader-row" style="text-align: center;">
+                                <td colspan="18">
+                                    <div class="loading-spinner"></div>
+                                </td>
+                            </tr>
+                            <tr id="no-data-row"
+                                style="text-align: center; color: #A90420; font-size: 20px; display: none; border-bottom: 1px solid #00000033; height: 40px;">
+                                <td colspan="10">No Leads found ❗❗❗</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pagination-container" style="margin-top: 20px;"></div>
+
+            </div>
+
+
+        </div>
+
+        <div id="lead-notes-tooltip" 
+     style="display:none; position:absolute; background:#fff; border:1px solid #ccc; 
+            padding:8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.15); 
+            max-width:300px; z-index:1000; font-size:14px;">
+</div>
+    </div>
+
+    <div id="lead-notes-tooltip" 
+     style="display:none; position:absolute; background:#fff; border:1px solid #ccc; 
+            padding:8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.15); 
+            max-width:300px; z-index:1000; font-size:14px; white-space:normal;">
+</div>
+<!-- <script>
+    // Function to populate tags dropdown
+function populateTagsFilter() {
+    fetch('/api/tags/')
+        .then(res => res.json())
+        .then(tags => {
+            console.log('Tags loaded:', tags); // Debug log
+            globalTagsOption = tags;
+            const tagsSelect = document.getElementById('tags-filter');
+            if (tagsSelect) {
+                // Clear existing options
+                tagsSelect.innerHTML = '<option value="">All Tags</option>';
+                
+                // Add tags as options
+                tags.forEach(tag => {
+                    const option = document.createElement('option');
+                    option.value = tag.id;
+                    option.textContent = tag.name;
+                    tagsSelect.appendChild(option);
+                });
+                
+                // Restore selected values from URL if any
+                const urlParams = new URLSearchParams(window.location.search);
+                const selectedTags = urlParams.get('tags');
+                if (selectedTags) {
+                    const tagIds = selectedTags.split(',');
+                    Array.from(tagsSelect.options).forEach(option => {
+                        if (tagIds.includes(option.value)) {
+                            option.selected = true;
+                        }
+                    });
+                }
+            } else {
+                console.error('Tags filter element not found');
+            }
+        })
+        .catch(err => console.error("Failed to fetch tags:", err));
+}
+
+// Function to handle tags filter change
+function setupTagsFilterListener() {
+    const tagsFilter = document.getElementById('tags-filter');
+    if (tagsFilter) {
+        tagsFilter.addEventListener('change', function() {
+            console.log('Tags filter changed'); // Debug log
+            const selectedTags = Array.from(this.selectedOptions)
+                .map(option => option.value)
+                .filter(v => v); // Remove empty values
+            
+            // Update filters object
+            if (selectedTags.length > 0) {
+                filters.tags = selectedTags;
+            } else {
+                delete filters.tags; // Remove from filters if nothing selected
+            }
+            
+            console.log('Updated filters:', filters); // Debug log
+            
+            // Fetch new data
+            fetchTableData(1);
+        });
+    } else {
+        console.error('Tags filter element not found for event listener');
+    }
+}
+// Initialize arrows when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing...'); // Debug log
+    
+    initializeSortFromURL();
+    
+    // Initialize tags filter - do this first
+    setTimeout(() => {
+        if (!isTagsFilterPopulated) {
+            populateTagsFilter();
+            isTagsFilterPopulated = true;
+        }
+        
+        // Setup tags filter listener after a small delay
+        setTimeout(() => {
+            setupTagsFilterListener();
+        }, 200);
+    }, 100);
+    
+    // Initialize other components
+    setTimeout(() => {
+        attachArrows();
+        fetchTableData(1);
+    }, 300);
+});
+
+</script> -->
+
+
+<!-- Lead Notes Tooltip -->
+<div id="lead-notes-tooltip" style="position: absolute; background: #333; color: white; padding: 8px 12px; border-radius: 4px; font-size: 12px; max-width: 300px; z-index: 1000; display: none; pointer-events: none;">
+</div>
+
+<script src="{% static 'js/lms.js' %}"></script>
+
+   
+</body>
+
+{% endblock %}

@@ -284,7 +284,7 @@ Hrms
                 <!-- EOD Summary Modal -->
                 <div id="eodSummaryModal" class="popup hidden">
                     <div class="popup-content" >
-                      <span id="closeEODModalBtn" style="cursor: pointer;">&times;</span>
+                      <span id="closeEODModalBtn" style="cursor: pointer; font-size: 24px; line-height: 1; padding: 4px 8px;" onclick="closeEODModal(event)">&times;</span>
                       <h2 id="eodSummaryModalTitle">Employee EOD Summary</h2>
                   
                       <!-- Tabs Navigation -->
@@ -2282,6 +2282,10 @@ function openEODSummary(userId) {
 }
 
 function closeEODModal() {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
     const modal = document.getElementById('eodSummaryModal');
     modal.classList.add('hidden');
     
@@ -4564,7 +4568,13 @@ function attachCalendarTooltips() {
         });
     });
 }
-   window.showDayDetails = function(dateStr, userId) {
+ window.showDayDetails = function(dateStr, userId) {
+    // Immediately show loading state in the EOD table
+    const tbody = document.getElementById('eodTableBody');
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #6D747A;">Loading selected date...</td></tr>';
+    }
+    
     // Switch to summaries tab
     const summariesTab = document.querySelector('[data-tab="summaries"]');
     if (summariesTab) {
@@ -4574,7 +4584,7 @@ function attachCalendarTooltips() {
     // Filter the EOD table to show only the selected date
     setTimeout(() => {
         filterEODByDate(userId, dateStr);
-    }, 100); // Small delay to ensure tab switch completes
+    }, 100); 
 };
 })();
 
@@ -5280,9 +5290,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const parent = element.closest('.notification-category');
             parent.classList.toggle('expanded');
         }
-        document.getElementById('closeEODModalBtn').addEventListener('click', function(e) {
+      document.getElementById('closeEODModalBtn').addEventListener('click', function(e) {
     e.preventDefault();
-    closeEODModal();
+    e.stopPropagation();
+    closeEODModal(e);
 });
         
 </script>

@@ -546,37 +546,6 @@ function escapeForAttribute(text) {
         .replace(/}/g, '&#125;');
 }
 
-function attachActionTooltipListeners() {
-    // Add listeners to action indicators
-    const actionIndicators = document.querySelectorAll('.action-indicator[data-action]');
-    
-    actionIndicators.forEach(indicator => {
-        const actionText = indicator.dataset.action;
-        
-        indicator.addEventListener('mouseenter', function(e) {
-            showActionTooltip(e, actionText);
-        });
-        
-        indicator.addEventListener('mouseleave', function(e) {
-            hideActionTooltip();
-        });
-    });
-    
-    // Add listeners to lead names with action items
-    const leadNames = document.querySelectorAll('.lead-name-span[data-action]');
-    
-    leadNames.forEach(nameSpan => {
-        const actionText = nameSpan.dataset.action;
-        
-        nameSpan.addEventListener('mouseenter', function(e) {
-            showActionTooltip(e, actionText);
-        });
-        
-        nameSpan.addEventListener('mouseleave', function(e) {
-            hideActionTooltip();
-        });
-    });
-}
 
         let isAssigneeFilterPopulated = false;
 
@@ -584,6 +553,14 @@ function attachActionTooltipListeners() {
 
 
 function renderTable(leads) {
+     leads.forEach((lead, i) => {
+        if (lead.action_item) {
+            console.log(`Lead ${i} action_item:`, lead.action_item);
+            // Verify escapeForAttribute works
+            const escaped = escapeForAttribute(lead.action_item);
+            console.log(`Escaped:`, escaped);
+        }
+    });
     const tbody = document.getElementById("lead-table-body");
     tbody.innerHTML = "";
     allLeads = leads;
@@ -618,16 +595,18 @@ function renderTable(leads) {
                     td.innerHTML = `<input type="checkbox" class="lead-checkbox" data-id="${lead.id}" data-imp="${lead.Mark_Imp}"/>`;
                     break;
                     
-                case 'client_name':
-                    const hasActionItem = lead.action_item && lead.action_item.trim() !== '';
-                    const safeActionItem = hasActionItem ? escapeForAttribute(lead.action_item) : '';
-                    
-                    const actionIndicatorHtml = hasActionItem ? 
-                        `<div class="action-indicator" 
-                             data-action="${safeActionItem}"
-                             style="cursor: pointer;">
-                            <div class="action-circle red"></div>
-                        </div>` : '<div class="action-indicator" style="width: 12px; height: 12px;"></div>';
+               case 'client_name':
+    const safeActionItem = escapeForAttribute(lead.action_item || '');
+    const hasActionItem = window.hasActiveActionItems ? 
+        window.hasActiveActionItems(lead.action_item) : 
+        (lead.action_item && lead.action_item.trim() !== '' && lead.action_item !== '[]');
+    
+    const actionIndicatorHtml = hasActionItem ? 
+        `<div class="action-indicator" 
+             data-action="${safeActionItem}"
+             style="cursor: pointer; display: flex;">
+            <div class="action-circle red"></div>
+        </div>` : '<div class="action-indicator" style="width: 12px; height: 12px; display: none;"></div>';
                     
                     td.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -714,138 +693,17 @@ function renderTable(leads) {
     updateSelectionCount();
     addCheckboxListeners();
     attachNoteHoverListeners();
-    attachActionTooltipListeners();
-}
 
-function attachActionTooltipListeners() {
-    console.log('Attaching action tooltip listeners');
-    
-    // Add listeners to action indicators
-    const actionIndicators = document.querySelectorAll('.action-indicator[data-action]');
-    console.log('Found action indicators:', actionIndicators.length);
-    
-    actionIndicators.forEach((indicator, index) => {
-        const actionText = indicator.dataset.action;
-        console.log(`Indicator ${index} action text:`, actionText);
-        
-        indicator.addEventListener('mouseenter', function(e) {
-            console.log('Mouse entered action indicator');
-            showActionTooltip(e, actionText);
-        });
-        
-        indicator.addEventListener('mouseleave', function(e) {
-            console.log('Mouse left action indicator');
-            hideActionTooltip();
-        });
-    });
-    
-    // Add listeners to lead names with action items
-    const leadNames = document.querySelectorAll('.lead-name-span[data-action]');
-    console.log('Found lead names with actions:', leadNames.length);
-    
-    leadNames.forEach((nameSpan, index) => {
-        const actionText = nameSpan.dataset.action;
-        console.log(`Lead name ${index} action text:`, actionText);
-        
-        nameSpan.addEventListener('mouseenter', function(e) {
-            console.log('Mouse entered lead name');
-            showActionTooltip(e, actionText);
-        });
-        
-        nameSpan.addEventListener('mouseleave', function(e) {
-            console.log('Mouse left lead name');
-            hideActionTooltip();
-        });
-    });
 }
 
 
-        // Action tooltip functions
-  function showActionTooltip(event, actionText) {
-    console.log('showActionTooltip called');
-    console.log('Action text:', actionText);
-    console.log('Event:', event);
-    
-    try {
-        let tooltip = document.getElementById('action-tooltip');
-        if (!tooltip) {
-            console.log('Creating new tooltip element');
-            tooltip = document.createElement('div');
-            tooltip.id = 'action-tooltip';
-            tooltip.style.cssText = `
-                display: none;
-                position: absolute;
-                background: white;
-                color: black;
-                padding: 8px 12px;
-                border-radius: 4px;
-                border: 1px solid #ccc;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-                font-size: 12px;
-                max-width: 300px;
-                z-index: 1000;
-                pointer-events: none;
-                white-space: normal;
-                word-wrap: break-word;
-            `;
-            document.body.appendChild(tooltip);
-        }
-        
-        tooltip.textContent = actionText;
-        tooltip.style.display = 'block';
-        tooltip.style.left = (event.pageX + 10) + 'px';
-        tooltip.style.top = (event.pageY - 30) + 'px';
-        
-        console.log('Tooltip displayed at:', tooltip.style.left, tooltip.style.top);
-    } catch (error) {
-        console.error('Error in showActionTooltip:', error);
-    }
-}
 
-       function hideActionTooltip() {
-    console.log('hideActionTooltip called');
-    try {
-        const tooltip = document.getElementById('action-tooltip');
-        if (tooltip) {
-            tooltip.style.display = 'none';
-            console.log('Tooltip hidden');
-        }
-    } catch (error) {
-        console.error('Error in hideActionTooltip:', error);
-    }
-}
 
-function attachActionTooltipListeners() {
-    // Add listeners to action indicators
-    const actionIndicators = document.querySelectorAll('.action-indicator[data-action]');
-    
-    actionIndicators.forEach(indicator => {
-        const actionText = indicator.dataset.action;
-        
-        indicator.addEventListener('mouseenter', function(e) {
-            showActionTooltip(e, actionText);
-        });
-        
-        indicator.addEventListener('mouseleave', function(e) {
-            hideActionTooltip();
-        });
-    });
-    
-    // Add listeners to lead names with action items
-    const leadNames = document.querySelectorAll('.lead-name-span[data-action]');
-    
-    leadNames.forEach(nameSpan => {
-        const actionText = nameSpan.dataset.action;
-        
-        nameSpan.addEventListener('mouseenter', function(e) {
-            showActionTooltip(e, actionText);
-        });
-        
-        nameSpan.addEventListener('mouseleave', function(e) {
-            hideActionTooltip();
-        });
-    });
-}
+
+
+
+
+
 
 
         function attachNoteHoverListeners() {
@@ -2591,70 +2449,71 @@ function attachActionTooltipListeners() {
         //         .catch(err => console.error("Failed to fetch leads:", err));
         // }
 
-        function renderJrbaLeadTable(leads) {
-            const tbody = document.getElementById("jrba-lead-table-body");
-            tbody.innerHTML = "";
+  function renderJrbaLeadTable(leads) {
+    const tbody = document.getElementById("jrba-lead-table-body");
+    tbody.innerHTML = "";
 
-            leads.forEach(lead => {
-                const statusText = workflowStatusMap[lead.workflow_status] || "-";
-                const originValue = originMap[lead.origin] || "-";
-                const style = getStatusStyle(statusText);
-                // const callStatusText = callStatusMap[lead.call_status] || "-";
-                // const callstyle = getCallStatusStyle(callStatusText);
-                const hasActionItem = lead.action_item && lead.action_item.trim() !== '';
-const safeActionItem = hasActionItem ? escapeForAttribute(lead.action_item) : '';
+    leads.forEach(lead => {
+        const statusText = workflowStatusMap[lead.workflow_status] || "-";
+        const originValue = originMap[lead.origin] || "-";
+        const style = getStatusStyle(statusText);
+        
+        // Use the new hasActiveActionItems helper
+        const safeActionItem = escapeForAttribute(lead.action_item || '');
+        const hasActionItem = window.hasActiveActionItems ? 
+            window.hasActiveActionItems(lead.action_item) : 
+            (lead.action_item && lead.action_item.trim() !== '' && lead.action_item !== '[]');
 
-                const row = document.createElement("tr");
-                row.style.borderBottom = "1px solid #00000033";
-                row.style.height = "40px";
-                row.style.backgroundColor = `${lead.Mark_Imp ? "#EBEBEB" : ""}`
+        const row = document.createElement("tr");
+        row.style.borderBottom = "1px solid #00000033";
+        row.style.height = "40px";
+        row.style.backgroundColor = `${lead.Mark_Imp ? "#EBEBEB" : ""}`;
 
-                row.innerHTML = `
-    <td><input type="checkbox" class="lead-checkbox" data-id="${lead.id}"/></td>
-    <td style="cursor: pointer;" onclick="window.location.href='/lms/lead/${lead.id}'">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            ${hasActionItem ? 
-                `<div class="action-indicator" 
-                     data-action="${safeActionItem}"
-                     style="cursor: pointer;">
-                    <div class="action-circle red"></div>
-                </div>` : 
-                `<div class="action-indicator" style="width: 12px; height: 12px;"></div>`
-            }
-            <span class="lead-name-span"
-                  ${hasActionItem ? `data-action="${safeActionItem}"` : ''}
-                  style="cursor: pointer;">
-                ${lead.full_name || ""}
-            </span>
-        </div>
-    </td>
-                                    <td>${originValue}</td>
-                                    <td data-status="${statusText}">
-                                        <div style="
-                                            background-color: ${style.bg};
-                                            color: ${style.color};
-                                            border-radius: 3px;
-                                            padding: 1px 4px;
-                                            width: fit-content;">${statusText}</div>
-                                    </td>
-                                    <td>${lead.lead_notes_count || "-"}</td>
-                                    <td>${lead.company_name || "-"}</td>
-                                    <td>${lead.contact_name || "-"}</td>
-                                    <td style="padding: 0px 8px;">${lead.emails?.join(", ") || "-"}</td>
-                                    <td>${lead.phones?.join(", ") || "-"}</td>
-                                    <td>${lead.assigned_to?.join(", ") || "-"}</td>
-                                    <td>${lead.created_at || "-"}</td>
-                                    <td>${lead.last_updated_note || "-"}</td>
-                                    <td>${lead.next_follow_up_date || "-"}</td>
-                                `;
-                tbody.appendChild(row);
-            });
+        row.innerHTML = `
+            <td><input type="checkbox" class="lead-checkbox" data-id="${lead.id}"/></td>
+            <td style="cursor: pointer;" onclick="window.location.href='/lms/lead/${lead.id}'">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    ${hasActionItem ? 
+                        `<div class="action-indicator" 
+                             data-action="${safeActionItem}"
+                             style="cursor: pointer; display: flex;">
+                            <div class="action-circle red"></div>
+                        </div>` : 
+                        `<div class="action-indicator" style="width: 12px; height: 12px; display: none;"></div>`
+                    }
+                    <span class="lead-name-span"
+                          ${hasActionItem ? `data-action="${safeActionItem}"` : ''}
+                          style="cursor: pointer;">
+                        ${lead.full_name || ""}
+                    </span>
+                </div>
+            </td>
+            <td>${originValue}</td>
+            <td data-status="${statusText}">
+                <div style="
+                    background-color: ${style.bg};
+                    color: ${style.color};
+                    border-radius: 3px;
+                    padding: 1px 4px;
+                    width: fit-content;">${statusText}</div>
+            </td>
+            <td>${lead.lead_notes_count || "-"}</td>
+            <td>${lead.company_name || "-"}</td>
+            <td>${lead.contact_name || "-"}</td>
+            <td style="padding: 0px 8px;">${lead.emails?.join(", ") || "-"}</td>
+            <td>${lead.phones?.join(", ") || "-"}</td>
+            <td>${lead.assigned_to?.join(", ") || "-"}</td>
+            <td>${lead.created_at || "-"}</td>
+            <td>${lead.last_updated_note || "-"}</td>
+            <td>${lead.next_follow_up_date || "-"}</td>
+        `;
+        tbody.appendChild(row);
+    });
 
-            // Update selection count and add listeners after rendering table
-            updateSelectionCount();
-            addCheckboxListeners();
-            attachActionTooltipListeners();
-        }
+    // Update selection count and add listeners after rendering table
+    updateSelectionCount();
+    addCheckboxListeners();
+}
 
 
 
@@ -2918,7 +2777,7 @@ const safeActionItem = hasActionItem ? escapeForAttribute(lead.action_item) : ''
                     const leads = currentCheckData[key] || [];
 
                     renderCheckLeadTable(leads);
-                    attachActionTooltipListeners();
+                
                 });
             });
         }
@@ -2956,82 +2815,83 @@ const safeActionItem = hasActionItem ? escapeForAttribute(lead.action_item) : ''
 
 
 
-        function renderCheckLeadTable(leads) {
-            const tbody = document.getElementById("check-lead-table-body");
-            const loaderRow = document.getElementById("loader-row");
-            const noDataRow = document.getElementById("no-data-row");
+     function renderCheckLeadTable(leads) {
+    const tbody = document.getElementById("check-lead-table-body");
+    const loaderRow = document.getElementById("loader-row");
+    const noDataRow = document.getElementById("no-data-row");
 
+    tbody.querySelectorAll("tr:not(#loader-row):not(#no-data-row)").forEach(tr => tr.remove());
 
-            tbody.querySelectorAll("tr:not(#loader-row):not(#no-data-row)").forEach(tr => tr.remove());
+    loaderRow.style.display = "none";
 
-            loaderRow.style.display = "none";
+    if (!leads || leads.length === 0) {
+        noDataRow.style.display = "table-row";
+        return;
+    } else {
+        noDataRow.style.display = "none";
+    }
 
-            if (!leads || leads.length === 0) {
-                noDataRow.style.display = "table-row";
-                return;
-            } else {
-                noDataRow.style.display = "none";
-            }
+    leads.forEach(lead => {
+        const statusText = workflowStatusMap[lead.workflow_status] || "-";
+        const originValue = originMap[lead.origin] || "-";
+        const style = getStatusStyle(statusText);
+        
+        // Use the new hasActiveActionItems helper
+        const safeActionItem = escapeForAttribute(lead.action_item || '');
+        const hasActionItem = window.hasActiveActionItems ? 
+            window.hasActiveActionItems(lead.action_item) : 
+            (lead.action_item && lead.action_item.trim() !== '' && lead.action_item !== '[]');
 
-            // console.log(currentCheckData);
+        const row = document.createElement("tr");
+        row.style.borderBottom = "1px solid #00000033";
+        row.style.height = "40px";
+        row.style.backgroundColor = `${lead.Mark_Imp ? "#EBEBEB" : ""}`;
+        
+        row.innerHTML = `
+            <td><input type="checkbox" class="lead-checkbox" data-id="${lead.id}"/></td>
+            <td style="cursor: pointer;" onclick="window.location.href='/lms/lead/${lead.id}'">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    ${hasActionItem ? 
+                        `<div class="action-indicator" 
+                             data-action="${safeActionItem}"
+                             style="cursor: pointer; display: flex;">
+                            <div class="action-circle red"></div>
+                        </div>` : 
+                        `<div class="action-indicator" style="width: 12px; height: 12px; display: none;"></div>`
+                    }
+                    <span class="lead-name-span"
+                          ${hasActionItem ? `data-action="${safeActionItem}"` : ''}
+                          style="cursor: pointer;">
+                        ${lead.full_name || ""}
+                    </span>
+                </div>
+            </td>
+            <td>${originValue}</td>
+            <td data-status="${statusText}">
+                <div style="
+                    background-color: ${style.bg};
+                    color: ${style.color};
+                    border-radius: 3px;
+                    padding: 1px 4px;
+                    width: fit-content;">${statusText}</div>
+            </td>
+            <td>${lead.lead_notes_count}</td>
+            <td>${lead.company_name || "-"}</td>
+            <td>${lead.contact_name || "-"}</td>
+            <td style="padding: 0px 8px;">${lead.emails?.join(", ") || "-"}</td>
+            <td>${lead.phones?.join(", ") || "-"}</td>
+            <td>${lead.assigned_to?.join(", ") || "-"}</td>
+            <td>${lead.created_at || "-"}</td>
+            <td>${lead.last_updated_note || "-"}</td>
+            <td>${lead.next_follow_up_date || "-"}</td>
+        `;
+        tbody.appendChild(row);
+    });
 
-            leads.forEach(lead => {
-                const statusText = workflowStatusMap[lead.workflow_status] || "-";
-                const originValue = originMap[lead.origin] || "-";
-                const style = getStatusStyle(statusText);
-                // const callStatusText = callStatusMap[lead.call_status] || "-";
-                // const callstyle = getCallStatusStyle(callStatusText);
-
-                const row = document.createElement("tr");
-                row.style.borderBottom = "1px solid #00000033";
-                row.style.height = "40px";
-                row.style.backgroundColor = `${lead.Mark_Imp ? "#EBEBEB" : ""}`
-                //  console.log(lead.id);
-              row.innerHTML = `
-    <td><input type="checkbox" class="lead-checkbox" data-id="${lead.id}"/></td>
-    <td style="cursor: pointer;" onclick="window.location.href='/lms/lead/${lead.id}'">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            ${hasActionItem ? 
-                `<div class="action-indicator" 
-                     data-action="${safeActionItem}"
-                     style="cursor: pointer;">
-                    <div class="action-circle red"></div>
-                </div>` : 
-                `<div class="action-indicator" style="width: 12px; height: 12px;"></div>`
-            }
-            <span class="lead-name-span"
-                  ${hasActionItem ? `data-action="${safeActionItem}"` : ''}
-                  style="cursor: pointer;">
-                ${lead.full_name || ""}
-            </span>
-        </div>
-    </td>
-                                    <td>${originValue}</td>
-                                    <td data-status="${statusText}">
-                                        <div style="
-                                            background-color: ${style.bg};
-                                            color: ${style.color};
-                                            border-radius: 3px;
-                                            padding: 1px 4px;
-                                            width: fit-content;">${statusText}</div>
-                                    </td>
-                                    <td>${lead.lead_notes_count}</td>
-                                    <td>${lead.company_name || "-"}</td>
-                                    <td>${lead.contact_name || "-"}</td>
-                                    <td style="padding: 0px 8px;">${lead.emails?.join(", ") || "-"}</td>
-                                    <td>${lead.phones?.join(", ") || "-"}</td>
-                                    <td>${lead.assigned_to?.join(", ") || "-"}</td>
-                                    <td>${lead.created_at || "-"}</td>
-                                    <td>${lead.last_updated_note || "-"}</td>
-                                    <td>${lead.next_follow_up_date || "-"}</td>
-                                `;
-                tbody.appendChild(row);
-            });
-
-            // Update selection count and add listeners after rendering table
-            updateSelectionCount();
-            addCheckboxListeners();
-        }
+    // Update selection count and add listeners after rendering table
+    updateSelectionCount();
+    addCheckboxListeners();
+}
 
         // Function to update selection count displays
         function updateSelectionCount() {
@@ -3481,3 +3341,382 @@ const safeActionItem = hasActionItem ? escapeForAttribute(lead.action_item) : ''
 
 
 
+// ============================================
+// NEW ACTION ITEM TOOLTIP SYSTEM
+// ============================================
+
+class ActionTooltip {
+    constructor() {
+        this.tooltip = null;
+        this.init();
+    }
+
+    init() {
+        this.tooltip = document.createElement('div');
+        this.tooltip.id = 'action-item-tooltip';
+        this.tooltip.className = 'action-tooltip';
+        
+        this.tooltip.style.cssText = `
+            position: fixed;
+            display: none;
+            background: #ffffff;
+            color: #2c3e50;
+            padding: 0;
+            border-radius: 8px;
+            font-size: 13px;
+            max-width: 400px;
+            z-index: 10000;
+            pointer-events: none;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border: 1px solid #e0e0e0;
+        `;
+        
+        document.body.appendChild(this.tooltip);
+    }
+
+    parseActionItems(rawText) {
+        if (!rawText || rawText.trim() === '') return [];
+        
+        try {
+            // Try to parse as JSON array
+            const parsed = JSON.parse(rawText);
+            if (Array.isArray(parsed)) {
+                // Filter out completed items (done: true)
+                return parsed.filter(item => !item.done);
+            }
+            return [];
+        } catch (e) {
+            // If not JSON, treat as plain text
+            return [{ text: rawText, done: false }];
+        }
+    }
+
+    formatActionItems(items) {
+        if (!items || items.length === 0) return null;
+        
+        // Create header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 14px;
+            font-weight: 600;
+            border-radius: 8px 8px 0 0;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        `;
+        header.textContent = `Action Items (${items.length})`;
+        
+        // Create items list
+        const list = document.createElement('div');
+        list.style.cssText = `
+            padding: 8px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        `;
+        
+        items.forEach((item, index) => {
+            const itemEl = document.createElement('div');
+            itemEl.style.cssText = `
+                padding: 10px 14px;
+                border-bottom: 1px solid #f0f0f0;
+                display: flex;
+                gap: 10px;
+                align-items: start;
+                transition: background 0.2s;
+            `;
+            
+            // Add hover effect
+            itemEl.onmouseenter = () => itemEl.style.background = '#f8f9fa';
+            itemEl.onmouseleave = () => itemEl.style.background = 'transparent';
+            
+            // Remove border from last item
+            if (index === items.length - 1) {
+                itemEl.style.borderBottom = 'none';
+            }
+            
+            // Bullet point
+            const bullet = document.createElement('div');
+            bullet.style.cssText = `
+                width: 6px;
+                height: 6px;
+                background: #667eea;
+                border-radius: 50%;
+                margin-top: 6px;
+                flex-shrink: 0;
+            `;
+            
+            // Text content
+            const text = document.createElement('div');
+            text.style.cssText = `
+                flex: 1;
+                line-height: 1.6;
+                color: #2c3e50;
+                word-wrap: break-word;
+            `;
+            text.textContent = item.text || item;
+            
+            itemEl.appendChild(bullet);
+            itemEl.appendChild(text);
+            list.appendChild(itemEl);
+        });
+        
+        const container = document.createElement('div');
+        container.appendChild(header);
+        container.appendChild(list);
+        
+        return container;
+    }
+
+    show(element, rawText) {
+        if (!rawText || rawText.trim() === '') {
+            this.hide();
+            return;
+        }
+        
+        // Parse and filter action items
+        const items = this.parseActionItems(rawText);
+        
+        if (items.length === 0) {
+            this.hide();
+            return;
+        }
+        
+        // Clear and rebuild tooltip content
+        this.tooltip.innerHTML = '';
+        const content = this.formatActionItems(items);
+        
+        if (!content) {
+            this.hide();
+            return;
+        }
+        
+        this.tooltip.appendChild(content);
+        
+        // Add arrow
+        const arrow = document.createElement('div');
+        arrow.className = 'tooltip-arrow';
+        arrow.style.cssText = `
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid #667eea;
+            top: -10px;
+            left: 20px;
+        `;
+        this.tooltip.appendChild(arrow);
+        
+        this.tooltip.style.display = 'block';
+        this.position(element);
+    }
+
+    position(element) {
+        const rect = element.getBoundingClientRect();
+        const tooltipRect = this.tooltip.getBoundingClientRect();
+        
+        let left = rect.left;
+        let top = rect.bottom + 12;
+        
+        // Adjust if tooltip goes off screen (right side)
+        if (left + tooltipRect.width > window.innerWidth - 10) {
+            left = window.innerWidth - tooltipRect.width - 10;
+        }
+        
+        // Adjust if tooltip goes off screen (left side)
+        if (left < 10) {
+            left = 10;
+        }
+        
+        // Adjust arrow position based on element position
+        const arrow = this.tooltip.querySelector('.tooltip-arrow');
+        if (arrow) {
+            const arrowLeft = Math.max(10, Math.min(rect.left - left + (rect.width / 2) - 10, tooltipRect.width - 30));
+            arrow.style.left = arrowLeft + 'px';
+        }
+        
+        // If tooltip goes off bottom of screen, show above instead
+        if (top + tooltipRect.height > window.innerHeight - 10) {
+            top = rect.top - tooltipRect.height - 12;
+            
+            if (arrow) {
+                arrow.style.cssText = `
+                    position: absolute;
+                    width: 0;
+                    height: 0;
+                    border-left: 10px solid transparent;
+                    border-right: 10px solid transparent;
+                    border-top: 10px solid #ffffff;
+                    bottom: -10px;
+                    top: auto;
+                    left: ${arrow.style.left};
+                `;
+            }
+        }
+        
+        this.tooltip.style.left = left + 'px';
+        this.tooltip.style.top = top + 'px';
+    }
+
+    hide() {
+        this.tooltip.style.display = 'none';
+    }
+
+    destroy() {
+        if (this.tooltip && this.tooltip.parentNode) {
+            this.tooltip.parentNode.removeChild(this.tooltip);
+        }
+    }
+}
+
+// ============================================
+// TOOLTIP MANAGER
+// ============================================
+
+class TooltipManager {
+    constructor() {
+        this.tooltip = new ActionTooltip();
+        this.activeElement = null;
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        document.addEventListener('mouseover', (e) => {
+            const actionIndicator = e.target.closest('.action-indicator[data-action]');
+            const leadName = e.target.closest('.lead-name-span[data-action]');
+            
+            const targetElement = actionIndicator || leadName;
+            
+            if (targetElement) {
+                const actionText = targetElement.dataset.action;
+                if (actionText) {
+                    this.activeElement = targetElement;
+                    this.tooltip.show(targetElement, actionText);
+                }
+            }
+        });
+        
+        document.addEventListener('mouseout', (e) => {
+            const actionIndicator = e.target.closest('.action-indicator[data-action]');
+            const leadName = e.target.closest('.lead-name-span[data-action]');
+            
+            if (actionIndicator || leadName) {
+                this.activeElement = null;
+                this.tooltip.hide();
+            }
+        });
+        
+        document.addEventListener('scroll', () => {
+            if (this.activeElement) {
+                this.tooltip.hide();
+                this.activeElement = null;
+            }
+        }, true);
+    }
+
+    destroy() {
+        this.tooltip.destroy();
+    }
+}
+
+// ============================================
+// HELPER: Update Action Indicator Visibility
+// ============================================
+
+function updateActionIndicatorVisibility(element, rawActionText) {
+    if (!element) return;
+    
+    // Check if rawActionText is empty, null, or whitespace
+    if (!rawActionText || rawActionText.trim() === '') {
+        element.style.display = 'none';
+        return;
+    }
+    
+    try {
+        const parsed = JSON.parse(rawActionText);
+        
+        // Check if it's an array
+        if (Array.isArray(parsed)) {
+            // If empty array, hide indicator
+            if (parsed.length === 0) {
+                element.style.display = 'none';
+                return;
+            }
+            
+            // Filter out completed tasks
+            const activeTasks = parsed.filter(item => !item.done);
+            
+            // If no active tasks, hide the indicator
+            if (activeTasks.length === 0) {
+                element.style.display = 'none';
+            } else {
+                element.style.display = 'flex';
+            }
+        } else {
+            // Not an array, hide it
+            element.style.display = 'none';
+        }
+    } catch (e) {
+        // If JSON parse fails, treat as plain text
+        if (rawActionText && rawActionText.trim() !== '' && rawActionText !== '[]') {
+            element.style.display = 'flex';
+        } else {
+            element.style.display = 'none';
+        }
+    }
+}
+
+// ============================================
+// HELPER: Check if Lead Has Active Actions
+// ============================================
+
+function hasActiveActionItems(rawActionText) {
+    if (!rawActionText || rawActionText.trim() === '' || rawActionText === '[]') {
+        return false;
+    }
+    
+    try {
+        const parsed = JSON.parse(rawActionText);
+        if (Array.isArray(parsed)) {
+            const activeTasks = parsed.filter(item => !item.done);
+            return activeTasks.length > 0;
+        }
+        return false;
+    } catch (e) {
+        return rawActionText.trim() !== '';
+    }
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+let actionTooltipManager = null;
+
+function initActionTooltips() {
+    if (actionTooltipManager) {
+        actionTooltipManager.destroy();
+    }
+    
+    actionTooltipManager = new TooltipManager();
+    
+    // Update visibility of all action indicators
+    document.querySelectorAll('.action-indicator[data-action]').forEach(indicator => {
+        const actionText = indicator.dataset.action;
+        updateActionIndicatorVisibility(indicator, actionText);
+    });
+    
+    console.log('✓ Action tooltip system initialized');
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initActionTooltips);
+} else {
+    initActionTooltips();
+}
+
+window.initActionTooltips = initActionTooltips;
+window.updateActionIndicatorVisibility = updateActionIndicatorVisibility;
+window.hasActiveActionItems = hasActiveActionItems;

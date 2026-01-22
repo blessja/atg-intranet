@@ -3498,13 +3498,14 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
                 z-index: 10000;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.2);
                 border: 1px solid #D9D9D9;
-                pointer-events: none;
+                pointer-events: auto;
                 font-weight: 500;
                 max-width: 280px;
                 max-height: 200px;
                 overflow-y: auto;
                 word-wrap: break-word;
                 overflow-wrap: break-word;
+                transition: visibility 0s, opacity 0.2s ease;
             ">
                 ${statusText} - Day ${day}
             </div>
@@ -3513,7 +3514,11 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
         const calendarDay = dateBox.querySelector('.calendar-day');
         const tooltip = dateBox.querySelector('.calendar-tooltip');
 
-        calendarDay.addEventListener('mouseenter', () => {
+        let hideTimeout;
+
+        function showTooltip() {
+            clearTimeout(hideTimeout);
+            
             if (leaveSubject) {
                 tooltip.innerHTML = `<strong>On Leave</strong><br>${leaveSubject}`;
                 tooltip.style.whiteSpace = 'normal';
@@ -3522,7 +3527,6 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
                 let tooltipContent = '';
                 
                 eodTextData.forEach((eod, index) => {
-                    // TRUNCATE LONG TEXT TO PREVENT OVERFLOW
                     const truncatedText = eod.text.length > 150 
                         ? eod.text.substring(0, 150) + '...' 
                         : eod.text;
@@ -3553,12 +3557,26 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
 
             tooltip.style.visibility = 'visible';
             tooltip.style.opacity = '1';
+        }
+
+        function hideTooltip() {
+            hideTimeout = setTimeout(() => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+            }, 200); // Small delay to allow moving to tooltip
+        }
+
+        // Show tooltip when hovering over the day
+        calendarDay.addEventListener('mouseenter', showTooltip);
+        calendarDay.addEventListener('mouseleave', hideTooltip);
+
+        // Keep tooltip visible when hovering over it
+        tooltip.addEventListener('mouseenter', () => {
+            clearTimeout(hideTimeout);
         });
 
-        calendarDay.addEventListener('mouseleave', () => {
-            tooltip.style.visibility = 'hidden';
-            tooltip.style.opacity = '0';
-        });
+        // Hide tooltip when leaving the tooltip area
+        tooltip.addEventListener('mouseleave', hideTooltip);
 
         dateContainer.appendChild(dateBox);
     }
@@ -4546,12 +4564,14 @@ function attachCalendarTooltips() {
         
         if (!day || !tooltip) return;
         
-        day.addEventListener('mouseenter', () => {
-            // Check if tooltip has detailed project info (multi-line with project names)
+        let hideTimeout;
+
+        function showTooltip() {
+            clearTimeout(hideTimeout);
+            
             const tooltipContent = tooltip.textContent;
             
             if (tooltipContent.includes(':') && tooltipContent.split('\n').length > 1) {
-                // Has project details - format nicely with fixed width
                 tooltip.style.whiteSpace = 'pre-wrap';
                 tooltip.style.maxWidth = '280px';
                 tooltip.style.maxHeight = '200px';
@@ -4563,7 +4583,6 @@ function attachCalendarTooltips() {
                 tooltip.style.fontSize = '11px'; 
                 tooltip.style.lineHeight = '1.4';
             } else {
-                // Simple message - keep it compact
                 tooltip.style.whiteSpace = 'nowrap';
                 tooltip.style.maxWidth = 'max-content';
                 tooltip.style.maxHeight = '60px';
@@ -4572,20 +4591,33 @@ function attachCalendarTooltips() {
             
             tooltip.style.visibility = 'visible';
             tooltip.style.opacity = '1';
-            tooltip.style.transition = 'opacity 0.2s ease';
+            tooltip.style.pointerEvents = 'auto'; // Enable pointer events
             day.style.transform = 'scale(1.05)';
             day.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+        }
+
+        function hideTooltip() {
+            hideTimeout = setTimeout(() => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                day.style.transform = 'scale(1)';
+                day.style.boxShadow = 'none';
+            }, 200);
+        }
+
+        day.addEventListener('mouseenter', showTooltip);
+        day.addEventListener('mouseleave', hideTooltip);
+        
+        // Keep tooltip visible when hovering over it
+        tooltip.addEventListener('mouseenter', () => {
+            clearTimeout(hideTimeout);
         });
         
-        day.addEventListener('mouseleave', () => {
-            tooltip.style.visibility = 'hidden';
-            tooltip.style.opacity = '0';
-            tooltip.style.transition = 'opacity 0.2s ease, visibility 0s 0.2s';
-            day.style.transform = 'scale(1)';
-            day.style.boxShadow = 'none';
-        });
+        tooltip.addEventListener('mouseleave', hideTooltip);
     });
 }
+
+
  window.showDayDetails = function(dateStr, userId) {
     // Immediately show loading state in the EOD table
     const tbody = document.getElementById('eodTableBody');

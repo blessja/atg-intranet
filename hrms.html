@@ -2281,6 +2281,8 @@ function openEODSummary(userId) {
     fetchAndRenderEOD(userId, 'last_7_days');
 }
 
+
+
 function closeEODModal() {
     if (event) {
         event.preventDefault();
@@ -2290,7 +2292,7 @@ function closeEODModal() {
     modal.classList.add('hidden');
     
     // Restore body scroll
-    preventBodyScroll(false);
+    document.body.style.overflow = "";
 }
 
 
@@ -2884,7 +2886,6 @@ function renderEmployeeData(tbody, data, departmentId = 'default') {
             case 'On Bench':
                 nameBadgeBg = '#EBEDF0';
                 nameBadgeColor = '#08090A';
-                rowBg = '#EBEDF0';
                 break;
             default:
                 nameBadgeBg = '';
@@ -3225,10 +3226,27 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
                 </div>
             </td>
              <td style="width: 167px; padding: 16px 8px; background: ${rowBg};">
-                ${employee.remark !== null && employee.remark !== undefined || employee.status === 'On Bench' ? `
-                    <textarea class="remarks-field" data-user-id="${employee.user_id}" style="width: 100%; max-width: 150px; border: 1px solid #CED4DA; border-radius: 2px; padding: 8px; outline: none; color: ${employee.remark ? '#08090A' : '#6D747A'}; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px; resize: vertical; min-height: 60px; box-sizing: border-box;" placeholder="Add remarks...">${employee.remark || ''}</textarea>
-                ` : '<div style="height: 33px; border: 1px solid #EBEDF0;"></div>'}
-            </td>
+    <textarea 
+        class="remarks-field" 
+        data-user-id="${employee.user_id}" 
+        style="
+            width: 100%; 
+            max-width: 150px; 
+            border: 1px solid #CED4DA; 
+            border-radius: 2px; 
+            padding: 8px; 
+            outline: none; 
+            color: ${employee.remark ? '#08090A' : '#6D747A'}; 
+            font-size: 16px; 
+            font-family: Roboto; 
+            line-height: 24px; 
+            letter-spacing: 0.08px; 
+            resize: vertical; 
+            min-height: 60px; 
+            box-sizing: border-box;
+        " 
+        placeholder="Add remarks...">${employee.remark || ''}</textarea>
+</td>
             <td style="width: 48px; padding: 16px 8px; background: ${rowBg}; text-align: center;">
                 <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;">${bountyInfo.allocated_bounties || 0}</div>
             </td>
@@ -5295,6 +5313,48 @@ document.addEventListener('DOMContentLoaded', function() {
     e.stopPropagation();
     closeEODModal(e);
 });
+function applyBcFilter(elem) {
+  const days = elem.dataset.days;
+  const label = document.querySelector('.bc-duration-label');
+  if (label) label.innerText = `BC (${days} d)`;
+  const dropdown = elem.closest('.bc-duration-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
+
+  // Try server fetch
+  fetch(`/api/team/?bc_days=${days}`, { method: 'GET', credentials: 'include' })
+    .then(res => {
+      if (!res.ok) throw new Error('no-server');
+      return res.json();
+    })
+    .then(data => {
+      if (data.html) {
+        document.querySelector('.team-dash .table-container tbody').innerHTML = data.html;
+      } else if (Array.isArray(data.users)) {
+        const tbody = document.querySelector('.team-dash .table-container tbody');
+        tbody.innerHTML = '';
+        data.users.forEach(user => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${user.name}</td>
+            <td class="bc-cell" id="bc-${user.id}" data-last-active="${user.last_active_iso}">${user.bc_display}d</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    })
+    .catch(_err => {
+      // Fallback: client update (requires data-last-active on each cell)
+      const cells = document.querySelectorAll('.bc-cell');
+      const today = new Date();
+      cells.forEach(cell => {
+        const lastActiveIso = cell.dataset.lastActive || cell.dataset.lastActiveIso || cell.dataset.lastActiveDate;
+        if (!lastActiveIso) return;
+        const diffDays = Math.floor((today - new Date(lastActiveIso)) / (1000*60*60*24));
+        cell.innerText = `${diffDays}d`;
+      });
+    });
+}
+
         
 </script>
 {% endblock %}

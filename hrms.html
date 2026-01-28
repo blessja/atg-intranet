@@ -2420,6 +2420,60 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+function attachTabClickHandlers() {
+    document.querySelectorAll('.eod-tab-btn').forEach(btn => {
+        // Remove existing listeners
+        btn.replaceWith(btn.cloneNode(true));
+    });
+    
+    // Reattach with new logic
+    document.querySelectorAll('.eod-tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // Remove active class from all tabs and contents
+            document.querySelectorAll('.eod-tab-btn').forEach(b => {
+                b.classList.remove('active');
+                b.style.color = '#6D747A';
+                b.style.borderBottomColor = 'transparent';
+            });
+            document.querySelectorAll('.eod-tab-content').forEach(c => {
+                c.classList.remove('active');
+                c.style.display = 'none';
+            });
+            
+            // Add active class to clicked tab
+            this.classList.add('active');
+            this.style.color = '#504CF5';
+            this.style.borderBottomColor = '#504CF5';
+            
+            // Show corresponding content
+            const targetContent = document.querySelector(`[data-content="${targetTab}"]`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+                targetContent.style.display = 'block';
+                
+                // Only load content for bounties and summaries if NOT already filtered by date
+                if (targetTab === 'bounties' && currentEODUserId) {
+                    const filterValue = document.getElementById('bountiesFilter').value;
+                    loadBountiesData(currentEODUserId, filterValue);
+                } else if (targetTab === 'summaries' && currentEODUserId) {
+                    // Check if we're viewing a specific date - if so, don't reload
+                    const tbody = document.getElementById('eodTableBody');
+                    const firstRow = tbody?.querySelector('tr');
+                    const isFilteredView = firstRow && !firstRow.querySelector('td[colspan]');
+                    
+                    // Only reload if not already showing filtered data
+                    if (!isFilteredView || tbody.querySelectorAll('tr').length === 0) {
+                        const filterValue = document.getElementById('dateFilter').value;
+                        fetchAndRenderEOD(currentEODUserId, filterValue);
+                    }
+                }
+            }
+        });
+    });
+}
+
 // Bounties Filter Change
 document.addEventListener('DOMContentLoaded', function() {
     const bountiesFilter = document.getElementById('bountiesFilter');
@@ -2551,10 +2605,19 @@ async function loadBountiesData(userId, filterValue = 'last_7_days') {
     }
 }
 
-document.getElementById('dateFilter').addEventListener('change', () => {
-  const filterValue = document.getElementById('dateFilter').value;
-  fetchAndRenderEOD(currentEODUserId, filterValue);
-});
+const dateFilter = document.getElementById('dateFilter');
+if (dateFilter) {
+    dateFilter.addEventListener('change', () => {
+        window.currentFilteredDate = null; // Clear any date-specific filter
+        const filterValue = dateFilter.value;
+        if (currentEODUserId) {
+            fetchAndRenderEOD(currentEODUserId, filterValue);
+        }
+    });
+}
+
+// Initialize tab handlers
+attachTabClickHandlers();
 
 async function fetchAndRenderEOD(userId, filterValue) {
   const tbody = document.getElementById('eodTableBody');
@@ -4619,22 +4682,42 @@ function attachCalendarTooltips() {
 
 
  window.showDayDetails = function(dateStr, userId) {
+    // Store the selected date globally so we can maintain the filter
+    window.currentFilteredDate = dateStr;
+    
     // Immediately show loading state in the EOD table
     const tbody = document.getElementById('eodTableBody');
     if (tbody) {
         tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #6D747A;">Loading selected date...</td></tr>';
     }
     
-    // Switch to summaries tab
+    // Switch to summaries tab WITHOUT triggering the regular tab click handler
+    document.querySelectorAll('.eod-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.color = '#6D747A';
+        btn.style.borderBottomColor = 'transparent';
+    });
+    document.querySelectorAll('.eod-tab-content').forEach(content => {
+        content.classList.remove('active');
+        content.style.display = 'none';
+    });
+    
     const summariesTab = document.querySelector('[data-tab="summaries"]');
+    const summariesContent = document.querySelector('[data-content="summaries"]');
+    
     if (summariesTab) {
-        summariesTab.click();
+        summariesTab.classList.add('active');
+        summariesTab.style.color = '#504CF5';
+        summariesTab.style.borderBottomColor = '#504CF5';
+    }
+    
+    if (summariesContent) {
+        summariesContent.classList.add('active');
+        summariesContent.style.display = 'block';
     }
     
     // Filter the EOD table to show only the selected date
-    setTimeout(() => {
-        filterEODByDate(userId, dateStr);
-    }, 100); 
+    filterEODByDate(userId, dateStr);
 };
 })();
 
@@ -4666,12 +4749,26 @@ async function filterEODByDate(userId, dateStr) {
         // Filter data to only show the selected date
         const dateEntries = data.filter(item => item.date === dateStr);
         
-        if (dateEntries.length === 0) {
+       if (dateEntries.length === 0) {
             tbody.innerHTML = `
                 <tr style="border-bottom: 1px solid #EBEDF0;">
                     <td style="padding: 16px 12px; color: #08090A; font-weight: 500; font-size: 14px; vertical-align: top; border-right: 1px solid #EBEDF0;">${dateStr}</td>
                     <td style="padding: 16px 12px; color: #6D747A; font-size: 14px; text-align: center; vertical-align: top; border-right: 1px solid #EBEDF0;">-</td>
                     <td style="padding: 16px 12px; color: #6D747A; font-style: italic; font-size: 14px; vertical-align: top;">No EOD submitted for this date</td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="text-align: center; padding: 16px;">
+                        <button onclick="clearDateFilter(${userId})" style="
+                            padding: 8px 16px;
+                            background: #504CF5;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 14px;
+                            font-weight: 500;
+                        ">← Back to All Dates</button>
+                    </td>
                 </tr>
             `;
         } else {
@@ -4748,20 +4845,16 @@ async function filterEODByDate(userId, dateStr) {
         tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #E44A69; font-size: 14px;">Error loading data. Please try again.</td></tr>';
     }
 }
+// New function to clear the date filter and show all dates
+window.clearDateFilter = function(userId) {
+    window.currentFilteredDate = null;
+    const filterValue = document.getElementById('dateFilter').value;
+    fetchAndRenderEOD(userId, filterValue);
+};
 
 window.showAllEODForMonth = function(userId, monthName, year) {
-    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june',
-                      'july', 'august', 'september', 'october', 'november', 'december'];
-    const monthIndex = monthNames.indexOf(monthName.toLowerCase());
-    
-    // Update the date filter dropdown to match
-    const dateFilter = document.getElementById('dateFilter');
-    if (dateFilter) {
-        dateFilter.value = monthName.toLowerCase();
-    }
-    
-    // Fetch and render all EOD for this month
-    fetchAndRenderEOD(userId, monthName.toLowerCase());
+    // Just call the new clearDateFilter function
+    window.clearDateFilter(userId);
 };
 
 

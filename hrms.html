@@ -598,32 +598,32 @@ Hrms
 
 <script>
 
-   function applyBCColumnUpdates(departmentEl, bcData) {
-  bcData.forEach(user => {
-    const row = departmentEl.querySelector(`[data-user-id="${user.id}"]`);
-    if (!row) return;
+    function updateCircleColors(upvotes, downvotes, greenCircleId, redCircleId) {
+        const greenCircle = document.querySelector('.'+greenCircleId);
+        const redCircle = document.querySelector('.'+redCircleId);
 
-    const circle = row.querySelector('.bc-circle');
-    const text = row.querySelector('.bc-text');
+        const totalVotes = upvotes + downvotes;
 
-    if (!circle || !text) return;
+        // Avoid division by zero
+        if (totalVotes === 0) {
+            // Set default light colors for both circles if no votes
+            greenCircle.style.backgroundColor = 'hsl(120, 100%, 90%)'; // Light green
+            redCircle.style.backgroundColor = 'hsl(0, 100%, 90%)'; // Light red
+            return;
+        }
 
-    // Update values
-    text.textContent = `${user.completed}/${user.allocated}`;
+        // Calculate proportional intensity of votes
+        const greenProportion = upvotes / totalVotes;
+        const redProportion = downvotes / totalVotes;
 
-    // Update color
-    circle.classList.remove('green', 'orange', 'red');
+        // Map proportions to lightness (90% to 30% range)
+        const lightnessGreen = 90 - greenProportion * 60;
+        const lightnessRed = 90 - redProportion * 60;
 
-    if (user.completed >= user.allocated) {
-      circle.classList.add('green');
-    } else if (user.completed > 0) {
-      circle.classList.add('orange');
-    } else {
-      circle.classList.add('red');
+        // Set colors dynamically using HSL
+        greenCircle.style.backgroundColor = `hsl(120, 100%, ${lightnessGreen}%)`;
+        redCircle.style.backgroundColor = `hsl(0, 100%, ${lightnessRed}%)`;
     }
-  });
-}
-
 
 
     function toggleSelectedTable(activeSection, toggleIcon){
@@ -897,24 +897,6 @@ document.addEventListener('click', (event) => {
         saveTechnicalStack();
     }
 });
-
-document.addEventListener('click', e => {
-  const option = e.target.closest('.bc-duration-option');
-  if (!option) return;
-
-  const departmentId = option.dataset.departmentId;
-  const duration = Number(option.dataset.duration);
-
-  // Update label instantly
-  const label = document.querySelector(`#bc-label-${departmentId}`);
-  if (label) {
-    label.textContent = `BC (${duration} d)`;
-  }
-
-  // Apply BC change instantly
-  reloadDepartmentWithDuration({ departmentId, duration });
-});
-
 
 document.addEventListener('keydown', handleEnterKey);
 
@@ -1635,70 +1617,39 @@ function toggleBCDropdown(headerElement, event) {
 
 // Handle duration option selection with event delegation
 function attachBCDropdownHandlers() {
-    // Remove any existing listeners to prevent duplicates
-    const existingHandler = document.querySelector('[data-bc-handler="true"]');
-    if (existingHandler) return;
-    
-    // Mark that we've attached the handler
-    document.body.setAttribute('data-bc-handler', 'true');
-    
     // Use event delegation on the document to catch clicks on dynamically added elements
     document.addEventListener('click', function(e) {
         // Check if clicked element is a duration option
         if (e.target.classList.contains('duration-option')) {
-    e.stopPropagation();
-    
-    console.log('🖱️ Duration option clicked!');
-    
-    const days = parseInt(e.target.getAttribute('data-days'));
-    console.log('📅 Selected duration:', days, 'days');
-    
-    const deptSection = e.target.closest('.dept-section');
-    if (!deptSection) {
-        console.error('❌ Could not find dept-section');
-        return;
-    }
-    
-    const departmentId = deptSection.querySelector('.toggle-icon')?.id;
-    console.log('🏢 Department ID:', departmentId);
-    
-    if (!departmentId) {
-        console.error('❌ Could not find department ID');
-        return;
-    }
-    
-    // Update label
-    const label = e.target.closest('th').querySelector('.bc-duration-label');
-    if (label) {
-        const oldLabel = label.textContent;
-        label.textContent = `BC (${days} d)`;
-        console.log('🏷️ Label updated:', oldLabel, '→', label.textContent);
-    } else {
-        console.error('❌ Could not find label element');
-    }
+            e.stopPropagation();
+            
+            const days = parseInt(e.target.getAttribute('data-days'));
+            const deptSection = e.target.closest('.dept-section');
+            const departmentId = deptSection?.querySelector('.toggle-icon')?.id;
+            
+            // Update label
+            const label = e.target.closest('th').querySelector('.bc-duration-label');
+            label.textContent = `BC (${days} d)`;
             
             // Update active state
-            const dropdown = e.target.closest('.bc-duration-dropdown');
-            dropdown.querySelectorAll('.duration-option').forEach(opt => {
+            e.target.closest('.bc-duration-dropdown').querySelectorAll('.duration-option').forEach(opt => {
                 opt.classList.remove('active');
                 opt.style.background = '';
             });
             e.target.classList.add('active');
             e.target.style.background = '#F2F4FF';
             
-            // Store current duration globally
+            // Store current duration
             currentBCDuration = days;
             
             // Close dropdown
-            dropdown.style.display = 'none';
-            const arrow = e.target.closest('th').querySelector('.bc-dropdown-arrow');
-            if (arrow) {
-                arrow.style.transform = 'rotate(0deg)';
-            }
+            e.target.closest('.bc-duration-dropdown').style.display = 'none';
+            e.target.closest('th').querySelector('.bc-dropdown-arrow').style.transform = 'rotate(0deg)';
             
             // Reload employee data with new duration
-            console.log('🔄 Initiating reload...');
-            reloadDepartmentWithDuration(departmentId, days);
+            if (departmentId) {
+                reloadDepartmentWithDuration(departmentId, days);
+            }
         }
     });
     
@@ -1732,31 +1683,48 @@ document.addEventListener('click', function(e) {
 });
 
 // Function to reload department data with new duration
-async function reloadDepartmentWithDuration({ departmentId, duration }) {
-  console.log('🔄 reloadDepartmentWithDuration called:', { departmentId, duration });
-
-  // Always prefix IDs
-  const departmentEl = document.querySelector(`#department-${departmentId}`);
-  if (!departmentEl) {
-    console.warn('⚠️ Department element not found:', departmentId);
-    return;
-  }
-
-  try {
-    // 1️⃣ Fetch updated BC data only (no full table reload)
-    const response = await fetch(`/api/departments/${departmentId}/bc/?duration=${duration}`);
-    if (!response.ok) throw new Error('Failed to fetch BC data');
-
-    const bcData = await response.json();
-
-    // 2️⃣ Apply BC updates directly
-    applyBCColumnUpdates(departmentEl, bcData);
-
-  } catch (err) {
-    console.error('❌ BC reload failed:', err);
-  }
+function reloadDepartmentWithDuration(departmentId, duration) {
+    const tbody = document.querySelector(`#${departmentId}`).closest('.dept-section').querySelector('tbody');
+    
+    // Show loading
+    tbody.innerHTML = `<tr>
+        <td colspan="8" style="text-align: center;">
+            <div class="loading-spinner"></div>
+        </td>
+    </tr>`;
+    
+    // Create cache key with new duration
+    const cacheKey = `${departmentId}_${duration}`;
+    
+    // Check cache first
+    if (employeeDataCache.has(cacheKey)) {
+        const data = employeeDataCache.get(cacheKey);
+        renderEmployeeData(tbody, data, departmentId);
+        return;
+    }
+    
+    // Fetch data with new duration
+    fetch(`/api/department/${departmentId}/employees/?duration=${duration}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Cache the fetched data
+            employeeDataCache.set(cacheKey, data);
+            renderEmployeeData(tbody, data, departmentId);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            tbody.innerHTML = `<tr>
+                <td colspan="8" style="text-align: center;">
+                    Error loading data
+                </td>
+            </tr>`;
+        });
 }
-
 
     //populate project finance 
 
@@ -3080,12 +3048,6 @@ function renderEmployeeData(tbody, data, departmentId = 'default') {
             allocated_bounties: 0,
             completed_bounties: 0
         };
-
-        console.log(`📊 Rendering BC for ${employee.first_name}:`, {
-    allocated: bountyInfo.allocated_bounties,
-    completed: bountyInfo.completed_bounties,
-    raw: employee.bounty_info
-});
 
         // Format dates for tooltips
         const joiningDate = formatDateForTooltip(employee.start_date);

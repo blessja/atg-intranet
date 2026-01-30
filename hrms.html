@@ -4245,23 +4245,26 @@ dropdown.querySelectorAll('.skill-option').forEach(option => {
 
 
     // Close dropdowns when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.skill-level-dropdown')) {
-            document.querySelectorAll('.skill-dropdown-menu').forEach(menu => {
-                menu.style.display = 'none';
-            });
-            
-            // Reset all chevrons (not skill icons!)
-            document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
-                const outerContainer = dropdown.querySelector('div[style*="border: 1px solid #9B99F3"]');
-                const chevron = outerContainer?.querySelector('svg:not(.skill-badge svg)');
-                if (chevron) {
-                    chevron.style.transform = 'rotate(-180deg)';
-                }
-            });
-        }
+   document.removeEventListener('click', handleSkillDropdownClose);
+document.addEventListener('click', handleSkillDropdownClose);
+
+    
     });
-    });
+    function handleSkillDropdownClose(e) {
+    if (!e.target.closest('.skill-level-dropdown')) {
+        document.querySelectorAll('.skill-dropdown-menu').forEach(menu => {
+            menu.style.display = 'none';
+        });
+        
+        document.querySelectorAll('.skill-level-dropdown').forEach(dropdown => {
+            const outerContainer = dropdown.querySelector('div[style*="border: 1px solid #9B99F3"]');
+            const chevron = outerContainer?.querySelector('svg:not(.skill-badge svg)');
+            if (chevron) {
+                chevron.style.transform = 'rotate(-180deg)';
+            }
+        });
+    }
+}
 }
 
 function updateSkillBadgeUI(badge, skill, updatedAt) {
@@ -5335,37 +5338,75 @@ document.addEventListener('DOMContentLoaded', function() {
         
         
         
-        function confirmSnooze(notifId) {
-            const dropdown = document.querySelector(`#notif-${notifId} .snooze-dropdown`);
-            const days = dropdown.querySelector('.snooze-select').value;
-        
-            // Fetch to backend to handle snoozing logic
-            fetch(`/snooze_notification/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    notif_id: notifId,
-                    snooze_days: days
-                }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remove the notification from frontend
-                    const notifElement = document.getElementById(`notif-${notifId}`);
-                    if (notifElement) {
-                        notifElement.remove();
-                    }
-                }
-            })
-            .catch(error => console.error('Error:', error));
+     
+let snoozeAbortController = null;
+
+function confirmSnooze(notifId) {
+    const dropdown = document.querySelector(`#notif-${notifId} .snooze-dropdown`);
+    const days = dropdown.querySelector('.snooze-select').value;
+
+    // Cancel any pending request
+    if (snoozeAbortController) {
+        snoozeAbortController.abort();
+    }
+    snoozeAbortController = new AbortController();
+
+    // Fetch to backend to handle snoozing logic
+    fetch(`/snooze_notification/`, {
+        method: 'POST',
+        signal: snoozeAbortController.signal,  
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            notif_id: notifId,
+            snooze_days: days
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const notifElement = document.getElementById(`notif-${notifId}`);
+            if (notifElement) {
+                notifElement.remove();
+            }
         }
+        snoozeAbortController = null;  
+    })
+    .catch(error => {
+        if (error.name !== 'AbortError') { 
+            console.error('Error:', error);
+        }
+        snoozeAbortController = null;  
+    });
+}
         
 
         document.addEventListener("DOMContentLoaded", function () {
             sortNotifications('github-miss','project');
+             document.body.addEventListener('click', function(e) {
+        // Handle snooze buttons
+        if (e.target.classList.contains('snooze-button')) {
+            e.stopPropagation();
+            toggleSnoozeDropdown(e.target);
+            return;
+        }
+        
+        // Handle close snooze
+        if (e.target.classList.contains('close-snooze')) {
+            e.stopPropagation();
+            closeSnoozeDropdown(e.target);
+            return;
+        }
+        
+        // Handle notification clicks
+        if (e.target.classList.contains('notif-review')) {
+            e.stopPropagation();
+            const notifId = e.target.closest('.notif-container').id.replace('notif-', '');
+            handleNotificationClick(e, notifId);
+            return;
+        }
+    }, true);
             const categories = [
                 { id: 'tasks-category', triggers: ['task_overdue', 'task_due_today'] },
                 { id: 'github-miss-category', triggers: ['git_person'] },
@@ -5433,11 +5474,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const parent = element.closest('.notification-category');
             parent.classList.toggle('expanded');
         }
-      document.getElementById('closeEODModalBtn').addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    closeEODModal(e);
-});
+ const closeBtn = document.getElementById('closeEODModalBtn');
+if (closeBtn) {
+    const newCloseBtn = closeBtn.cloneNode(true);
+    closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+    
+    newCloseBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeEODModal(e);
+    });
+}
 function applyBcFilter(elem) {
   const days = elem.dataset.days;
   const label = document.querySelector('.bc-duration-label');

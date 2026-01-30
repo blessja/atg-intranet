@@ -1310,17 +1310,17 @@ document.addEventListener('keydown', handleEnterKey);
                         const projectSection = document.createElement('div');
                         projectSection.classList.add('dept-section');
                         projectSection.innerHTML = `
-                                <div class="team-project-heading">
-                                    <div><b>${department.name} (${department.user_count})</b></div>
-                                    <div>
-                                        <span class="assigned-count" style="background-color: #DFF4E2; color: #2E7D32; border-radius: 4px; padding: 4px 8px; font-size: 14px; font-weight: 500; display: inline-block;">Assigned: ${department.assigned_count}</span>
-                                        <span class="non-assigned-count" style="background-color: #FDEDED; color: #C62828; border-radius: 4px; padding: 4px 8px; font-size: 14px; font-weight: 500; display: inline-block;">Not Assigned: ${department.non_assigned_count}</span>
-                                        <span style="background-color: #CED4DA; color: #08090A; border-radius: 4px; padding: 4px 8px; font-size: 14px; font-weight: 500; display: inline-block;">On-Bench: ${department.bench_count}</span>
-                                    <svg class="toggle-icon" id="${department.id}" onclick="hrmsTeamToggleTable(this)" style="cursor: pointer;" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
-                                    </div>
-                                </div>
+                               <div class="team-project-heading" onclick="hrmsTeamToggleTable(this.querySelector('.toggle-icon'))" style="cursor: pointer;">
+    <div><b>${department.name} (${department.user_count})</b></div>
+    <div>
+        <span class="assigned-count" style="background-color: #DFF4E2; color: #2E7D32; border-radius: 4px; padding: 4px 8px; font-size: 14px; font-weight: 500; display: inline-block;">Assigned: ${department.assigned_count}</span>
+        <span class="non-assigned-count" style="background-color: #FDEDED; color: #C62828; border-radius: 4px; padding: 4px 8px; font-size: 14px; font-weight: 500; display: inline-block;">Not Assigned: ${department.non_assigned_count}</span>
+        <span style="background-color: #CED4DA; color: #08090A; border-radius: 4px; padding: 4px 8px; font-size: 14px; font-weight: 500; display: inline-block;">On-Bench: ${department.bench_count}</span>
+    <svg class="toggle-icon" id="${department.id}" style="pointer-events: none;" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    </div>
+</div>
                                 <div class="table-container" style="display: none;">
                                     <table class="teams-table">
                                        <thead style="background: #F0F5FF; border-bottom: 1px solid #E0E1E1;">
@@ -3808,7 +3808,7 @@ async function renderFullMonthCalendar(userId) {
 let tooltipText = 'No EOD submitted';
 
 if (isFutureDate) {
-    bgColor = '#A5ADB2';
+    bgColor = '#E8E8E8';
     tooltipText = 'Future date';
 } else if (dayData.length > 0) {
     // There is EOD data for this day
@@ -4523,7 +4523,7 @@ function getDaysUntil(dateString) {
             
             if (isFutureDate) {
                 bgColor = '#F5F5F5';
-                opacity = '0.3';
+                opacity = '1';
                 tooltipText = 'Future date';
             } else if (dayData.length > 0) {
                 // HAS EOD DATA - Always show GREEN because EOD was submitted
@@ -4571,7 +4571,7 @@ function getDaysUntil(dateString) {
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        color: ${isToday ? '#ffff' : 'white'};
+                        color: ${isFutureDate ? '#999999' : (isToday ? '#ffff' : 'white')};
                         font-size: 16px;
                         font-weight: ${isToday ? '700' : '400'};
                         border-radius: 4px;

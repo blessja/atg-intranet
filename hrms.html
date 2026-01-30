@@ -1624,15 +1624,20 @@ function attachBCDropdownHandlers() {
             e.stopPropagation();
             
             const days = parseInt(e.target.getAttribute('data-days'));
-            const deptSection = e.target.closest('.dept-section');
+            const dropdown = e.target.closest('.bc-duration-dropdown');
+            const thElement = dropdown?.closest('th');
+            const tableContainer = thElement?.closest('.table-container');
+            const deptSection = tableContainer?.closest('.dept-section');
             const departmentId = deptSection?.querySelector('.toggle-icon')?.id;
             
             // Update label
-            const label = e.target.closest('th').querySelector('.bc-duration-label');
-            label.textContent = `BC (${days} d)`;
+            const label = thElement?.querySelector('.bc-duration-label');
+            if (label) {
+                label.textContent = `BC (${days} d)`;
+            }
             
             // Update active state
-            e.target.closest('.bc-duration-dropdown').querySelectorAll('.duration-option').forEach(opt => {
+            dropdown.querySelectorAll('.duration-option').forEach(opt => {
                 opt.classList.remove('active');
                 opt.style.background = '';
             });
@@ -1643,8 +1648,11 @@ function attachBCDropdownHandlers() {
             currentBCDuration = days;
             
             // Close dropdown
-            e.target.closest('.bc-duration-dropdown').style.display = 'none';
-            e.target.closest('th').querySelector('.bc-dropdown-arrow').style.transform = 'rotate(0deg)';
+            dropdown.style.display = 'none';
+            const arrow = thElement?.querySelector('.bc-dropdown-arrow');
+            if (arrow) {
+                arrow.style.transform = 'rotate(0deg)';
+            }
             
             // Reload employee data with new duration
             if (departmentId) {
@@ -1684,7 +1692,12 @@ document.addEventListener('click', function(e) {
 
 // Function to reload department data with new duration
 function reloadDepartmentWithDuration(departmentId, duration) {
-    const tbody = document.querySelector(`#${departmentId}`).closest('.dept-section').querySelector('tbody');
+      const toggleIcon = document.getElementById(departmentId);
+    if (!toggleIcon) {
+        console.error('Department not found:', departmentId);
+        return;
+    }
+    const tbody = toggleIcon.closest('.dept-section').querySelector('tbody');
     
     // Show loading
     tbody.innerHTML = `<tr>
@@ -2932,28 +2945,36 @@ function renderEmployeeData(tbody, data, departmentId = 'default') {
         const row = document.createElement('tr');
         row.style.borderBottom = '1px solid #EBEDF0';
         
-        // Determine name badge styling based on status
-        let nameBadgeBg = '';
-        let nameBadgeColor = '#08090A';
-        let rowBg = 'white';
-        
-        switch(employee.status) {
-            case 'On Notice':
-                nameBadgeBg = '#FF1A1A';
-                nameBadgeColor = 'white';
-                break;
-            case 'Low Performer':
-                nameBadgeBg = '#FF6666';
-                nameBadgeColor = 'white';
-                break;
-            case 'On Bench':
-                nameBadgeBg = '#EBEDF0';
-                nameBadgeColor = '#08090A';
-                break;
-            default:
-                nameBadgeBg = '';
-                nameBadgeColor = '#08090A';
-        }
+    // Determine name badge styling based on status
+let nameBadgeBg = '';
+let nameBadgeColor = '#08090A';
+let rowBg = 'white';
+
+switch(employee.status) {
+    case 'Good Performer':
+        nameBadgeBg = '#9FDFBE';
+        nameBadgeColor = '#08090A';
+        break;
+    case 'Medium Performer':
+        nameBadgeBg = '#FFEFBC';
+        nameBadgeColor = '#08090A';
+        break;
+    case 'Low Performer':
+        nameBadgeBg = '#FF922B';
+        nameBadgeColor = '#08090A';
+        break;
+    case 'On Notice':
+        nameBadgeBg = '#FF1A1A';
+        nameBadgeColor = 'white';
+        break;
+    case 'On Bench':
+        nameBadgeBg = '#EBEDF0';
+        nameBadgeColor = '#08090A';
+        break;
+    default:
+        nameBadgeBg = '';
+        nameBadgeColor = '#08090A';
+}
         
         // For "Not Assigned" status
         // if (employee.projects.length === 0) {

@@ -1081,13 +1081,19 @@ body {
 }
 /* EOD Summary Modal Overlay */
 #eodSummaryModal.popup {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+   position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 
@@ -1100,14 +1106,16 @@ body {
 /* Modal Box */
 #eodSummaryModal .popup-content {
   background-color: #ffffff;
-  padding: 24px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 700px;
-  max-height: 85vh;
-  overflow-y: auto;
-  position: relative;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 /* Close Button */
@@ -2335,4 +2343,9 @@ body {
     margin-top: 15px;
     cursor: pointer;
     font-size: 16px;
+}
+body.modal-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
 }

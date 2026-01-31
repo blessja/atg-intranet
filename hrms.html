@@ -599,10 +599,16 @@ Hrms
 <script>
 
     function updateCircleColors(upvotes, downvotes, greenCircleId, redCircleId) {
-        const greenCircle = document.querySelector('.'+greenCircleId);
-        const redCircle = document.querySelector('.'+redCircleId);
+    const greenCircle = document.querySelector('.'+greenCircleId);
+    const redCircle = document.querySelector('.'+redCircleId);
 
-        const totalVotes = upvotes + downvotes;
+    // Exit early if elements don't exist
+    if (!greenCircle || !redCircle) {
+        console.warn('Feedback circles not found for:', greenCircleId, redCircleId);
+        return;
+    }
+
+    const totalVotes = upvotes + downvotes;
 
         // Avoid division by zero
         if (totalVotes === 0) {
@@ -3589,6 +3595,7 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
                 overflow-y: auto;
                 word-wrap: break-word;
                 overflow-wrap: break-word;
+                white-space: normal;
                 transition: visibility 0s, opacity 0.2s ease;
             ">
                 ${statusText} - Day ${day}
@@ -3879,23 +3886,28 @@ if (isFutureDate) {
                         <div style="color: white; font-size: 16px; font-family: Helvetica Neue; font-weight: 400; line-height: 24px;">${String(day).padStart(2, '0')}</div>
                     </div>
                     <div class="calendar-tooltip" style="
-                        visibility: hidden;
-                        opacity: 0;
-                        position: absolute;
-                        bottom: calc(100% + 8px);
-                        left: 50%;
-                        transform: translateX(-50%);
-                        background: white;
-                        color: #08090A;
-                        padding: 8px 12px;
-                        border-radius: 4px;
-                        font-size: 12px;
-                        white-space: nowrap;
-                        z-index: 1000;
-                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                        border: 1px solid #D9D9D9;
-                        pointer-events: none;
-                    ">${tooltipText}</div>
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    color: #08090A;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 1px solid #D9D9D9;
+    pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0s 0.2s;
+    line-height: 1.5;
+    font-weight: 500;
+    white-space: normal;
+    max-width: 350px;
+    text-align: left;
+">${tooltipText}</div>
                 </div>
             `;
         }
@@ -3997,63 +4009,78 @@ function attachTooltipListeners() {
         }
     });
     
-    // Handle performance status option clicks
-    document.querySelectorAll('.performance-status-name').forEach(option => {
-        option.addEventListener('click', (e) => {
-            e.stopPropagation();
-            
-            const selectedStatus = option.getAttribute('performance-status');
-            const modal = document.getElementById('performance-modal');
-            const userId = modal.getAttribute('data-user-id');
-            
-            if (!userId) {
-                console.error('No user ID found');
-                return;
+   // Handle performance status option clicks
+// Handle performance status option clicks
+document.querySelectorAll('.performance-status-name').forEach(option => {
+    // Remove existing listener if it exists (prevents duplicates)
+    if (option.hasAttribute('data-listener-attached')) {
+        return; // Skip if already has listener
+    }
+    option.setAttribute('data-listener-attached', 'true');
+    
+    option.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        const selectedStatus = option.getAttribute('performance-status');
+        const modal = document.getElementById('performance-modal');
+        const userId = modal.getAttribute('data-user-id');
+        
+        console.log('Performance update attempt:', { userId, selectedStatus }); // ADD THIS
+        
+        if (!userId) {
+            console.error('No user ID found');
+            alert('Error: Unable to identify user. Please try again.');
+            return;
+        }
+        
+        // Update status via API
+        fetch(`/api/user-status/${userId}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({ status: selectedStatus }),
+            credentials: 'include'
+        })
+        .then(response => {
+            console.log('API Response status:', response.status); // ADD THIS
+            if (!response.ok) {
+                throw new Error('Failed to update performance status');
             }
+            return response.json();
+        })
+        .then(data => {
+            console.log('API Response data:', data); // ADD THIS
+            // Update cache
+            updateEmployeeCache(userId, { status: selectedStatus, department_id: data.department_id });
             
-            // Update status via API
-            fetch(`/api/user-status/${userId}/`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken,
-                },
-                body: JSON.stringify({ status: selectedStatus }),
-                credentials: 'include'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to update performance status');
+            // Find the badge and update its UI
+            const badges = document.querySelectorAll('.name-badge-wrapper');
+            badges.forEach(wrapper => {
+                const remarksField = wrapper.closest('tr')?.querySelector('.remarks-field');
+                if (remarksField?.dataset?.userId === userId) {
+                    const badge = wrapper.querySelector('div[style*="justify-content: space-between"]');
+                    setTeamMemberStatus(badge, selectedStatus);
                 }
-                return response.json();
-            })
-            .then(data => {
-                // Update cache
-                updateEmployeeCache(userId, { status: selectedStatus, department_id: data.department_id });
-                
-                // Find the badge and update its UI
-                const badges = document.querySelectorAll('.name-badge-wrapper');
-                badges.forEach(wrapper => {
-                    const remarksField = wrapper.closest('tr')?.querySelector('.remarks-field');
-                    if (remarksField?.dataset?.userId === userId) {
-                        const badge = wrapper.querySelector('div[style*="justify-content: space-between"]');
-                        setTeamMemberStatus(badge, selectedStatus);
-                    }
-                });
-                
-                // Close modal
-                modal.style.display = 'none';
-                
-                // Reset chevron rotation
-                document.querySelectorAll('.name-badge-wrapper svg').forEach(chevron => {
-                    chevron.style.transform = 'rotate(180deg)';
-                });
-            })
-            .catch(error => {
-                console.error('Error updating status:', error);
-                alert('Failed to update performance status. Please try again.');
             });
+            
+            // Close modal
+            modal.style.display = 'none';
+            
+            // Reset chevron rotation
+            document.querySelectorAll('.name-badge-wrapper svg').forEach(chevron => {
+                chevron.style.transform = 'rotate(180deg)';
+            });
+            
+            // SUCCESS MESSAGE
+            alert('Performance status updated successfully!'); // ADD THIS
+        })
+        .catch(error => {
+            console.error('Error updating status:', error);
+            alert('Failed to update performance status: ' + error.message); // CHANGE THIS
         });
+    });
         
         // Hover effect on options
         option.addEventListener('mouseenter', () => {
@@ -4570,14 +4597,14 @@ function getDaysUntil(dateString) {
                 
                 // Format tooltip with line breaks and truncation
                 tooltipText = Object.keys(projectSummary).map(proj => {
-                    const tasks = projectSummary[proj];
-                    const taskDetails = tasks.map(t => {
-                        // Truncate long text to prevent UI breaking
-                        const truncatedText = t.text.length > 100 ? t.text.substring(0, 100) + '...' : t.text;
-                        return `${t.task}: ${truncatedText}`;
-                    }).join('\n');
-                    return `${proj}\n${taskDetails}`;
-                }).join('\n\n');
+    const tasks = projectSummary[proj];
+    const taskDetails = tasks.map(t => {
+        // Truncate long text to prevent UI breaking
+        const truncatedText = t.text.length > 100 ? t.text.substring(0, 100) + '...' : t.text;
+        return `<div style="margin-left: 10px; color: #08090A;"><strong>${t.task}:</strong> ${truncatedText}</div>`;
+    }).join('');
+    return `<div style="margin-bottom: 8px;"><strong style="color: #504CF5;">${proj}</strong>${taskDetails}</div>`;
+}).join('');
             } else {
                 // NO EOD DATA - Show orange (no EOD submitted)
                 bgColor = 'rgba(163, 125, 33, 1)';  // Orange
@@ -4654,34 +4681,53 @@ function attachCalendarTooltips() {
         let hideTimeout;
 
         function showTooltip() {
-            clearTimeout(hideTimeout);
-            
-            const tooltipContent = tooltip.textContent;
-            
-            if (tooltipContent.includes(':') && tooltipContent.split('\n').length > 1) {
-                tooltip.style.whiteSpace = 'pre-wrap';
-                tooltip.style.maxWidth = '280px';
-                tooltip.style.maxHeight = '200px';
-                tooltip.style.minWidth = '200px';
-                tooltip.style.textAlign = 'left';
-                tooltip.style.wordWrap = 'break-word';
-                tooltip.style.overflowWrap = 'break-word';
-                tooltip.style.overflowY = 'auto'; 
-                tooltip.style.fontSize = '11px'; 
-                tooltip.style.lineHeight = '1.4';
-            } else {
-                tooltip.style.whiteSpace = 'nowrap';
-                tooltip.style.maxWidth = 'max-content';
-                tooltip.style.maxHeight = '60px';
-                tooltip.style.textAlign = 'center';
-            }
-            
-            tooltip.style.visibility = 'visible';
-            tooltip.style.opacity = '1';
-            tooltip.style.pointerEvents = 'auto'; // Enable pointer events
-            day.style.transform = 'scale(1.05)';
-            day.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
-        }
+    clearTimeout(hideTimeout);
+    
+    // Force reflow to ensure proper rendering
+    tooltip.style.display = 'none';
+    void tooltip.offsetHeight; // Trigger reflow
+    tooltip.style.display = '';
+    
+    const tooltipContent = tooltip.innerHTML || tooltip.textContent;
+    
+    // Check if tooltip has HTML content (from EOD modal calendar)
+    if (tooltip.innerHTML.includes('<div') || tooltip.innerHTML.includes('<strong')) {
+        tooltip.style.whiteSpace = 'normal';
+        tooltip.style.maxWidth = '350px';
+        tooltip.style.minWidth = '200px';
+        tooltip.style.textAlign = 'left';
+        tooltip.style.wordWrap = 'break-word';
+        tooltip.style.overflowWrap = 'break-word';
+        tooltip.style.fontSize = '12px';
+        tooltip.style.lineHeight = '1.5';
+        tooltip.style.maxHeight = '300px';
+        tooltip.style.overflowY = 'auto';
+    } 
+    // Check if it's multiline text content
+    else if (tooltipContent.includes(':') && (tooltipContent.split('\n').length > 1 || tooltipContent.length > 50)) {
+        tooltip.style.whiteSpace = 'pre-wrap';
+        tooltip.style.maxWidth = '280px';
+        tooltip.style.maxHeight = '200px';
+        tooltip.style.minWidth = '200px';
+        tooltip.style.textAlign = 'left';
+        tooltip.style.wordWrap = 'break-word';
+        tooltip.style.overflowWrap = 'break-word';
+        tooltip.style.overflowY = 'auto';
+        tooltip.style.fontSize = '11px';
+        tooltip.style.lineHeight = '1.4';
+    } else {
+        tooltip.style.whiteSpace = 'nowrap';
+        tooltip.style.maxWidth = 'max-content';
+        tooltip.style.maxHeight = '60px';
+        tooltip.style.textAlign = 'center';
+    }
+    
+    tooltip.style.visibility = 'visible';
+    tooltip.style.opacity = '1';
+    tooltip.style.pointerEvents = 'auto';
+    day.style.transform = 'scale(1.05)';
+    day.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+}
 
         function hideTooltip() {
             hideTimeout = setTimeout(() => {
@@ -4993,63 +5039,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     //change perfomance status from modal
-    function attachPerformanceOptionHandlers() {
-        document.querySelectorAll('.performance-options > div').forEach(option => {
-            option.addEventListener('click', function () {
-                const selectedStatus = this.getAttribute('performance-status');
-                const rowIndex = document.getElementById('performance-modal').getAttribute('data-target-row');
-                const targetRow = document.querySelectorAll('.teams-table-tr')[rowIndex];
+    // function attachPerformanceOptionHandlers() {
+    //     document.querySelectorAll('.performance-options > div').forEach(option => {
+    //         option.addEventListener('click', function () {
+    //             const selectedStatus = this.getAttribute('performance-status');
+    //             const rowIndex = document.getElementById('performance-modal').getAttribute('data-target-row');
+    //             const targetRow = document.querySelectorAll('.teams-table-tr')[rowIndex];
 
-                const teamNameCell = targetRow.querySelector('.team-name');
-                const userId = teamNameCell.id;
-                // console.log(userId)
+    //             const teamNameCell = targetRow.querySelector('.team-name');
+    //             const userId = teamNameCell.id;
+    //             // console.log(userId)
 
-                fetch(`/api/user-status/${userId}/`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken,
-                    },
-                    body: JSON.stringify({ status: selectedStatus }),
-                    credentials: 'include'
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Failed to update performance status');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
+    //             fetch(`/api/user-status/${userId}/`, {
+    //                 method: 'PUT',
+    //                 headers: {
+    //                     'Content-Type': 'application/json',
+    //                     'X-CSRFToken': csrftoken,
+    //                 },
+    //                 body: JSON.stringify({ status: selectedStatus }),
+    //                 credentials: 'include'
+    //             })
+    //                 .then(response => {
+    //                     if (!response.ok) {
+    //                         throw new Error('Failed to update performance status');
+    //                     }
+    //                     return response.json();
+    //                 })
+    //                 .then(data => {
                         
-                        updateEmployeeCache(userId, { status: selectedStatus, department_id: data.department_id });
+    //                     updateEmployeeCache(userId, { status: selectedStatus, department_id: data.department_id });
                         
-                        //update bg color
-                        setTeamMemberStatus(teamNameCell, selectedStatus);
+    //                     //update bg color
+    //                     setTeamMemberStatus(teamNameCell, selectedStatus);
 
-                        // close modal
-                        document.getElementById('performance-modal').style.display = 'none';
-                    })
-                    .catch(error => {
-                        console.error('Error updating status:', error);
-                    });
-
-
-                // Reset 
-                // targetRow.querySelectorAll('td').forEach(td => {
-                //     td.style.backgroundColor = '';
-                // });
-
-                // bg color based on the selection
-                setTeamMemberStatus(teamNameCell, selectedStatus);
+    //                     // close modal
+    //                     document.getElementById('performance-modal').style.display = 'none';
+    //                 })
+    //                 .catch(error => {
+    //                     console.error('Error updating status:', error);
+    //                 });
 
 
-                // console.log("name", teamMemberName, "performance status", selectedStatus);
+    //             // Reset 
+    //             // targetRow.querySelectorAll('td').forEach(td => {
+    //             //     td.style.backgroundColor = '';
+    //             // });
 
-                // Close modal
-                document.getElementById('performance-modal').style.display = 'none';
-            });
-        });
-    }
+    //             // bg color based on the selection
+    //             setTeamMemberStatus(teamNameCell, selectedStatus);
+
+
+    //             // console.log("name", teamMemberName, "performance status", selectedStatus);
+
+    //             // Close modal
+    //             document.getElementById('performance-modal').style.display = 'none';
+    //         });
+    //     });
+    // }
 
 
     //update cachedata
@@ -5079,38 +5125,49 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     //function post performace status
-    function setTeamMemberStatus(element, status) {
-        switch (status) {
-            case 'Good Performer':
-                element.style.backgroundColor = '#9FDFBE';
-                element.style.color = '#08090A';
-                break;
-            case 'Medium Performer':
-                element.style.backgroundColor = '#FFEFBC';
-                element.style.color = '#08090A';
-                break;
-            case 'Low Performer':
-                element.style.backgroundColor = '#FF922B';
-                element.style.color = '#08090A';
-                break;
-            case 'On Notice':
-                element.style.backgroundColor = '#ff2c2c';
-                element.style.color = '#08090A';
-                break;
-            case 'On Bench':
-                element.style.backgroundColor = '#CED4DA';
-                element.style.color = '#08090A';
-                break;
-            case 'Unselect':
-                element.style.backgroundColor = '';
-                element.style.color = '#6D747A';
-                break;
-        }
+function setTeamMemberStatus(element, status) {
+    if (!element) {
+        console.warn('setTeamMemberStatus: element is null');
+        return;
     }
+    
+    // Clear any existing background
+    element.style.backgroundColor = '';
+    element.style.color = '#08090A';
+    
+    switch (status) {
+        case 'Good Performer':
+            element.style.backgroundColor = '#9FDFBE';
+            element.style.color = '#08090A';
+            break;
+        case 'Medium Performer':
+            element.style.backgroundColor = '#FFEFBC';
+            element.style.color = '#08090A';
+            break;
+        case 'Low Performer':
+            element.style.backgroundColor = '#FF922B';
+            element.style.color = '#08090A';
+            break;
+        case 'On Notice':
+            element.style.backgroundColor = '#FF1A1A';
+            element.style.color = 'white';
+            break;
+        case 'On Bench':
+            element.style.backgroundColor = '#EBEDF0';
+            element.style.color = '#08090A';
+            break;
+        case 'Unselect':
+            element.style.backgroundColor = '';
+            element.style.color = '#08090A';
+            break;
+        default:
+            console.warn('Unknown status:', status);
+    }
+}
 
     // function call initially
-    attachPerformanceOptionHandlers();
-    applyBackgroundColors();
+    // attachPerformanceOptionHandlers();
+    // applyBackgroundColors();
 
 
     //handle remarks input chnage

@@ -721,6 +721,14 @@ function syncActionData() {
     // Trigger existing auto-save
     const event = new Event('change', { bubbles: true });
     textarea.dispatchEvent(event);
+
+    // Update the cached lead if we're on the dashboard
+if (typeof allLeads !== 'undefined' && currentEditingLeadId) {
+    const cachedLead = allLeads.find(lead => lead.id === currentEditingLeadId);
+    if (cachedLead) {
+        cachedLead.action_item = textarea.value;
+    }
+}
 }
 
 // Dummy function to prevent errors if called elsewhere
@@ -1686,6 +1694,14 @@ async function submitLeadEdit(event) {
           "lead-details-form-next-followup-display"
         ).value = "";
       }
+      const updatedLead = allLeads.find(lead => lead.id === currentEditingLeadId);
+    if (updatedLead) {
+        updatedLead.action_item = document.getElementById("lead-details-form-action")?.value || '';
+    }
+    
+    if (typeof fetchTableData === "function") {
+        fetchTableData(currentPage);
+    }
 
       // ADD THIS: Update displayed tags if they exist
       // if (responseData.result && responseData.result.tags && typeof displayTags === 'function') {
@@ -1704,6 +1720,7 @@ async function submitLeadEdit(event) {
     console.error("Error submitting lead edit:", error);
     alert("An error occurred while updating the lead!");
   }
+  
 }
 
 function takeOverLead() {

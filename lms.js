@@ -3908,6 +3908,12 @@ window.hasActiveActionItems = hasActiveActionItems;
 
 // Listen for browser navigation (back/forward buttons)
 window.addEventListener('pageshow', function(event) {
+    // Always dismiss any stale tooltip on page restore
+    if (actionTooltipManager) {
+        actionTooltipManager.tooltip.hide();
+        actionTooltipManager.activeElement = null;
+    }
+
     // Check if page was loaded from cache (back/forward navigation)
     if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
         console.log('Page loaded from cache, refreshing data...');
@@ -3925,6 +3931,12 @@ window.addEventListener('pageshow', function(event) {
 // Also listen for popstate (back/forward button)
 window.addEventListener('popstate', function(event) {
     console.log('Browser navigation detected, refreshing data...');
+
+    // Dismiss any stale tooltip immediately
+    if (actionTooltipManager) {
+        actionTooltipManager.tooltip.hide();
+        actionTooltipManager.activeElement = null;
+    }
     
     // Small delay to ensure DOM is ready
     setTimeout(() => {
@@ -3935,4 +3947,12 @@ window.addEventListener('popstate', function(event) {
             }
         }
     }, 100);
+});
+
+// Hide tooltip when the tab regains visibility (covers tab-switch + back navigation)
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible' && actionTooltipManager) {
+        actionTooltipManager.tooltip.hide();
+        actionTooltipManager.activeElement = null;
+    }
 });

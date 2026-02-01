@@ -24,7 +24,7 @@ Hrms
                 <div class="notification-category-heading" onclick="toggleCategory(this)">
                     Assessments
                     <svg width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13 7L7 1L1 7" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
                 </div>
                 <div class="notification-content">
@@ -80,7 +80,7 @@ Hrms
                                 </svg>
                             </button>
                         <svg  onclick="toggleCategory(this)" width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M13 7L7 1L1 7" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </div>
                 </div>
@@ -123,7 +123,7 @@ Hrms
                 <div class="notification-category-heading" onclick="toggleCategory(this)">
                     Notice Period
                     <svg width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13 7L7 1L1 7" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
                 </div>
                 <div class="notification-content">
@@ -192,7 +192,7 @@ Hrms
                 <div class="notification-category-heading" onclick="toggleCategory(this)">
                     Informational
                     <svg width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13 7L7 1L1 7" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M1 1L7 7L13 1" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
                 </div>
                 <div class="notification-content">
@@ -735,10 +735,22 @@ Hrms
             borderColor: "#CED4DA"
         },
     }
-    function toggleSanityDd(elem){
-        elem.parentElement.parentElement.parentElement.parentElement.children[1].classList.toggle("none");
-        elem.classList.toggle("arrow-right")
+function toggleSanityDd(elem){
+    const contentDiv = elem.closest('.ps-dd-heading').nextElementSibling;
+    contentDiv.classList.toggle("none");
+    
+    const svg = elem.querySelector('svg');
+    const path = svg.querySelector('path');
+    
+    // Toggle between down and up
+    if (contentDiv.classList.contains("none")) {
+        // Closed - point down
+        path.setAttribute('d', 'M1 1L7 7L13 1');
+    } else {
+        // Open - point up  
+        path.setAttribute('d', 'M13 7L7 1L1 7');
     }
+}
     document.querySelectorAll(".ps-dd-progress-bar").forEach((e)=>{
         if(e.childElementCount==0){
             e.classList.add("empty");
@@ -1178,7 +1190,7 @@ document.addEventListener('keydown', handleEnterKey);
                        <div class="ps-dd-heading" id="ps-dd-heading-${project.id}" data-attribute-id="${project.id}" onclick="">
                         <div style="display: flex; align-items: center; width: fit-content; justify-content: space-between; padding: 0 8px; gap: 16px;">
                             <div style="display:flex; gap: 16px; width: 300px;">
-                            <div id="notif-chevron-wrapper" onclick="toggleSanityDd(this); openMilestones(this)" class="arrow-right">
+                            <div id="notif-chevron-wrapper" onclick="toggleSanityDd(this); openMilestones(this)" class="">
                                 <svg id="notif-chevron-icon" style="cursor: pointer;" width="14" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="{% if notifs %}M13 7L7 1L1 7 {% else %} M1 1L7 7L13 1 {% endif %}" stroke="#6D747A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
@@ -1214,9 +1226,9 @@ document.addEventListener('keydown', handleEnterKey);
                     `;
 
                     contentDiv.appendChild(projectDiv);
-                    // if(!cache){
-                        document.querySelector(`#ps-dd-heading-${project.id} #notif-chevron-wrapper`).click();
-                    // }
+                    // // if(!cache){
+                    //     document.querySelector(`#ps-dd-heading-${project.id} #notif-chevron-wrapper`).click();
+                    // // }
                 });
     }
 
@@ -1731,6 +1743,8 @@ function reloadDepartmentWithDuration(departmentId, duration) {
             return response.json();
         })
         .then(data => {
+              console.log('Employee data received:', data);
+        console.log('Sample employee bounty_info:', data[0]?.bounty_info);
             // Cache the fetched data
             employeeDataCache.set(cacheKey, data);
             renderEmployeeData(tbody, data, departmentId);
@@ -3076,6 +3090,16 @@ switch(employee.status) {
             completed_bounties: 0
         };
 
+        // DEBUG: Log bounty data
+console.log(`Employee: ${employee.first_name} ${employee.last_name || ''}`, {
+    allocated: bountyInfo.allocated_bounties,
+    completed: bountyInfo.completed_bounties,
+    total_bounties: bountyInfo.total_bounties,
+    total_tasks: bountyInfo.total_tasks,
+    completed_tasks: bountyInfo.completed_tasks,
+    raw_bounty_info: employee.bounty_info
+});
+
         // Format dates for tooltips
         const joiningDate = formatDateForTooltip(employee.start_date);
         const skillUpdatedDate = employee.skill_level_updated_at 
@@ -3213,12 +3237,12 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
                 <div style="display: flex; gap: 4px; align-items: flex-start;">
                     <div style="display: flex; flex-direction: column; gap: 8px; position: relative;">
                         <div class="name-badge-wrapper" style="position: relative;">
-                            <div style="width: 158px; padding: 2px 4px; ${nameBadgeBg ? 'background: ' + nameBadgeBg + ';' : ''} border-radius: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
-                                <div style="flex: 1; color: ${nameBadgeColor}; font-size: 16px; font-family: Roboto; font-weight: 400; line-height: 24px; letter-spacing: 0.08px;">${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}</div>
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(180deg);">
-                                    <path d="M4 10L8 6L12 10" stroke="${nameBadgeColor}" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </div>
+                            <div style="width: 158px; padding: 2px 4px; ${nameBadgeBg ? 'background: ' + nameBadgeBg + ';' : ''} border-radius: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; gap: 4px;">
+    <div style="flex: 1; min-width: 0; color: ${nameBadgeColor}; font-size: 16px; font-family: Roboto; font-weight: 400; line-height: 24px; letter-spacing: 0.08px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}</div>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(180deg); flex-shrink: 0;">
+        <path d="M4 10L8 6L12 10" stroke="${nameBadgeColor}" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+</div>
                             <div class="name-tooltip" style="
                                 visibility: hidden;
                                 opacity: 0;
@@ -3337,12 +3361,12 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
         " 
         placeholder="Add remarks...">${employee.remark || ''}</textarea>
 </td>
-            <td style="width: 48px; padding: 16px 8px; background: ${rowBg}; text-align: center;">
-                <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;">${bountyInfo.allocated_bounties || 0}</div>
-            </td>
-            <td style="width: 104px; padding: 16px 8px; background: ${rowBg}; text-align: center;">
-                <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;">${bountyInfo.completed_bounties || 0}</div>
-            </td>
+          <td style="width: 48px; padding: 16px 8px; background: ${rowBg}; text-align: center;">
+    <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;" title="Allocated: ${bountyInfo.allocated_bounties || 0}">${bountyInfo.allocated_bounties || 0}</div>
+</td>
+<td style="width: 104px; padding: 16px 8px; background: ${rowBg}; text-align: center;">
+    <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;" title="Completed: ${bountyInfo.completed_bounties || 0}\nTotal Tasks: ${bountyInfo.total_tasks || 0}\nCompleted Tasks: ${bountyInfo.completed_tasks || 0}">${bountyInfo.completed_bounties || 0}</div>
+</td>
             <td style="padding: 16px 8px; background: ${rowBg};">
     <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
         <div class="date-container-inline" id="dateContainer-${employee.user_id}" style="display: flex; gap: 0;">
@@ -3963,29 +3987,47 @@ function attachTooltipListeners() {
         if (badge) {
             const userId = badge.closest('tr')?.querySelector('.remarks-field')?.dataset?.userId;
             
-            // Click to toggle performance modal
-            badge.addEventListener('click', (e) => {
-                e.stopPropagation();
-                
-                const modal = document.getElementById('performance-modal');
-                const rect = badge.getBoundingClientRect();
-                
-                // Position modal below the badge
-                modal.style.position = 'absolute';
-                modal.style.top = `${rect.bottom + window.scrollY + 5}px`;
-                modal.style.left = `${rect.left + window.scrollX}px`;
-                modal.style.display = 'block';
-                modal.style.zIndex = '1000';
-                
-                // Store user ID in modal for later use
-                modal.setAttribute('data-user-id', userId);
-                
-                // Rotate chevron when opening
-                if (chevron) {
-                    chevron.style.transform = 'rotate(0deg)';
-                    chevron.style.transition = 'transform 0.2s ease';
-                }
-            });
+       // Click to toggle performance modal
+badge.addEventListener('click', (e) => {
+    e.stopPropagation();
+    
+    const modal = document.getElementById('performance-modal');
+    const rect = badge.getBoundingClientRect();
+    
+    // Check if modal is already open
+    const isOpen = modal.style.display === 'block';
+    
+    if (isOpen) {
+        // Close modal
+        modal.style.display = 'none';
+        
+        // Reset chevron to point up
+        if (chevron) {
+            const path = chevron.querySelector('path');
+            if (path) {
+                path.setAttribute('d', 'M4 10L8 6L12 10'); // Point up when closed
+            }
+        }
+    } else {
+        // Open modal
+        modal.style.position = 'absolute';
+        modal.style.top = `${rect.bottom + window.scrollY + 5}px`;
+        modal.style.left = `${rect.left + window.scrollX}px`;
+        modal.style.display = 'block';
+        modal.style.zIndex = '1000';
+        
+        // Store user ID in modal for later use
+        modal.setAttribute('data-user-id', userId);
+        
+        // Rotate chevron to point down when opening
+        if (chevron) {
+            const path = chevron.querySelector('path');
+            if (path) {
+                path.setAttribute('d', 'M12 6L8 10L4 6'); // Point down when modal is open
+            }
+        }
+    }
+});
             
             // Hover to show tooltip (only when modal is closed)
             badge.addEventListener('mouseenter', () => {
@@ -4499,31 +4541,37 @@ function getDaysUntil(dateString) {
         return;
     }
     
-    const calendarHeader = `
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
-            <button onclick="changeEODMonth(-1)" style="
-                padding: 8px 16px; 
-                border: 1px solid #CED4DA; 
-                border-radius: 4px; 
-                background: white; 
-                cursor: pointer; 
-                font-size: 14px;
-                color: #08090A;
-                font-weight: 500;
-            ">← Previous</button>
-            <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: #08090A;">${monthNames[month]} ${year}</h3>
-            <button onclick="changeEODMonth(1)" style="
-                padding: 8px 16px; 
-                border: 1px solid #CED4DA; 
-                border-radius: 4px; 
-                background: white; 
-                cursor: pointer; 
-                font-size: 14px;
-                color: #08090A;
-                font-weight: 500;
-            ">Next →</button>
-        </div>
-    `;
+const calendarHeader = `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 8px; width: 100%; box-sizing: border-box;">
+        <button onclick="changeEODMonth(-1)" style="
+            padding: 8px 12px; 
+            border: 1px solid #CED4DA; 
+            border-radius: 4px; 
+            background: white; 
+            cursor: pointer; 
+            font-size: 14px;
+            color: #08090A;
+            font-weight: 500;
+            flex-shrink: 0;
+            min-width: 90px;
+            white-space: nowrap;
+        ">← Previous</button>
+        <h3 style="margin: 0; font-size: 20px; font-weight: 600; color: #08090A; text-align: center; flex: 1; min-width: 0;">${monthNames[month]} ${year}</h3>
+        <button onclick="changeEODMonth(1)" style="
+            padding: 8px 12px; 
+            border: 1px solid #CED4DA; 
+            border-radius: 4px; 
+            background: white; 
+            cursor: pointer; 
+            font-size: 14px;
+            color: #08090A;
+            font-weight: 500;
+            flex-shrink: 0;
+            min-width: 90px;
+            white-space: nowrap;
+        ">Next →</button>
+    </div>
+`;
     
     calendarContainer.innerHTML = calendarHeader + '<div style="text-align: center; padding: 40px; color: #6D747A;">Loading calendar...</div>';
     
@@ -4544,7 +4592,7 @@ function getDaysUntil(dateString) {
         const todayDate = today.getDate();
         
         let calendarHTML = `
-            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px;">
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px; width: 100%; box-sizing: border-box;">
                 <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sun</div>
                 <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Mon</div>
                 <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Tue</div>

@@ -3902,3 +3902,37 @@ if (document.readyState === 'loading') {
 window.initActionTooltips = initActionTooltips;
 window.updateActionIndicatorVisibility = updateActionIndicatorVisibility;
 window.hasActiveActionItems = hasActiveActionItems;
+
+
+// ADD THIS NEW CODE at the end of lms.js (around line 2100):
+
+// Listen for browser navigation (back/forward buttons)
+window.addEventListener('pageshow', function(event) {
+    // Check if page was loaded from cache (back/forward navigation)
+    if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+        console.log('Page loaded from cache, refreshing data...');
+        
+        // Refresh the table data if we're on the dashboard
+        const lmsDashboard = document.querySelector('.lms-main-dashboard');
+        if (lmsDashboard && lmsDashboard.style.display !== 'none') {
+            if (typeof fetchTableData === 'function') {
+                fetchTableData(currentPage);
+            }
+        }
+    }
+});
+
+// Also listen for popstate (back/forward button)
+window.addEventListener('popstate', function(event) {
+    console.log('Browser navigation detected, refreshing data...');
+    
+    // Small delay to ensure DOM is ready
+    setTimeout(() => {
+        const lmsDashboard = document.querySelector('.lms-main-dashboard');
+        if (lmsDashboard && lmsDashboard.style.display !== 'none') {
+            if (typeof fetchTableData === 'function') {
+                fetchTableData(currentPage);
+            }
+        }
+    }, 100);
+});

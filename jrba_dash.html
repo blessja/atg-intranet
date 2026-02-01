@@ -1,0 +1,207 @@
+{% extends "mainapp/base.html" %}
+{% load static %}
+{% block title %}
+JRBa Dashboard {# or Checks #}
+{% endblock %}
+
+{% block content %}
+
+
+    <link rel="stylesheet" href="{% static 'lms.css' %}">
+    <div class="lms-dashboard" style="width:100%;  background-color: #F0F4F9;">
+        <div class="lms-home-navigation">
+        <a href="{% url 'homepage' %}" class="breadcrumb-link">Home</a>
+        <span class="breadcrumb-divider">/</span>
+        <a href="#" class="breadcrumb-text">Banao</a>
+        <span class="breadcrumb-divider">/</span>
+        <a href="{% url 'lms' %}" class="breadcrumb-current">LMS</a>
+    </div>
+<div class="jr-ba-dashboard" >
+          
+            <div style="padding: 0px 20px;" class="jr-ba-upper-dashboard">
+
+            </div>
+            <div class="search-top-bar-jrba" style="margin: 20px 0px">
+                <div class="search-wrapper-jrba">
+                    <div class="search-box-jrba">
+                        <div class="search-icon-jrba">
+                            <svg width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                    d="M9.541 1.52a8.02 8.02 0 100 16.042 8.02 8.02 0 000-16.041zM.146 9.543a9.396 9.396 0 1118.791 0 9.396 9.396 0 01-18.791 0zM16.847 16.847a.687.687 0 01.972 0l1.834 1.833a.688.688 0 11-.973.973l-1.833-1.834a.688.688 0 010-.972z"
+                                    fill="#000" />
+                            </svg>
+                        </div>
+                        <input class="search-input-jrba" type="text" placeholder="Search name" />
+                    </div>
+                </div>
+
+            </div>
+             <div class="jrba-leads-container"
+                style="background-color: white; margin-top: 10px; border-radius: 10px; padding: 8px 0px 40px 22px;">
+                <div style="border-bottom: 1px solid#00000033; ">
+                    <div style="display: flex; flex-direction: row; justify-content: space-between;">
+                        <div style="color: #000000; font-size: 20px; font-weight: 600;">Leads <span
+                                id="selection-count-track"
+                                style="color: #171A1F7A; font-weight: 400; font-size: 12px;">0 of 100 Selected</span>
+                        </div>
+                        <div id="reset-filters" style="cursor: pointer; margin-right: 20px; font-size: 22px;">⟲</div>
+                    </div>
+                    <div style="display: flex; flex-direction: row; justify-content: space-between;">
+                        <div style="display: flex; flex-direction: row; gap: 10px; position: relative;">
+                            <div class="more-option" style="font-size: 20px;  font-weight: 800; cursor: pointer;">
+                                &vellip;</div>
+
+                            <!-- <div onclick="bulkMarkImportant()"
+                                style="cursor: pointer; font-size: 28px; margin-top: -8px; font-weight: 500;">★</div>
+                           -->
+
+
+                            <div id="more-dropdown"
+                                style=" display:none;  width: 250px; position: absolute; font-size: 14px; top: 30px; left: 0; background: white; border: 1px solid #ccc; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); z-index: 10;">
+
+                               <select id="jrba-workflow-change" class="lead-filter-select">
+    <option value="">Change Workflow Status</option>
+    <option value="7">Audit Pending</option>
+    <option value="8">Audit Sent</option>
+    <option value="1">Call To Be Made</option>
+    <option value="11">Confirmed</option>
+    <option value="14">InterviewGod</option>
+    <option value="0">Negative</option>
+    <option value="13">New Call To Be Made</option>
+    <option value="12">Priority Audit Pending</option>
+    <option value="3">Proposal Pending</option>
+    <option value="4">Proposal Sent</option>
+    <option value="2">Requirement Pending</option>
+    <option value="9">Soft Confirmed</option>
+</select>
+
+                                <div id="workflow-options"
+                                    style="   margin-top: 5px; border-top: 1px solid #eee;">
+
+                                </div>
+                            </div>
+                        </div>
+                        <!-- <div style="display: flex; flex-direction: row; justify-content: end; gap: 4px; height: 53px;">
+                            <div>
+                                <select id="jrba-mark-imp-filter" name="" id="" class="lead-filter-select">
+                                    <option value="">By Mark Imp</option>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <select id="jrba-workflow-status-filter" name="" id="" class="lead-filter-select">
+                                    <option value="">By Workflow Status</option>
+                                    <option value="7">Audit Pending</option>
+                                    <option value="8">Audit Sent</option>
+                                    <option value="1">Call To Be Made</option>
+                                    <option value="11">Confirmed</option>
+                                    <option value="14">InterviewGod</option>
+                                    <option value="0">Negative</option>
+                                    <option value="13">New Call To Be Made</option>
+                                    <option value="12">Priority Audit Pending</option>
+                                    <option value="3">Proposal Pending</option>
+                                    <option value="4">Proposal Sent</option>
+                                    <option value="2">Requirement Pending</option>
+                                    <option value="9">Soft Confirmed</option>
+                                </select>
+                            </div>
+                            <div class="by-lead-orgin-filter">
+                                <select id="jrba-lead-origin-filter" name="" id="" class="lead-filter-select">
+                                    <option value="">By Lead Origin</option>
+                                    <option value="w">Banao Website</option>
+                                    <option value="l">LinkedIn</option>
+                                    <option value="i">Instagram</option>
+                                    <option value="cw">Client Website</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select name="" id="" class="lead-filter-select" style="margin-right: 10px;">
+                                    <option value="">More Filters</option>
+                                </select>
+                            </div>
+                        </div> -->
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width:100%; border-collapse: collapse; ">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #00000033; height: 40px;">
+                                <th style="white-space: nowrap; padding: 0px 10px;"><input type="checkbox" name=""
+                                        id=""></th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Lead/Client Name</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Type</th>
+                                <th>Origin</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Work flow status</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Lead note count</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Call status</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Comapny name</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Name</th>
+                                <th style="white-space: nowrap; padding: 0px 10px; text-align: center;">Email</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Proposal Link</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Audit Link</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Phone No's</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Assigned To</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Industry</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Created At</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Updated At</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Last Update note</th>
+                                <th style="white-space: nowrap; padding: 0px 10px;">Next Follow-update</th>
+
+                            </tr>
+                        </thead>
+                        <tbody id="jrba-lead-table-body"
+                            style="font-weight: 400; font-size: 14px; color: #222222; text-align: center;">
+                            <tr style="border-bottom: 1px solid #00000033; height: 40px;">
+                                <!-- <td><input type="checkbox" name="" id=""></td>
+                                <td>Rishikesh</td>
+                                <td>Not Gathered</td>
+                                <td></td>
+                                <td data-status="Audit Pending">
+                                    <div></div>
+                                </td>
+                                <td>1</td>
+                                <td> all didn't pickup</td>
+                                <td>Tech solution</td>
+                                <td>John Doe</td>
+                                <td>john.doe@exampleasacac.com,</td> -->
+                                <td colspan="15">
+                                    <div class="loading-spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="jrba-pagination-container" style="margin-top: 20px;"></div>
+
+            </div>
+
+            <script>
+                  document.addEventListener("DOMContentLoaded", () => {
+        const baId = "{{ ba_id }}";   // passed from URL
+        showJrBaDashboard(baId);      // reuse your existing logic
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+    const moreBtn = document.querySelector(".more-option");
+    if (moreBtn) {
+        moreBtn.addEventListener("click", toggleMoreDropdown);
+    }
+
+    const wfSelect = document.getElementById("jrba-workflow-change");
+    if (wfSelect) {
+        wfSelect.addEventListener("change", e => {
+            if (e.target.value) {
+                handleWorkflowChange(e.target.value);
+                dropdown.style.display = "none"; // hide again after choosing
+            }
+        });
+    }
+});
+
+            </script>
+            <script src="{% static 'js/jrba_dashboard.js' %}"></script>
+      
+{% endblock %}

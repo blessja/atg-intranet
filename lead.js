@@ -1694,10 +1694,161 @@ async function submitLeadEdit(event) {
           "lead-details-form-next-followup-display"
         ).value = "";
       }
-      const updatedLead = allLeads.find(lead => lead.id === currentEditingLeadId);
-    if (updatedLead) {
-        updatedLead.action_item = document.getElementById("lead-details-form-action")?.value || '';
+    const updatedLead = allLeads.find(lead => lead.id === currentEditingLeadId);
+if (updatedLead) {
+    updatedLead.action_item = document.getElementById("lead-details-form-action")?.value || '';
+    
+    // Force re-render of the specific row to update the red icon
+    const rowIndex = allLeads.findIndex(lead => lead.id === currentEditingLeadId);
+    if (rowIndex !== -1 && typeof renderTable === 'function') {
+        // Re-render just this lead's row
+        const tbody = document.getElementById("lead-table-body");
+        if (tbody && tbody.children[rowIndex]) {
+            const singleLeadArray = [allLeads[rowIndex]];
+            const tempContainer = document.createElement('tbody');
+            
+            // Render the updated row into temp container
+            const visibleColumns = getVisibleColumns();
+            const lead = allLeads[rowIndex];
+            const statusText = workflowStatusMap[lead.workflow_status] || "-";
+            const originValue = originMap[lead.origin] || "-";
+            const style = getStatusStyle(statusText);
+            
+            const row = document.createElement("tr");
+            row.style.cssText = `border-bottom: 1px solid #00000033; height: 40px; background-color: ${lead.Mark_Imp ? "#EBEBEB" : ""}`;
+            
+            const last_updated_note = lead.last_updated_note
+                ? new Date(lead.last_updated_note).toISOString().split("T")[0]
+                : "-";
+            
+            visibleColumns.forEach(column => {
+                const td = document.createElement('td');
+                
+                switch(column.key) {
+                    case 'checkbox':
+                        td.innerHTML = `<input type="checkbox" class="lead-checkbox" data-id="${lead.id}" data-imp="${lead.Mark_Imp}"/>`;
+                        break;
+                        
+                    case 'client_name':
+                        const safeActionItem = escapeForAttribute(lead.action_item || '');
+                        const hasActionItem = window.hasActiveActionItems ? 
+                            window.hasActiveActionItems(lead.action_item) : 
+                            (lead.action_item && lead.action_item.trim() !== '' && lead.action_item !== '[]');
+                        
+                        const actionIndicatorHtml = hasActionItem ? 
+                            `<div class="action-indicator" 
+                                 data-action="${safeActionItem}"
+                                 style="cursor: pointer; display: flex;">
+                                <div class="action-circle red"></div>
+                            </div>` : '<div class="action-indicator" style="width: 12px; height: 12px; display: none;"></div>';
+                        
+                        td.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                ${actionIndicatorHtml}
+                                <span class="lead-name-span" 
+                                      data-lead-id="${lead.id}" 
+                                      ${hasActionItem ? `data-action="${safeActionItem}"` : ''}
+                                      style="cursor: pointer; white-space: nowrap;">
+                                    ${lead.full_name || ""}
+                                </span>
+                            </div>`;
+                        
+                        td.style.cursor = 'pointer';
+                        td.onclick = (e) => {
+                            if (!e.target.closest('.action-indicator')) {
+                                window.location.href = `/lms/lead/${lead.id}`;
+                            }
+                        };
+                        break;
+                        
+                    // ... rest of the cases remain the same
+                    case 'origin':
+                        td.innerHTML = originValue;
+                        break;
+                    case 'workflow_status':
+                        td.dataset.status = statusText;
+                        td.innerHTML = `<div style="background-color: ${style.bg}; color: ${style.color}; border-radius: 3px; padding: 1px 4px; width: fit-content;">${statusText}</div>`;
+                        break;
+                    case 'lead_notes_count':
+                        td.innerHTML = `<span class="lead-notes-hover" data-notes="${encodeURIComponent(JSON.stringify(lead.lead_notes || []))}" style="cursor: pointer;">${lead.lead_notes_count || "N/A"}</span>`;
+                        break;
+                    case 'company_name':
+                        td.textContent = lead.company_name || "-";
+                        break;
+                    case 'email':
+                        td.style.padding = '0px 8px';
+                        td.textContent = lead.emails?.join(", ") || "-";
+                        break;
+                    case 'phone':
+                        td.textContent = lead.phones?.join(", ") || "-";
+                        break;
+                    case 'assigned_to':
+                        td.textContent = lead.assigned_to?.join(", ") || "-";
+                        break;
+                    case "created_at":
+                        const createdDate = lead.created_at ? new Date(lead.created_at).toISOString().split("T")[0] : "-";
+                        td.textContent = createdDate !== "-" ? convertToDDMMYYYY(createdDate) : "-";
+                        break;
+                    case "last_updated_note":
+                        td.textContent = convertToDDMMYYYY(last_updated_note) || "-";
+                        break;
+                    case "next_follow_up":
+                        const followUpDate = lead.next_follow_up_date ? new Date(lead.next_follow_up_date).toISOString().split("T")[0] : "-";
+                        td.textContent = followUpDate !== "-" ? convertToDDMMYYYY(followUpDate) : "-";
+                        break;
+                    default:
+                        td.textContent = "-";
+                }
+                
+                row.appendChild(td);
+            });
+            
+            // Replace the old row with the new one
+            tbody.children[rowIndex].replaceWith(row);
+            
+            // Re-attach listeners for the new row
+            const checkbox = row.querySelector('.lead-checkbox');
+            if (checkbox) {
+                checkbox.addEventListener('change', updateSelectionCount);
+            }
+            
+            // Re-attach note hover listeners
+            const noteEl = row.querySelector('.lead-notes-hover');
+            if (noteEl) {
+                noteEl.addEventListener("mouseenter", (e) => {
+                    const notes = JSON.parse(decodeURIComponent(noteEl.dataset.notes || "[]"));
+                    const tooltip = document.getElementById("lead-notes-tooltip");
+                    if (notes.length > 0) {
+                        tooltip.innerHTML = notes.reverse().map(n => `
+                            <div style="margin-bottom:6px; border-bottom:1px solid #eee; padding-bottom:4px;">
+                                <div style="white-space: pre-wrap;word-break: break-word;">${n.note || "-"}</div>
+                                <div style="color:#666; font-size:12px;">By: ${n.added_by_name || "-"} on ${n.created_at || "-"}</div>
+                            </div>
+                        `).join("");
+                    } else {
+                        tooltip.innerHTML = "<i>No notes available</i>";
+                    }
+                    tooltip.style.display = "block";
+                    tooltip.style.left = (e.pageX + 10) + "px";
+                    tooltip.style.top = (e.pageY + 10) + "px";
+                });
+                noteEl.addEventListener("mousemove", (e) => {
+                    const tooltip = document.getElementById("lead-notes-tooltip");
+                    tooltip.style.left = (e.pageX + 10) + "px";
+                    tooltip.style.top = (e.pageY + 10) + "px";
+                });
+                noteEl.addEventListener("mouseleave", () => {
+                    document.getElementById("lead-notes-tooltip").style.display = "none";
+                });
+            }
+            
+            // Re-initialize action tooltips for this row
+            if (window.initActionTooltips) {
+                window.initActionTooltips();
+            }
+        }
     }
+}
     
     if (typeof fetchTableData === "function") {
         fetchTableData(currentPage);
@@ -1721,6 +1872,12 @@ async function submitLeadEdit(event) {
     alert("An error occurred while updating the lead!");
   }
   
+}
+
+function convertToDDMMYYYY(dateStr) {
+    if (!dateStr || dateStr === "-") return null;
+    const [year, month, day] = dateStr.split("-");
+    return `${day}-${month}-${year}`;
 }
 
 function takeOverLead() {

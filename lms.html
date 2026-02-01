@@ -181,18 +181,20 @@ th.draggable-header.dragging {
                     <div
                         style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
                         <div style="display: flex; flex-direction: row; gap: 10px; position: relative;">
-                            <div class="more-option" onclick="toggleMoreDropdown()"
+                            <div class="more-option" title="More Options" onclick="toggleMoreDropdown()"
                                 style="font-size: 20px;  font-weight: 800; cursor: pointer;">&vellip;
                             </div>
                             {% if is_lms_manager %}
-                            <div class="material-icons" style="cursor: pointer;" onclick="bulkDelete()">&#xe872;</div>
+                            <div class="material-icons" title="Bulk Delete" style="cursor: pointer;" onclick="bulkDelete()">&#xe872;</div>
                             {% endif %}
                             <div onclick="bulkMarkImportant()"
+                            title="Mark as Important"
                                 style="cursor: pointer; font-size: 28px; margin-top: -8px; font-weight: 500;">★</div>
                             <div class="fas fa-user-plus" id="change-assignee-btn"
                                 style="text-align: center; margin-top: 4px; cursor: pointer;"></div>
 
                             <div id="assignee-dropdown" class="custom-dropdown"
+                            title="Assign User"
                                 style="display: none; position: absolute; background: white; border: 1px solid #ccc; padding: 10px; z-index: 999;">
                                 <select id="assignee-select" multiple size="5">
                                     <option value="">Select user</option>
@@ -247,12 +249,12 @@ th.draggable-header.dragging {
                                 </div>
                                 <div class="tags-dropdown-list hidden" id="tags-list"
                                     style="position: absolute; background: white; border: 1px solid #ccc; padding: 8px; z-index: 100;">
-
+                                    no tags yet !
                                 </div>
                             </div>
 
                             <div>
-                                <select id="mark-imp-filter" name="" id="" class="mark-imp-filter lead-filter-select">
+                                <select id="mark-imp-filter" name="" id="" class="mark-imp-filter lead-filter-select" style="cursor: pointer;">
                                     <option value="">By Mark Imp</option>
                                     <option value="true">Yes</option>
                                     <option value="false">No</option>
@@ -352,7 +354,7 @@ th.draggable-header.dragging {
                             <div id="lead-origin-filter" class="lead-origin-filter lead-filter-select"
                                 style="max-width: 200px; position: relative;">
                                 <div class="lead-origin-dropdown-selected dropdownapble" onclick="toggleOriginDropdown()"
-                                    style="width: 120px;">
+                                    style="width: 120px; cursor: pointer;">
                                     By Lead Origin
                                 </div>
                                 <div class="lead-origin-dropdown-list hidden" id="lead-origin-list">
@@ -370,9 +372,9 @@ th.draggable-header.dragging {
                             </div>
 
                             <div>
-                                <select name="" id="" class="lead-filter-select" style="margin-right: 10px;">
-                                    <option value="">More Filters</option>
-                                </select>
+                                <div class="lead-filter-select" style="margin-right:10px; width:120px; cursor:pointer;" onclick="toggleMoreDropdown()">
+                                    More Filters
+                                </div>
                             </div>
                         </div>
                         <div class="mobile-menu-wrapper">
@@ -392,7 +394,7 @@ th.draggable-header.dragging {
                                 </div>
                                 <div>
                                     <select id="mark-imp-filter" name="" id=""
-                                        class="mark-imp-filter lead-filter-select">
+                                        class="mark-imp-filter lead-filter-select" style="cursor: pointer;">
                                         <option value="">By Mark Imp</option>
                                         <option value="true">Yes</option>
                                         <option value="false">No</option>

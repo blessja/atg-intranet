@@ -85,6 +85,24 @@ function clientSideSort(data, sortField, descending = true) {
     });
 }
 
+// Inline error banner helpers for lead fetch failures
+function showLeadsError(msg) {
+    let el = document.getElementById('lms-error-banner');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'lms-error-banner';
+        el.style.cssText = 'background:#fdecea;color:#611a15;padding:8px;border:1px solid #f5c6cb;margin:10px;border-radius:4px;';
+        const container = document.querySelector('.lms-main-dashboard') || document.body;
+        container.insertBefore(el, container.firstChild);
+    }
+    el.textContent = 'Error loading leads: ' + msg;
+}
+
+function clearLeadsError() {
+    const el = document.getElementById('lms-error-banner');
+    if (el) el.remove();
+}
+
 // Update the URL with sort parameter
 function updateUrlSortParam(sortBy) {
     const url = new URL(window.location);
@@ -164,6 +182,7 @@ function onHeaderClick(sortKey, headerId) {
 // Modified fetchTableData to store data for client-side sorting
 function fetchTableData(page = 1) {
     currentPage = page;
+    clearLeadsError();
     showLoader();
     // console.log(filters);
     
@@ -188,8 +207,13 @@ function fetchTableData(page = 1) {
     const fetchUrl = `/api/leads/?${filterString}`;
     // console.log("Fetching", fetchUrl);
     
-    fetch(fetchUrl)
-        .then(res => res.json())
+    fetch(fetchUrl, { credentials: 'same-origin' })
+        .then(res => {
+            if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
+            const ctype = res.headers.get('content-type') || '';
+            if (ctype.indexOf('application/json') === -1) throw new Error('Expected JSON response');
+            return res.json();
+        })
         .then(data => {
             globalAssigneeUserOption = data.results?.bussiness_analyst_users || [];
             
@@ -217,7 +241,11 @@ function fetchTableData(page = 1) {
             // Initialize arrows after table is rendered
             initializeSorting();
         })
-        .catch(err => console.error("Failed to fetch leads:", err));
+        .catch(err => {
+            console.error("Failed to fetch leads:", err);
+            showLeadsError(err.message || String(err));
+            hideLoader();
+        });
 }
 
 // Attach click handlers and arrows to date headers
@@ -298,11 +326,45 @@ function initializeSortFromURL() {
     }
 }
 
+function clearAllFilterUI() {
+    // Clear all UI elements
+    document.querySelectorAll("#workflow-list input[type='checkbox'], #mobile-workflow-list input[type='checkbox']").forEach(cb => cb.checked = false);
+    const workflowLabelDesktop = document.querySelector("#workflow-status-filter .workflow-dropdown-selected");
+    const workflowLabelMobile = document.querySelector("#mobile-workflow-status-filter .mobile-workflow-dropdown-selected");
+    if (workflowLabelDesktop) workflowLabelDesktop.textContent = "By Workflow Status";
+    if (workflowLabelMobile) workflowLabelMobile.textContent = "By Workflow Status";
+
+    document.querySelectorAll("#assigned-list input[type='checkbox'], #mobile-assigned-list input[type='checkbox']").forEach(cb => cb.checked = false);
+    const assignedLabelDesktop = document.querySelector("#assigned-to-filter .assigned-dropdown-selected");
+    const assignedLabelMobile = document.querySelector("#mobile-assigned-to-filter .mobile-assigned-dropdown-selected");
+    if (assignedLabelDesktop) assignedLabelDesktop.textContent = "By Assigned To";
+    if (assignedLabelMobile) assignedLabelMobile.textContent = "By Assigned To";
+
+    document.querySelectorAll("#tags-list input[type='checkbox'], #mobile-tags-list input[type='checkbox']").forEach(cb => cb.checked = false);
+    const tagsLabelDesktop = document.querySelector("#tags-filter .tags-dropdown-selected");
+    const tagsLabelMobile = document.querySelector("#mobile-tags-filter .mobile-tags-dropdown-selected");
+    if (tagsLabelDesktop) tagsLabelDesktop.textContent = "By Tags";
+    if (tagsLabelMobile) tagsLabelMobile.textContent = "By Tags";
+
+    document.querySelectorAll("#lead-origin-list input[type='checkbox'], #mobile-origin-list input[type='checkbox']").forEach(cb => cb.checked = false);
+    const originLabelDesktop = document.querySelector("#lead-origin-filter .lead-origin-dropdown-selected");
+    const originLabelMobile = document.querySelector("#mobile-lead-origin-filter .mobile-origin-dropdown-selected");
+    if (originLabelDesktop) originLabelDesktop.textContent = "By Lead Origin";
+    if (originLabelMobile) originLabelMobile.textContent = "By Lead Origin";
+
+    document.querySelectorAll(".mark-imp-filter").forEach(select => select.value = "");
+    document.querySelectorAll(".search-input-main-dashboard").forEach(input => input.value = "");
+}
+
 // Initialize arrows when page loads
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, starting initialization...'); // Debug log
     
     initializeSortFromURL();
+    
+    // Read page from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialPage = parseInt(urlParams.get('page')) || 1;
     
     // Initialize table columns first - with a small delay to ensure DOM is ready
     setTimeout(() => {
@@ -312,7 +374,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Then proceed with other initialization
         setTimeout(() => {
             attachArrows();
-            fetchTableData(1);
+            // Always start with clear filters on page load
+            filters = {};
+            clearAllFilterUI();
+            fetchTableData(initialPage);
         }, 100);
     }, 50);
 });
@@ -499,7 +564,6 @@ const originSourceMap = ["i", "w", "cw", "l"];
         });
 
         isTagsFilterPopulated = true;
-        initFiltersFromURL(); // called this function here to showtags and assignedto selected from URL
     } catch (err) {
         console.error("Failed to load tags:", err);
     }
@@ -614,7 +678,7 @@ function renderTable(leads) {
                             <span class="lead-name-span" 
                                   data-lead-id="${lead.id}"
                                   ${hasActionItem ? `data-action="${safeActionItem}"` : ''}
-                                  style="cursor: pointer;">
+                                  style="cursor: pointer; white-space: nowrap;">
                                 ${lead.full_name || ""}
                             </span>
                         </div>`;
@@ -1494,6 +1558,14 @@ function renderTable(leads) {
             if (assignedLabelMobile) assignedLabelMobile.textContent = "By Assigned To";
 
 
+            document.querySelectorAll("#tags-list input[type='checkbox'], #mobile-tags-list input[type='checkbox']")
+                .forEach(cb => cb.checked = false);
+            const tagsLabelDesktop = document.querySelector("#tags-filter .tags-dropdown-selected");
+            const tagsLabelMobile = document.querySelector("#mobile-tags-filter .mobile-tags-dropdown-selected");
+            if (tagsLabelDesktop) tagsLabelDesktop.textContent = "By Tags";
+            if (tagsLabelMobile) tagsLabelMobile.textContent = "By Tags";
+
+
             // document.querySelectorAll(".call-status-filter").forEach(el => el.value = "");
             document.querySelectorAll(".mark-imp-filter").forEach(el => el.value = "");
 
@@ -1504,6 +1576,36 @@ function renderTable(leads) {
         });
 
         function initFiltersFromURL() {
+            // Clear all filters first
+            filters = {};
+
+            // Clear all UI elements first
+            document.querySelectorAll("#workflow-list input[type='checkbox'], #mobile-workflow-list input[type='checkbox']").forEach(cb => cb.checked = false);
+            const workflowLabelDesktop = document.querySelector("#workflow-status-filter .workflow-dropdown-selected");
+            const workflowLabelMobile = document.querySelector("#mobile-workflow-status-filter .mobile-workflow-dropdown-selected");
+            if (workflowLabelDesktop) workflowLabelDesktop.textContent = "By Workflow Status";
+            if (workflowLabelMobile) workflowLabelMobile.textContent = "By Workflow Status";
+
+            document.querySelectorAll("#assigned-list input[type='checkbox'], #mobile-assigned-list input[type='checkbox']").forEach(cb => cb.checked = false);
+            const assignedLabelDesktop = document.querySelector("#assigned-to-filter .assigned-dropdown-selected");
+            const assignedLabelMobile = document.querySelector("#mobile-assigned-to-filter .mobile-assigned-dropdown-selected");
+            if (assignedLabelDesktop) assignedLabelDesktop.textContent = "By Assigned To";
+            if (assignedLabelMobile) assignedLabelMobile.textContent = "By Assigned To";
+
+            document.querySelectorAll("#tags-list input[type='checkbox'], #mobile-tags-list input[type='checkbox']").forEach(cb => cb.checked = false);
+            const tagsLabelDesktop = document.querySelector("#tags-filter .tags-dropdown-selected");
+            const tagsLabelMobile = document.querySelector("#mobile-tags-filter .mobile-tags-dropdown-selected");
+            if (tagsLabelDesktop) tagsLabelDesktop.textContent = "By Tags";
+            if (tagsLabelMobile) tagsLabelMobile.textContent = "By Tags";
+
+            document.querySelectorAll("#lead-origin-list input[type='checkbox'], #mobile-origin-list input[type='checkbox']").forEach(cb => cb.checked = false);
+            const originLabelDesktop = document.querySelector("#lead-origin-filter .lead-origin-dropdown-selected");
+            const originLabelMobile = document.querySelector("#mobile-lead-origin-filter .mobile-origin-dropdown-selected");
+            if (originLabelDesktop) originLabelDesktop.textContent = "By Lead Origin";
+            if (originLabelMobile) originLabelMobile.textContent = "By Lead Origin";
+
+            document.querySelectorAll(".mark-imp-filter").forEach(select => select.value = "");
+            document.querySelectorAll(".search-input-main-dashboard").forEach(input => input.value = "");
 
             const params = new URLSearchParams(window.location.search);
 
@@ -1598,9 +1700,6 @@ function renderTable(leads) {
             }
         }
 
-
-        initFiltersFromURL();
-        // fetchTableData();
 
         function closeLeadDetails() {
             // document.querySelector('.lms-main-dashboard').style.display = 'block';

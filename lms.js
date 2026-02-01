@@ -20,13 +20,25 @@ const dateHeaders = [
   {id: 'last-updated-note-header', sortKey: 'last_updated_note'},
   {id: 'next-follow-up-header', sortKey: 'next_follow_up_date'}
 ];
-
+let isLoading = false;
 let currentSortBy = '-created_at';
 let currentSortHeader = 'created-at-header';
 let allFetchedLeads = []; // Store all fetched data for client-side sorting
 // Add these with your existing global variables (around line where you have globalAssigneeUserOption)
 let globalTagsOption = [];
 let isTagsFilterPopulated = false;
+let filterCache = {
+    assignees: null,
+    tags: null,
+    lastUpdated: null
+};
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+function isCacheValid() {
+    return filterCache.lastUpdated && 
+           (Date.now() - filterCache.lastUpdated < CACHE_DURATION);
+}
 
 // Column management functions
 function getColumnConfig() {
@@ -181,14 +193,19 @@ function onHeaderClick(sortKey, headerId) {
 
 // Modified fetchTableData to store data for client-side sorting
 function fetchTableData(page = 1) {
+    // ADD: Prevent multiple simultaneous requests
+    if (isLoading) {
+        console.log('Already loading, skipping duplicate request');
+        return;
+    }
+    
+    isLoading = true;
     currentPage = page;
     clearLeadsError();
     showLoader();
-    // console.log(filters);
     
     let queryParams = new URLSearchParams({ page });
     
-    // Add all filters including sort_by to backend
     Object.entries(filters).forEach(([key, value]) => {
         if (Array.isArray(value)) {
             queryParams.set(key, value.join(','));
@@ -202,12 +219,18 @@ function fetchTableData(page = 1) {
     let newUrl = currentPath.includes("track-performance") ? 
         `/lms/track-performance/?${filterString}` : 
         `/lms/?${filterString}`;
+    
+    // CHANGE: Use replaceState to avoid triggering unnecessary events
     window.history.replaceState(null, '', newUrl);
 
     const fetchUrl = `/api/leads/?${filterString}`;
-    // console.log("Fetching", fetchUrl);
     
-    fetch(fetchUrl, { credentials: 'same-origin' })
+    fetch(fetchUrl, { 
+        credentials: 'same-origin',
+        // ADD: Request optimizations
+        cache: 'no-cache',
+        priority: 'high'
+    })
         .then(res => {
             if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
             const ctype = res.headers.get('content-type') || '';
@@ -217,6 +240,7 @@ function fetchTableData(page = 1) {
         .then(data => {
             globalAssigneeUserOption = data.results?.bussiness_analyst_users || [];
             
+            // OPTIMIZE: Only populate filters once
             if (!isAssigneeFilterPopulated && globalAssigneeUserOption.length > 0) {
                 populateAssignedToFilter();
                 populateTagsFilter();
@@ -230,21 +254,23 @@ function fetchTableData(page = 1) {
                 if (el) el.textContent = count;
             });
 
-            // Store fetched data
             allFetchedLeads = data.results.results || [];
-            console.log("leads:",allFetchedLeads);
             
-            // Render table with backend-sorted data
-            renderTable(allFetchedLeads);
-            renderPagination(data.current_page, data.total_pages);
-            
-            // Initialize arrows after table is rendered
-            initializeSorting();
+            // OPTIMIZE: Use requestAnimationFrame for smoother rendering
+            requestAnimationFrame(() => {
+                renderTable(allFetchedLeads);
+                renderPagination(data.current_page, data.total_pages);
+                initializeSorting();
+                
+                // ADD: Reset loading flag after rendering
+                isLoading = false;
+            });
         })
         .catch(err => {
             console.error("Failed to fetch leads:", err);
             showLeadsError(err.message || String(err));
             hideLoader();
+            isLoading = false; // ADD: Reset on error
         });
 }
 
@@ -497,42 +523,67 @@ const originSourceMap = ["i", "w", "cw", "l"];
             modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
         }
 
+function populateAssignedToFilter() {
+    const desktopContainer = document.getElementById("assigned-list");
+    const mobileContainer = document.getElementById("mobile-assigned-list");
+    
+    // Early return if containers don't exist
+    if (!desktopContainer && !mobileContainer) return;
 
-        function populateAssignedToFilter() {
-            const users = globalAssigneeUserOption || [];
+    const users = globalAssigneeUserOption || [];
+    
+    // ADD: Use cache if valid and data hasn't changed
+    if (isCacheValid() && 
+        filterCache.assignees && 
+        filterCache.assignees.length === users.length) {
+        console.log('Using cached assignee filter data');
+        return; // Data already populated and still valid
+    }
 
-            const desktopContainer = document.getElementById("assigned-list");
-            const mobileContainer = document.getElementById("mobile-assigned-list");
+    // ADD: Update cache
+    filterCache.assignees = users;
+    filterCache.lastUpdated = Date.now();
 
-            if (!desktopContainer && !mobileContainer) return;
-
-            [desktopContainer, mobileContainer].forEach(container => {
-                if (!container) return;
-                container.innerHTML = "";
-                const label = document.createElement("label");
-                label.style.display = "block";
-                const input = document.createElement("input");
-                input.type = "checkbox";
-                input.value = "none";
-                input.onchange = updateAssignedFilter;
-                label.appendChild(input);
-                label.append(`no assignee`);
-                container.appendChild(label);
-                users.forEach(user => {
-                    const label = document.createElement("label");
-                    label.style.display = "block";
-
-                    const input = document.createElement("input");
-                    input.type = "checkbox";
-                    input.value = user.id;
-                    input.onchange = updateAssignedFilter;
-
-                    label.appendChild(input);
-                    label.append(` ${user.first_name}`);
-                    container.appendChild(label);
-                });
-            });
-        }
+    // OPTIMIZE: Use DocumentFragment for better performance
+    [desktopContainer, mobileContainer].forEach(container => {
+        if (!container) return;
+        
+        // OPTIMIZE: Use fragment to build DOM elements
+        const fragment = document.createDocumentFragment();
+        
+        // Create "no assignee" option
+        const noAssigneeLabel = document.createElement("label");
+        noAssigneeLabel.style.display = "block";
+        
+        const noAssigneeInput = document.createElement("input");
+        noAssigneeInput.type = "checkbox";
+        noAssigneeInput.value = "none";
+        noAssigneeInput.onchange = updateAssignedFilter;
+        
+        noAssigneeLabel.appendChild(noAssigneeInput);
+        noAssigneeLabel.appendChild(document.createTextNode(" no assignee")); // FIX: Use createTextNode
+        fragment.appendChild(noAssigneeLabel);
+        
+        // Create user options
+        users.forEach(user => {
+            const label = document.createElement("label");
+            label.style.display = "block";
+            
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.value = user.id;
+            input.onchange = updateAssignedFilter;
+            
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(` ${user.first_name}`)); // FIX: Use createTextNode
+            fragment.appendChild(label);
+        });
+        
+        // OPTIMIZE: Single DOM manipulation
+        container.innerHTML = ""; // Clear existing content
+        container.appendChild(fragment);
+    });
+}
 
        async function populateTagsFilter() {
     if (isTagsFilterPopulated) return; // avoid re-fetching
@@ -617,38 +668,50 @@ function escapeForAttribute(text) {
 
 
 function renderTable(leads) {
-     leads.forEach((lead, i) => {
+    // ADD: Early validation
+    if (!leads || leads.length === 0) {
+        const tbody = document.getElementById("lead-table-body");
+        tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No leads found</td></tr>';
+        updateSelectionCount();
+        return;
+    }
+
+    // Debug logging (keep existing)
+    leads.forEach((lead, i) => {
         if (lead.action_item) {
             console.log(`Lead ${i} action_item:`, lead.action_item);
-            // Verify escapeForAttribute works
             const escaped = escapeForAttribute(lead.action_item);
             console.log(`Escaped:`, escaped);
         }
     });
+
     const tbody = document.getElementById("lead-table-body");
-    tbody.innerHTML = "";
     allLeads = leads;
     const visibleColumns = getVisibleColumns();
     
+    // ADD: Use DocumentFragment for better performance
+    const fragment = document.createDocumentFragment();
+    
+    // ADD: Pre-calculate date conversion outside loop if possible
+    function convertToDDMMYYYY(dateStr) {
+        if (!dateStr || dateStr === "-") return null;
+        const [year, month, day] = dateStr.split("-");
+        return `${day}-${month}-${year}`;
+    }
+    
+    // OPTIMIZE: Build all rows first, then append once
     leads.forEach(lead => {
         const statusText = workflowStatusMap[lead.workflow_status] || "-";
         const originValue = originMap[lead.origin] || "-";
         const style = getStatusStyle(statusText);
 
         const row = document.createElement("tr");
-        row.style.borderBottom = "1px solid #00000033";
-        row.style.height = "40px";
-        row.style.backgroundColor = `${lead.Mark_Imp ? "#EBEBEB" : ""}`;
+        // OPTIMIZE: Use cssText for better performance
+        row.style.cssText = `border-bottom: 1px solid #00000033; height: 40px; background-color: ${lead.Mark_Imp ? "#EBEBEB" : ""}`;
         
         const last_updated_note = lead.last_updated_note
             ? new Date(lead.last_updated_note).toISOString().split("T")[0]
             : "-";
-            
-        function convertToDDMMYYYY(dateStr) {
-            if (!dateStr || dateStr == "-") return null;
-            const [year, month, day] = dateStr.split("-");
-            return `${day}-${month}-${year}`;
-        }
         
         // Generate cells based on visible columns
         visibleColumns.forEach(column => {
@@ -659,24 +722,24 @@ function renderTable(leads) {
                     td.innerHTML = `<input type="checkbox" class="lead-checkbox" data-id="${lead.id}" data-imp="${lead.Mark_Imp}"/>`;
                     break;
                     
-               case 'client_name':
-    const safeActionItem = escapeForAttribute(lead.action_item || '');
-    const hasActionItem = window.hasActiveActionItems ? 
-        window.hasActiveActionItems(lead.action_item) : 
-        (lead.action_item && lead.action_item.trim() !== '' && lead.action_item !== '[]');
-    
-    const actionIndicatorHtml = hasActionItem ? 
-        `<div class="action-indicator" 
-             data-action="${safeActionItem}"
-             style="cursor: pointer; display: flex;">
-            <div class="action-circle red"></div>
-        </div>` : '<div class="action-indicator" style="width: 12px; height: 12px; display: none;"></div>';
+                case 'client_name':
+                    const safeActionItem = escapeForAttribute(lead.action_item || '');
+                    const hasActionItem = window.hasActiveActionItems ? 
+                        window.hasActiveActionItems(lead.action_item) : 
+                        (lead.action_item && lead.action_item.trim() !== '' && lead.action_item !== '[]');
+                    
+                    const actionIndicatorHtml = hasActionItem ? 
+                        `<div class="action-indicator" 
+                             data-action="${safeActionItem}"
+                             style="cursor: pointer; display: flex;">
+                            <div class="action-circle red"></div>
+                        </div>` : '<div class="action-indicator" style="width: 12px; height: 12px; display: none;"></div>';
                     
                     td.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 8px;">
                             ${actionIndicatorHtml}
                             <span class="lead-name-span" 
-                                  data-lead-id="${lead.id}"
+                                  data-lead-id="${lead.id}" 
                                   ${hasActionItem ? `data-action="${safeActionItem}"` : ''}
                                   style="cursor: pointer; white-space: nowrap;">
                                 ${lead.full_name || ""}
@@ -750,16 +813,21 @@ function renderTable(leads) {
             row.appendChild(td);
         });
 
-        tbody.appendChild(row);
+        // ADD: Append to fragment instead of tbody
+        fragment.appendChild(row);
     });
 
-    // Update selection count and add listeners after rendering table
-    updateSelectionCount();
-    addCheckboxListeners();
-    attachNoteHoverListeners();
+    // OPTIMIZE: Clear and append once (single reflow)
+    tbody.innerHTML = "";
+    tbody.appendChild(fragment);
 
+    // OPTIMIZE: Batch listener additions using requestAnimationFrame
+    requestAnimationFrame(() => {
+        updateSelectionCount();
+        addCheckboxListeners();
+        attachNoteHoverListeners();
+    });
 }
-
 
 
 
@@ -888,7 +956,20 @@ function renderTable(leads) {
         // }
 
 //         new pagination logic 
-        function renderPagination(current, total) {
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+  function renderPagination(current, total) {
     const container = document.getElementById("pagination-container");
     container.innerHTML = "";
 
@@ -901,12 +982,15 @@ function renderTable(leads) {
         start = Math.max(1, end - maxVisible + 1);
     }
 
+    // CHANGE: Add debounced click handler
+    const debouncedFetch = debounce((page) => fetchTableData(page), 150);
+
     // Prev button
     if (current > 1) {
         const prevBtn = document.createElement("button");
         prevBtn.textContent = "Prev";
         prevBtn.classList.add("pagination-button");
-        prevBtn.addEventListener("click", () => fetchTableData(current - 1));
+        prevBtn.addEventListener("click", () => debouncedFetch(current - 1)); // CHANGED
         container.appendChild(prevBtn);
     }
 
@@ -915,10 +999,9 @@ function renderTable(leads) {
         const firstBtn = document.createElement("button");
         firstBtn.textContent = "1";
         firstBtn.classList.add("pagination-button");
-        firstBtn.addEventListener("click", () => fetchTableData(1));
+        firstBtn.addEventListener("click", () => debouncedFetch(1)); // CHANGED
         container.appendChild(firstBtn);
 
-        // Ellipsis if there's a gap
         if (start > 2) {
             const dots = document.createElement("span");
             dots.textContent = "...";
@@ -933,7 +1016,7 @@ function renderTable(leads) {
         btn.textContent = i;
         btn.classList.add("pagination-button");
         if (i === current) btn.classList.add("active-page");
-        btn.addEventListener("click", () => fetchTableData(i));
+        btn.addEventListener("click", () => debouncedFetch(i)); // CHANGED
         container.appendChild(btn);
     }
 
@@ -949,7 +1032,7 @@ function renderTable(leads) {
         const lastBtn = document.createElement("button");
         lastBtn.textContent = total;
         lastBtn.classList.add("pagination-button");
-        lastBtn.addEventListener("click", () => fetchTableData(total));
+        lastBtn.addEventListener("click", () => debouncedFetch(total)); // CHANGED
         container.appendChild(lastBtn);
     }
 
@@ -958,7 +1041,7 @@ function renderTable(leads) {
         const nextBtn = document.createElement("button");
         nextBtn.textContent = "Next";
         nextBtn.classList.add("pagination-button");
-        nextBtn.addEventListener("click", () => fetchTableData(current + 1));
+        nextBtn.addEventListener("click", () => debouncedFetch(current + 1)); // CHANGED
         container.appendChild(nextBtn);
     }
 
@@ -1700,21 +1783,21 @@ function renderTable(leads) {
             }
         }
 
+function closeLeadDetails() {
+    document.querySelector('.lead-details-dashboard').style.display = 'none';
 
-        function closeLeadDetails() {
-            // document.querySelector('.lms-main-dashboard').style.display = 'block';
-
-            document.querySelector('.lead-details-dashboard').style.display = 'none';
-
-            if (previousDashboard === "lms") {
-                document.querySelector('.lms-main-dashboard').style.display = 'block';
-            } else if (previousDashboard === "check") {
-                document.querySelector('.checks-main-dashboard').style.display = 'block';
-            } else if (previousDashboard === "jrba") {
-                document.querySelector('.jr-ba-dashboard').style.display = 'block';
-            }
-
+    if (previousDashboard === "lms") {
+        document.querySelector('.lms-main-dashboard').style.display = 'block';
+        // Refresh the table data to reflect any changes
+        if (typeof fetchTableData === 'function') {
+            fetchTableData(currentPage);
         }
+    } else if (previousDashboard === "check") {
+        document.querySelector('.checks-main-dashboard').style.display = 'block';
+    } else if (previousDashboard === "jrba") {
+        document.querySelector('.jr-ba-dashboard').style.display = 'block';
+    }
+}
 
 
         let previousAssignedIds = [];

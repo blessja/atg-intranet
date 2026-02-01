@@ -1,0 +1,927 @@
+{% extends "mainapp/base.html" %} {% load static %} {% block title %} Lead
+Details {# or Lead Details #} {% endblock %} {% block content %}
+
+<link rel="stylesheet" href="{% static 'lms.css' %}" />
+<style>
+  .tags-display .tag-item {
+    display: inline-block;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 12px;
+    font-size: 12px;
+  }
+
+  .tags-edit select {
+    min-height: 100px;
+  }
+
+  .tag-item {
+    background-color: #f0f0f0;
+    padding: 5px 10px;
+    margin: 2px;
+    border-radius: 15px;
+    display: inline-block;
+    font-size: 12px;
+  }
+</style>
+<div class="lms-dashboard" style="width: 100%; background-color: #f0f4f9">
+  <div class="lms-home-navbar">
+    <!-- <div class="lms-navbar-top">Welcome, User Name. View site / Change password / Log out</div> -->
+    <div class="lms-home-navigation">
+      <a href="{% url 'homepage' %}" class="breadcrumb-link">Home</a>
+      <span class="breadcrumb-divider">/</span>
+      <span class="breadcrumb-text">Banao</span>
+      <span class="breadcrumb-divider">/</span>
+      <a href="{% url 'lms' %}" class="breadcrumb-link">LMS</a>
+      <span class="breadcrumb-divider">/</span>
+      <span class="breadcrumb-current">{{lead_id}}</span>
+    </div>
+  </div>
+
+  <script>
+    // Ensure breadcrumb links navigate even if other handlers call preventDefault
+    (function(){
+      function forceNav(e){
+        try{
+          e.stopPropagation();
+        }catch(err){}
+        var href = this.getAttribute('href');
+        if(href){
+          window.location.href = href;
+        }
+      }
+      document.addEventListener('DOMContentLoaded', function(){
+        var links = document.querySelectorAll('.lms-home-navigation .breadcrumb-link');
+        links.forEach(function(a){
+          // capture phase to run before other handlers
+          a.addEventListener('click', forceNav, true);
+        });
+      });
+    })();
+  </script>
+
+  <div
+    id="lead-notes-tooltip"
+    style="
+      display: none;
+      position: absolute;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 8px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      max-width: 300px;
+      z-index: 1000;
+      font-size: 14px;
+    "
+  ></div>
+  <div
+    class="lead-details-dashboard"
+    style="flex-direction: row; padding-bottom: 40px"
+  >
+    <div
+      id="lead-details-loader"
+      style="
+        justify-content: center;
+        width: 100%;
+        align-items: center;
+        text-align: center;
+        height: 500px;
+      "
+    >
+      <div class="loading-spinner"></div>
+    </div>
+    <div class="lead-details-content" id="lead-details-content">
+      <div class="lead-details-container">
+        <div
+          class="lead-details-name-container"
+          style="border-bottom: 1px solid #00000033"
+        >
+          <div style="display: flex; flex-direction: row; justify-content: end">
+            <input
+              id="star2"
+              class="star"
+              type="checkbox"
+              title="bookmark page"
+              disabled
+            /><br /><br />
+            <label
+              for="star2"
+              title="Amazing"
+              id="MarkIMP"
+              onclick="markasIMP(lead_id)"
+              style="margin-top: 10px; margin-left: 14px; padding-right: 14px"
+              >Mark as Important</label
+            >
+          </div>
+          <div
+            style="
+              display: flex;
+              flex-direction: row;
+              gap: 10px;
+              padding-left: 10px;
+              margin-bottom: 10px;
+            "
+          >
+            <div
+              style="
+                border-radius: 12px;
+                width: 90px;
+                height: 90px;
+                background-color: #7c976a;
+              "
+            ></div>
+            <div>
+              <div
+                style="color: #171a1f; font-weight: 700; font-size: 24px"
+                id="lead-details-form-client-name"
+              ></div>
+              <div style="color: #171a1f; font-weight: 400; font-size: 15px">
+                Created at : <span id="lead-details-form-createdAt"></span>
+              </div>
+              <div style="color: #171a1f; font-weight: 400; font-size: 15px">
+                Updated at : <span id="lead-details-form-updatedAt"></span>
+              </div>
+            </div>
+          </div>
+          <div
+            style="
+              display: flex;
+              justify-content: flex-end;
+              padding-bottom: 4px;
+              position: relative;
+              padding-right: 4px;
+            "
+          >
+            <button
+              onclick="takeOverLead()"
+              class="take-over-lead"
+              id="take-over-lead"
+              style="
+                background-color: #4caf50;
+                color: white;
+                padding: 8px 16px;
+                outline: none;
+                border-radius: 4px;
+                border: none;
+              "
+            >
+              Take Over
+            </button>
+          </div>
+          <div
+            style="
+              display: flex;
+              flex-wrap: wrap;
+              flex-direction: row;
+              gap: 20px;
+              justify-content: center;
+              height: 69px;
+              font-size: 14px;
+              font-weight: 400;
+              color: #171a1f;
+            "
+          >
+            <!-- <div style="display: flex; flex-direction: column;">
+                                <img src="{% static 'images/note.png' %}" alt=""  style="width: 31px; height: 31px;">
+                                Note
+                            </div> -->
+            <div style="display: flex; flex-direction: column">
+              <img
+                src="{% static 'images/iconemail.png' %}"
+                alt=""
+                style="width: 31px; height: 31px"
+              />
+              Email
+            </div>
+            <div style="display: flex; flex-direction: column">
+              <a
+                href="#"
+                id="lead-details-form-call-icon"
+                style="text-decoration: none; color: inherit"
+              >
+                <img
+                  src="{% static 'images/ion_call.png' %}"
+                  alt=""
+                  style="width: 31px; height: 31px"
+                />
+              </a>
+              Call
+            </div>
+            <!-- <div style="display: flex; flex-direction: column;">
+                                 <img src="{% static 'images/task-add.png' %}" alt=""  style="width: 31px; height: 31px;">
+                                Task
+                            </div> -->
+            <!-- <div style="display: flex; flex-direction: column;">
+                                 <img src="{% static 'images/meet-now.png' %}" alt=""  style="width: 31px; height: 31px;">
+                                Meeting
+                            </div> -->
+          </div>
+        </div>
+        <div>
+          <h6>Lead Details</h6>
+          <form
+            id="lead-details-form"
+            class="lead-details-form"
+            style="
+              gap: 12px;
+              padding-left: 10px;
+              display: flex;
+              flex-direction: column;
+            "
+          >
+            <div class="absolute right-0 px-6 py-10">
+              <button
+                id="edit-lead-btn"
+                onclick="enableLeadEdit(event)"
+                style="
+                  background-color: #4caf50;
+                  color: white;
+                  padding: 8px 16px;
+                  border-radius: 4px;
+                  border: none;
+                "
+              >
+                Edit
+              </button>
+              <button
+                id="submit-lead-edit"
+                onclick="submitLeadEdit(event)"
+                style="
+                  background-color: #6b46c1;
+                  color: white;
+                  padding: 8px 16px;
+                  border-radius: 4px;
+                  border: none;
+                  display: none;
+                "
+              >
+                Submit
+              </button>
+              <button
+                id="cancel-lead-edit"
+                onclick="disableLeadEdit(event)"
+                style="
+                  background-color: #e2e8f0;
+                  color: black;
+                  padding: 8px 16px;
+                  border-radius: 4px;
+                  border: none;
+                  display: none;
+                "
+              >
+                Cancel
+              </button>
+            </div>
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Type</label>
+              <select
+                class="lead-details-select"
+                name=""
+                id="lead-details-form-type"
+                disabled
+              >
+                <option value="">Type</option>
+                <option value="DEV">Development</option>
+                <option value="MKT">Marketing</option>
+                <option value="DEV_MKT">Dev+Markt</option>
+                <option value="OTH">Others</option>
+                <option value="NG">Not Gathered</option>
+              </select>
+            </div>
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Origin</label>
+              <select
+                class="lead-details-select"
+                name=""
+                id="lead-details-form-origin"
+                disabled
+              >
+                <option value="">Origin</option>
+                <option value="w">Banao Website</option>
+                <option value="ig">InterviewGod</option>
+                <option value="l">LinkedIn</option>
+                <option value="i">Instagram</option>
+                <option value="cw">Client Website</option>
+              </select>
+            </div>
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Workflow Status</label>
+              <select
+                class="lead-details-select"
+                name=""
+                id="lead-details-form-workflow"
+                disabled
+              >
+                <option value="">Workflow Status</option>
+                <option value="0">New Lead</option>
+                <option value="1">Contact Attempted</option>
+                <option value="2">Engaged</option>
+                <option value="3">Discovery / Demo Scheduled</option>
+                <option value="4">Discovery / Demo Completed</option>
+                <option value="5">Proposal Sent</option>
+                <option value="6">Closed - Won</option>
+                <option value="7">Closed - Lost</option>
+                <option value="8">Nurture / Recycle</option>
+
+                <!-- <option value="2">Requirement Pending</option>
+                                    <option value="9">Soft Confirmed</option>
+                                    <option value="15">1st email mesage sent after intial call</option>
+                                    <option value="16">2nd Follow-up</option>
+                                    <option value="17">3rd Follow-up</option>
+                                    <option value="18">Call Unresponsive</option>
+                                    <option value="19">Demo Booked</option>
+                                    <option value="20">Demo completed</option>
+                                    <option value="21">Whatsapp group onboarding</option>
+                                    <option value="22">JD request sent</option>
+                                    <option value="23">Pilot started</option>
+                                    <option value="24">Account setup & interview creation</option>
+                                    <option value="25">Swap confirmed / POC successful</option>
+                                    <option value="26">Email Sent</option> -->
+              </select>
+            </div>
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Call Status</label>
+              <select
+                class="lead-details-select"
+                name=""
+                id="lead-details-form-call-status"
+                disabled
+              >
+                <option value="">Call Status</option>
+                <option value="call_failed">Call Failed</option>
+                <option value="call_connected">Call Connected</option>
+                <option value="call_didnot_pickup">Call Didn't Pickup</option>
+              </select>
+            </div>
+            <div class="lead-details-div">
+              <label class="lead-details-label" for=""
+                >Next Follow-up Date</label
+              >
+              <!-- <select class="lead-details-select" name="" id="lead-details-form-next-followup" disabled>
+                                    <option value="">Call Status</option>
+                                    <option value="call_failed">Call Failed</option>
+                                    <option value="call_connected">Call Connected</option>
+                                    <option value="call_didnot_pickup">Call Didn't Pickup</option>
+                                </select> -->
+              <input
+                id="lead-details-form-next-followup-display"
+                class="lead-details-select"
+                type="text"
+                readonly
+              />
+
+              <input
+                id="lead-details-form-next-followup"
+                class="lead-details-select"
+                type="date"
+                disabled
+              />
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Company Name</label>
+              <input
+                id="lead-details-form-company-name"
+                class="lead-details-select"
+                disabled
+              />
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Contact Name</label>
+              <input
+                id="lead-details-form-contact-name"
+                class="lead-details-select"
+                disabled
+              />
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Email</label>
+              <input
+                id="lead-details-form-email"
+                class="lead-details-select"
+                disabled
+              />
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Phone No</label>
+              <input
+                id="lead-details-form-phone"
+                class="lead-details-select"
+                disabled
+              />
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">URL</label>
+              <input
+                class="lead-details-select"
+                id="lead-details-form-url"
+                disabled
+              />
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Message</label>
+              <textarea
+                id="lead-details-form-message"
+                class="lead-details-select"
+                style="height: 100px"
+                disabled
+              >
+              </textarea>
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Intern Name</label>
+              <input
+                id="lead-details-form-intern"
+                class="lead-details-select"
+                disabled
+              />
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Assigned To</label>
+              <select
+                style="height: 150px"
+                class="lead-details-select"
+                name=""
+                id="lead-details-form-assignee"
+                multiple
+                disabled
+              >
+                <option value="">Assigned To</option>
+              </select>
+            </div>
+            <!-- Add this section after the assigned to field in your lead_details.html -->
+            <div class="form-group mb-3">
+              <label for="lead-tags" class="form-label">Tags</label>
+              <div id="tags-display" class="tags-display">
+                <!-- Tags will be displayed here initially -->
+              </div>
+              <div id="tags-edit" class="tags-edit" style="display: none">
+                <select id="lead-tags" class="form-control" multiple>
+                  <!-- Options will be populated dynamically -->
+                </select>
+                <div class="mt-2">
+                  <input
+                    type="text"
+                    id="new-tag-input"
+                    class="form-control"
+                    placeholder="Create new tag..."
+                  />
+                  <button
+                    type="button"
+                    id="add-new-tag-btn"
+                    class="btn btn-sm btn-secondary mt-1"
+                  >
+                    Add New Tag
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Comment</label>
+              <input
+                id="lead-details-form-comment"
+                type="text"
+                class="lead-details-select"
+                disabled
+              />
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Action</label>
+              <textarea
+                id="lead-details-form-action"
+                class="lead-details-select"
+                style="height: 100px"
+                disabled
+              ></textarea>
+            </div>
+
+            <div class="lead-details-div">
+              <label class="lead-details-label" for="">Industry</label>
+              <select
+                class="lead-details-select"
+                name=""
+                id="lead-details-form-industry"
+                disabled
+              >
+                <option value="LMS">LMS</option>
+                <option value="Ed-Tech (Education)">Ed-Tech (Education)</option>
+                <option value="Agriculture">Agriculture</option>
+                <option value="Automobile / Automotive">
+                  Automobile / Automotive
+                </option>
+                <option value="Business">Business</option>
+                <option value="Architecture & Design">
+                  Architecture & Design
+                </option>
+                <option value="Real Estate & Construction">
+                  Real Estate & Construction
+                </option>
+                <option value="HRMS/CRM">HRMS/CRM</option>
+                <option value="E-Commerce">E-Commerce</option>
+                <option value="Finance/FinTech">Finance/FinTech</option>
+                <option value="Health / Wellness">Health / Wellness</option>
+                <option value="Fitness">Fitness</option>
+                <option value="Government/NGO">Government/NGO</option>
+                <option value="Security / Defence">Security / Defence</option>
+                <option value="Social Network">Social Network</option>
+                <option value="Beauty and Wellness">Beauty and Wellness</option>
+                <option value="Animal Welfare">Animal Welfare</option>
+                <option value="Biotech/Nanotech">Biotech/Nanotech</option>
+                <option value="Restaurants/ Foodtech">
+                  Restaurants/ Foodtech
+                </option>
+                <option value="ERP">ERP</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="SaaS">SaaS</option>
+                <option value="Sports">Sports</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+            <!-- <div class="absolute right-0 px-6 py-10 ">
+                            <button id="submit-lead-edit" class="bg-purple-600 text-white py-2 px-4 rounded">Submit</button>
+                            <button id="cancel-lead-edit" class="bg-gray-200 text-black py-2 px-4 rounded">Cancel</button>
+                        </div> -->
+          </form>
+        </div>
+      </div>
+      <div class="lead-details-r-container">
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-left: 20px;
+            margin-top: 10px;
+            justify-items: center;
+          "
+        >
+          <!-- <div class="lead-details-div">
+                            <label class="lead-details-label" for="">Upcoming</label>
+                            <select class="lead-details-select" style="height: 80px;" name="" id="">
+                                <option value="">Email</option>
+                            </select>
+                        </div> -->
+          <!-- <div class="lead-details-div">
+                            <label class="lead-details-label" for="">Feb 26, 2025</label>
+                            <select class="lead-details-select" style="height: 80px;" name="" id="">
+                                <option value="">Meeting Schedule</option>
+                            </select>
+                        </div> -->
+          <!-- <div class="lead-details-div">
+                        <label class="lead-details-label" for="">Feb 26, 2025</label>
+                        <select class="lead-details-select" style="height: 80px;" name="" id="">
+                            <option value="">Emails</option>
+                        </select>
+                    </div> -->
+
+          <div class="lead-details-div">
+            <label class="lead-details-label" for="">Proposal link</label>
+            <div
+              class="lead-proposal-dropdown"
+              style="width: 80%"
+              id="lead-proposal-container"
+            >
+              <div class="lead-proposal-header">
+                <div>Proposal</div>
+                <span>
+                  <svg
+                    class="toggle-icon"
+                    onclick="toggleProposalDropdown()"
+                    style="cursor: pointer"
+                    width="14"
+                    height="8"
+                    viewBox="0 0 14 8"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M1 1L7 7L13 1"
+                      stroke="#6D747A"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </span>
+              </div>
+              <div class="lead-proposal-body" id="lead-proposal-body"></div>
+              <div class="" id="add-proposal-link-body">
+                <button class="submit-proposal" onclick="submitProposal()">
+                  Update Proposal
+                </button>
+                <span class="add-proposal" onclick="addProposal()">➕</span>
+              </div>
+            </div>
+          </div>
+          <div class="lead-details-div">
+            <label class="lead-details-label" for="">Lead Notes</label>
+            <div
+              class="lead-notes-dropdown"
+              style="width: 80%"
+              id="lead-notes-container"
+            >
+              <div class="lead-notes-header">
+                <div>Notes</div>
+                <span>
+                  <svg
+                    class="toggle-icon"
+                    onclick="toggleNotesDropdown()"
+                    style="cursor: pointer"
+                    width="14"
+                    height="8"
+                    viewBox="0 0 14 8"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M1 1L7 7L13 1"
+                      stroke="#6D747A"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </span>
+              </div>
+              <div class="lead-notes-body" id="lead-notes-body"></div>
+              <div class="" id="add-lead-notes-body">
+                <button class="submit-notes" onclick="submitNotes()">
+                  Update Notes
+                </button>
+                <span class="add-notes" onclick="addNote()">➕</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lead-details-div">
+            <label class="lead-details-label" for="">Audit Link</label>
+            <div
+              class="lead-audit-dropdown"
+              style="width: 80%"
+              id="lead-audit-container"
+            >
+              <div class="lead-audit-header">
+                <div>Audit Link</div>
+                <span>
+                  <svg
+                    onclick="toggleAuditDropdown()"
+                    style="cursor: pointer"
+                    width="14"
+                    height="8"
+                    viewBox="0 0 14 8"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M1 1L7 7L13 1"
+                      stroke="#6D747A"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </span>
+              </div>
+              <div class="lead-audit-body" id="lead-audit-body"></div>
+              <div class="" id="add-lead-audit-body">
+                <button class="submit-audit" onclick="submitAudit()">
+                  Update Audit
+                </button>
+                <span class="add-audit" onclick="addAudit()">➕</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    id="call-followup-modal"
+    style="
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    "
+  >
+    <div
+      style="
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 400px;
+        position: relative;
+      "
+    >
+      <span
+        onclick="closeCallFollowupModal()"
+        style="
+          position: absolute;
+          top: 10px;
+          right: 15px;
+          cursor: pointer;
+          font-size: 18px;
+        "
+        >✖</span
+      >
+
+      <h3>Update Call Details</h3>
+
+      <div style="margin-top: 10px">
+        <label for="call-workflow">Workflow Status</label>
+        <select
+          id="call-workflow"
+          style="width: 100%; padding: 6px; margin-top: 5px"
+        >
+          <!-- same workflow options as lead form -->
+          <option value="">Workflow Status</option>
+          <option value="0">New Lead</option>
+          <option value="1">Contact Attempted</option>
+          <option value="2">Engaged</option>
+          <option value="3">Discovery / Demo Scheduled</option>
+          <option value="4">Discovery / Demo Completed</option>
+          <option value="5">Proposal Sent</option>
+          <option value="6">Closed - Won</option>
+          <option value="7">Closed - Lost</option>
+          <option value="8">Nurture / Recycle</option>
+        </select>
+      </div>
+
+      <div style="margin-top: 15px">
+        <label for="call-notes">Notes</label>
+        <textarea
+          id="call-notes"
+          style="width: 100%; height: 80px; margin-top: 5px"
+        ></textarea>
+      </div>
+
+      <button
+        onclick="submitCallFollowup()"
+        style="
+          margin-top: 15px;
+          padding: 8px 16px;
+          background: #4caf50;
+          color: #fff;
+          border: none;
+          border-radius: 4px;
+        "
+      >
+        Save
+      </button>
+    </div>
+  </div>
+  {{ bas|json_script:"ba-users-data" }}
+
+  <script>
+    // Make BA users available to lead.js. json_script outputs proper JSON inside a safe <script> tag.
+    window.GLOBAL_BA_USERS = JSON.parse(
+      document.getElementById("ba-users-data").textContent || "[]"
+    );
+    // set the variable lead.js expects
+    globalAssigneeUserOption = window.GLOBAL_BA_USERS || [];
+    console.log("Loaded BA users from template:", globalAssigneeUserOption);
+    var lead_id = "{{ lead_id }}";
+    var bas = "{{bas}}";
+
+    document.addEventListener("DOMContentLoaded", function () {
+      if (typeof toggleLeadDetails === "function") {
+        toggleLeadDetails(lead_id);
+      }
+    });
+
+    // --- Call Button ---
+    document.addEventListener("DOMContentLoaded", () => {
+      const callBtn = document.getElementById("lead-details-form-call-icon");
+
+      if (callBtn) {
+        callBtn.addEventListener("click", (e) => {
+          // normal call works
+          const phone = document.getElementById(
+            "lead-details-form-phone"
+          )?.value;
+          if (phone) {
+            callBtn.setAttribute("href", `tel:${phone}`);
+          }
+
+          // after 10 seconds, show modal
+          setTimeout(() => {
+            document.getElementById("call-followup-modal").style.display =
+              "flex";
+          }, 10000); // 10 sec
+        });
+      }
+    });
+
+    // --- Close Modal ---
+    function closeCallFollowupModal() {
+      document.getElementById("call-followup-modal").style.display = "none";
+    }
+
+    // --- Submit Modal ---
+    async function submitCallFollowup() {
+      const workflow = document.getElementById("call-workflow").value;
+      const notes = document.getElementById("call-notes").value.trim();
+      const leadId = lead_id; // Django variable
+
+      const payload = {
+        id: leadId,
+        workflow_status: workflow,
+      };
+
+      // If user added a note, send it in lead_notes
+      if (notes !== "") {
+        payload.lead_notes = [{ note: notes }];
+      }
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+          const cookies = document.cookie.split(";");
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === name + "=") {
+              cookieValue = decodeURIComponent(
+                cookie.substring(name.length + 1)
+              );
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+      const csrftoken = getCookie("csrftoken");
+
+      try {
+        const response = await fetch(`/api/lead-dashboard/${leadId}/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrftoken,
+          },
+          body: JSON.stringify(payload),
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          alert("Lead updated successfully!");
+          closeCallFollowupModal();
+
+          // Refresh details instead of full reload
+          if (typeof toggleLeadDetails === "function") {
+            toggleLeadDetails(leadId);
+          } else {
+            location.reload();
+          }
+        } else {
+          alert("Failed to update lead.");
+        }
+      } catch (error) {
+        console.error("Error updating lead:", error);
+        alert("An error occurred while updating the lead.");
+      }
+    }
+    document.addEventListener("DOMContentLoaded", function () {
+      // Your existing initialization code...
+
+      // Add these initializations
+      fetchAllTags();
+
+      // Add event listener for new tag creation
+      const addNewTagBtn = document.getElementById("add-new-tag-btn");
+      if (addNewTagBtn) {
+        addNewTagBtn.addEventListener("click", createNewTag);
+      }
+
+      // Add enter key support for new tag input
+      const newTagInput = document.getElementById("new-tag-input");
+      if (newTagInput) {
+        newTagInput.addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            createNewTag();
+          }
+        });
+      }
+    });
+  </script>
+
+  <script src="{% static 'js/lead.js' %}"></script>
+  {% endblock %}
+</div>

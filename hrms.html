@@ -2109,6 +2109,8 @@ function sortBountyColumn(headerElement) {
     //stored Department employeee cached data
     const employeeDataCache = new Map();
 
+    const bountiesCache = new Map();
+
 
 
     function hrmsTeamToggleTable(element) {
@@ -2242,24 +2244,30 @@ function sortBountyColumn(headerElement) {
     }
 
     function fetchNoticePeriodStatus(userId, deptId) {
-        const apiUrl = `/api/user/${userId}/on-notice/`;
-        fetch(apiUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
+    const apiUrl = `/api/user/${userId}/on-notice/`;
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.is_on_notice) {
+                const noticePeriodClass = `.noticePeriod${deptId}_${userId}`;
+                const noticePeriodElement = document.querySelector(noticePeriodClass);
+                
+                if (noticePeriodElement) {
+                    noticePeriodElement.style.display = 'inline-block';
+                } else {
+                    console.warn(`Notice period badge not found for user ${userId} in dept ${deptId}`);
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.is_on_notice){
-                    noticePeriodClass = `.noticePeriod${deptId}_${userId}`;
-                    document.querySelector(noticePeriodClass).style.display = 'inline-block';
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching user status:', error);
-            });
-    }
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching notice period status:', error);
+        });
+}
     
     function fetchUserBounties(userId, duration = 30, callback) {
         const apiUrl = `/api/user/${userId}/bounties/${duration}/`;
@@ -2475,167 +2483,138 @@ function attachTabClickHandlers() {
                 c.style.display = 'none';
             });
             
-            // Add active class to clicked tab
-            this.classList.add('active');
-            this.style.color = '#504CF5';
-            this.style.borderBottomColor = '#504CF5';
-            
-            // Show corresponding content
-            const targetContent = document.querySelector(`[data-content="${targetTab}"]`);
-            if (targetContent) {
-                targetContent.classList.add('active');
-                targetContent.style.display = 'block';
-                
-                // Only load content for bounties and summaries if NOT already filtered by date
-                if (targetTab === 'bounties' && currentEODUserId) {
-                    const filterValue = document.getElementById('bountiesFilter').value;
-                    loadBountiesData(currentEODUserId, filterValue);
-                } else if (targetTab === 'summaries' && currentEODUserId) {
-                    // Check if we're viewing a specific date - if so, don't reload
-                    const tbody = document.getElementById('eodTableBody');
-                    const firstRow = tbody?.querySelector('tr');
-                    const isFilteredView = firstRow && !firstRow.querySelector('td[colspan]');
-                    
-                    // Only reload if not already showing filtered data
-                    if (!isFilteredView || tbody.querySelectorAll('tr').length === 0) {
-                        const filterValue = document.getElementById('dateFilter').value;
-                        fetchAndRenderEOD(currentEODUserId, filterValue);
-                    }
-                }
-            }
+         // Add active class to clicked tab
+this.classList.add('active');
+this.style.color = '#504CF5';
+this.style.borderBottomColor = '#504CF5';
+
+// Show corresponding content
+const targetContent = document.querySelector(`[data-content="${targetTab}"]`);
+if (targetContent) {
+    targetContent.classList.add('active');
+    targetContent.style.display = 'block';
+    
+    // Load content when tab is activated
+    if (targetTab === 'bounties' && currentEODUserId) {
+        const filterValue = document.getElementById('bountiesFilter').value;
+        loadBountiesData(currentEODUserId, filterValue);
+    } else if (targetTab === 'summaries' && currentEODUserId) {
+        // Check if we're viewing a specific date - if so, don't reload
+        const tbody = document.getElementById('eodTableBody');
+        const firstRow = tbody?.querySelector('tr');
+        const isFilteredView = firstRow && !firstRow.querySelector('td[colspan]');
+        
+        // ✅ Only reload if not already showing filtered data from calendar click
+        if (!window.currentFilteredDate) {
+            const filterValue = document.getElementById('dateFilter').value;
+            fetchAndRenderEOD(currentEODUserId, filterValue);
+        }
+    }
+}
         });
     });
 }
 
 // Bounties Filter Change
-document.addEventListener('DOMContentLoaded', function() {
-    const bountiesFilter = document.getElementById('bountiesFilter');
-    if (bountiesFilter) {
-        bountiesFilter.addEventListener('change', () => {
-            const filterValue = bountiesFilter.value;
-            if (currentEODUserId) {
-                loadBountiesData(currentEODUserId, filterValue);
-            }
-        });
-    }
-});
-
-// Load Bounties Data
+// Load Bounties Data with Caching
 async function loadBountiesData(userId, filterValue = 'last_7_days') {
     const tbody = document.getElementById('bountiesTableBody');
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #6D747A;">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #6D747A;"><div class="loading-spinner"></div></td></tr>';
+    
+    // ✅ Check cache first
+    const cacheKey = `${userId}_${filterValue}`;
+    if (bountiesCache.has(cacheKey)) {
+        const cachedData = bountiesCache.get(cacheKey);
+        renderBountiesTable(cachedData, tbody);
+        return;
+    }
     
     try {
+        // ✅ Cancel any pending bounty requests
+        if (window.bountiesAbortController) {
+            window.bountiesAbortController.abort();
+        }
+        window.bountiesAbortController = new AbortController();
+        
         const response = await fetch(`/tasks/api/eod-report/?user=${userId}&filter=${filterValue}`, {
-            credentials: 'include'
+            credentials: 'include',
+            signal: window.bountiesAbortController.signal
         });
         
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         
         const data = await response.json();
-        tbody.innerHTML = '';
         
-        if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #6D747A;">No tasks with bounties found</td></tr>';
-            return;
-        }
+        // ✅ Cache the result
+        bountiesCache.set(cacheKey, data);
         
-        // Group by date
-        const dateMap = {};
-        data.forEach(entry => {
-            if (entry.bounty && entry.bounty > 0) {
-                if (!dateMap[entry.date]) {
-                    dateMap[entry.date] = [];
-                }
-                dateMap[entry.date].push(entry);
-            }
-        });
-        
-        const sortedDates = Object.keys(dateMap).sort((a, b) => new Date(b) - new Date(a));
-        
-        if (sortedDates.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #6D747A;">No tasks with bounties found</td></tr>';
-            return;
-        }
-        
-        sortedDates.forEach(date => {
-            dateMap[date].forEach((entry, index) => {
-                const row = document.createElement('tr');
-                row.style.borderBottom = '1px solid #EBEDF0';
-                row.style.transition = 'background-color 0.2s ease';
-                row.onmouseenter = function() { this.style.backgroundColor = '#F9FAFB'; };
-                row.onmouseleave = function() { this.style.backgroundColor = 'transparent'; };
-                
-                const dateCell = document.createElement('td');
-                dateCell.style.padding = '16px 12px';
-                dateCell.style.color = '#08090A';
-                dateCell.style.fontWeight = '500';
-                dateCell.style.fontSize = '14px';
-                dateCell.style.verticalAlign = 'top';
-                dateCell.style.borderRight = '1px solid #EBEDF0';
-                dateCell.textContent = index === 0 ? date : '';
-                
-                const projectCell = document.createElement('td');
-                projectCell.style.padding = '16px 12px';
-                projectCell.style.color = '#08090A';
-                projectCell.style.fontSize = '14px';
-                projectCell.style.verticalAlign = 'top';
-                projectCell.style.borderRight = '1px solid #EBEDF0';
-                projectCell.textContent = entry.project_name || '-';
-                
-                const taskCell = document.createElement('td');
-                taskCell.style.padding = '16px 12px';
-                taskCell.style.color = '#504CF5';
-                taskCell.style.fontWeight = '600';
-                taskCell.style.fontSize = '14px';
-                taskCell.style.verticalAlign = 'top';
-                taskCell.style.borderRight = '1px solid #EBEDF0';
-                taskCell.textContent = entry.task_name || '-';
-                
-                const statusCell = document.createElement('td');
-                statusCell.style.padding = '16px 12px';
-                statusCell.style.verticalAlign = 'top';
-                statusCell.style.borderRight = '1px solid #EBEDF0';
-                const statusBadge = document.createElement('span');
-                statusBadge.style.display = 'inline-block';
-                statusBadge.style.padding = '4px 12px';
-                statusBadge.style.borderRadius = '12px';
-                statusBadge.style.fontSize = '12px';
-                statusBadge.style.fontWeight = '600';
-                
-                if (entry.task_status === 'C') {
-                    statusBadge.style.background = '#E6F9F4';
-                    statusBadge.style.color = '#00B879';
-                    statusBadge.textContent = 'Completed';
-                } else {
-                    statusBadge.style.background = '#FFF3E6';
-                    statusBadge.style.color = '#F5A623';
-                    statusBadge.textContent = 'Incomplete';
-                }
-                statusCell.appendChild(statusBadge);
-                
-                const bountyCell = document.createElement('td');
-                bountyCell.style.padding = '16px 12px';
-                bountyCell.style.color = '#08090A';
-                bountyCell.style.fontWeight = '700';
-                bountyCell.style.fontSize = '16px';
-                bountyCell.style.verticalAlign = 'top';
-                bountyCell.textContent = entry.bounty || 0;
-                
-                row.appendChild(dateCell);
-                row.appendChild(projectCell);
-                row.appendChild(taskCell);
-                row.appendChild(statusCell);
-                row.appendChild(bountyCell);
-                
-                tbody.appendChild(row);
-            });
-        });
+        renderBountiesTable(data, tbody);
         
     } catch (error) {
+        if (error.name === 'AbortError') {
+            console.log('Bounties request cancelled');
+            return;
+        }
         console.error('Error loading bounties:', error);
         tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #E44A69;">Error loading bounties. Please try again.</td></tr>';
     }
+}
+
+// ✅ Separate function to render bounties table
+function renderBountiesTable(data, tbody) {
+    tbody.innerHTML = '';
+    
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #6D747A;">No tasks with bounties found</td></tr>';
+        return;
+    }
+    
+    // Group by date
+    const dateMap = {};
+    data.forEach(entry => {
+        if (entry.bounty && entry.bounty > 0) {
+            if (!dateMap[entry.date]) {
+                dateMap[entry.date] = [];
+            }
+            dateMap[entry.date].push(entry);
+        }
+    });
+    
+    const sortedDates = Object.keys(dateMap).sort((a, b) => new Date(b) - new Date(a));
+    
+    if (sortedDates.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: #6D747A;">No tasks with bounties found</td></tr>';
+        return;
+    }
+    
+    // Use DocumentFragment for faster rendering
+    const fragment = document.createDocumentFragment();
+    
+    sortedDates.forEach(date => {
+        dateMap[date].forEach((entry, index) => {
+            const row = document.createElement('tr');
+            row.style.borderBottom = '1px solid #EBEDF0';
+            row.style.transition = 'background-color 0.2s ease';
+            row.onmouseenter = function() { this.style.backgroundColor = '#F9FAFB'; };
+            row.onmouseleave = function() { this.style.backgroundColor = 'transparent'; };
+            
+            row.innerHTML = `
+                <td style="padding: 16px 12px; color: #08090A; font-weight: 500; font-size: 14px; vertical-align: top; border-right: 1px solid #EBEDF0;">${index === 0 ? date : ''}</td>
+                <td style="padding: 16px 12px; color: #08090A; font-size: 14px; vertical-align: top; border-right: 1px solid #EBEDF0;">${entry.project_name || '-'}</td>
+                <td style="padding: 16px 12px; color: #504CF5; font-weight: 600; font-size: 14px; vertical-align: top; border-right: 1px solid #EBEDF0;">${entry.task_name || '-'}</td>
+                <td style="padding: 16px 12px; vertical-align: top; border-right: 1px solid #EBEDF0;">
+                    <span style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background: ${entry.task_status === 'C' ? '#E6F9F4' : '#FFF3E6'}; color: ${entry.task_status === 'C' ? '#00B879' : '#F5A623'};">
+                        ${entry.task_status === 'C' ? 'Completed' : 'Incomplete'}
+                    </span>
+                </td>
+                <td style="padding: 16px 12px; color: #08090A; font-weight: 700; font-size: 16px; vertical-align: top;">${entry.bounty || 0}</td>
+            `;
+            
+            fragment.appendChild(row);
+        });
+    });
+    
+    tbody.appendChild(fragment);
 }
 
 const dateFilter = document.getElementById('dateFilter');
@@ -3238,7 +3217,20 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
                     <div style="display: flex; flex-direction: column; gap: 8px; position: relative;">
                         <div class="name-badge-wrapper" style="position: relative;">
                             <div style="width: 158px; padding: 2px 4px; ${nameBadgeBg ? 'background: ' + nameBadgeBg + ';' : ''} border-radius: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; gap: 4px;">
-    <div style="flex: 1; min-width: 0; color: ${nameBadgeColor}; font-size: 16px; font-family: Roboto; font-weight: 400; line-height: 24px; letter-spacing: 0.08px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}</div>
+    <div style="flex: 1; min-width: 0; color: ${nameBadgeColor}; font-size: 16px; font-family: Roboto; font-weight: 400; line-height: 24px; letter-spacing: 0.08px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        ${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}
+        <span class="noticePeriod${departmentId}_${employee.user_id}" style="
+            display: none;
+            background: #FF1A1A;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-left: 4px;
+            vertical-align: middle;
+        ">NOTICE</span>
+    </div>
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(180deg); flex-shrink: 0;">
         <path d="M4 10L8 6L12 10" stroke="${nameBadgeColor}" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
@@ -4135,29 +4127,35 @@ document.querySelectorAll('.performance-status-name').forEach(option => {
     });
     
     // Close modal when clicking outside
-    document.addEventListener('click', (e) => {
-        const modal = document.getElementById('performance-modal');
-        if (modal && !e.target.closest('.name-badge-wrapper') && !e.target.closest('#performance-modal')) {
-            modal.style.display = 'none';
-            // Reset all chevrons
-            document.querySelectorAll('.name-badge-wrapper svg').forEach(chevron => {
-                chevron.style.transform = 'rotate(180deg)';
-            });
-        }
-    });
-    
-    // Close modal with X button
-    const closeBtn = document.getElementById('close-performance-modal');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            const modal = document.getElementById('performance-modal');
-            modal.style.display = 'none';
-            // Reset all chevrons
-            document.querySelectorAll('.name-badge-wrapper svg').forEach(chevron => {
-                chevron.style.transform = 'rotate(180deg)';
-            });
+  document.addEventListener('click', (e) => {
+    const modal = document.getElementById('performance-modal');
+    if (modal && !e.target.closest('.name-badge-wrapper') && !e.target.closest('#performance-modal')) {
+        modal.style.display = 'none';
+        // Reset all chevrons to point up
+        document.querySelectorAll('.name-badge-wrapper svg').forEach(chevron => {
+            const path = chevron.querySelector('path');
+            if (path) {
+                path.setAttribute('d', 'M4 10L8 6L12 10'); // Point up when closed
+            }
         });
     }
+});
+    
+    // Close modal with X button
+  const closeBtn = document.getElementById('close-performance-modal');
+if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+        const modal = document.getElementById('performance-modal');
+        modal.style.display = 'none';
+        // Reset all chevrons to point up
+        document.querySelectorAll('.name-badge-wrapper svg').forEach(chevron => {
+            const path = chevron.querySelector('path');
+            if (path) {
+                path.setAttribute('d', 'M4 10L8 6L12 10'); 
+            }
+        });
+    });
+}
     
     // Info icon tooltips
     document.querySelectorAll('.info-icon-wrapper').forEach(wrapper => {
@@ -4843,18 +4841,27 @@ async function filterEODByDate(userId, dateStr) {
     const tbody = document.getElementById('eodTableBody');
     if (!tbody) return;
     
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #6D747A;">Loading...</td></tr>';
+    // Show loading immediately
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #6D747A;"><div class="loading-spinner"></div></td></tr>';
     
     try {
-        // Fetch EOD data for the entire month containing this date
+        // Extract date components
         const date = new Date(dateStr);
         const monthNames = ['january', 'february', 'march', 'april', 'may', 'june',
                           'july', 'august', 'september', 'october', 'november', 'december'];
         const filterValue = monthNames[date.getMonth()];
         const year = date.getFullYear();
         
+        // OPTIMIZED: Use AbortController to cancel any pending requests
+        if (window.eodFilterAbortController) {
+            window.eodFilterAbortController.abort();
+        }
+        window.eodFilterAbortController = new AbortController();
+        
+        // Fetch ONLY the specific month's data (not all data)
         const res = await fetch(`/tasks/api/eod-report/?user=${userId}&filter=${filterValue}&year=${year}`, {
-            credentials: 'include'
+            credentials: 'include',
+            signal: window.eodFilterAbortController.signal
         });
         
         if (!res.ok) {
@@ -4864,10 +4871,10 @@ async function filterEODByDate(userId, dateStr) {
         const data = await res.json();
         tbody.innerHTML = '';
         
-        // Filter data to only show the selected date
+        // Filter to only the selected date
         const dateEntries = data.filter(item => item.date === dateStr);
         
-       if (dateEntries.length === 0) {
+        if (dateEntries.length === 0) {
             tbody.innerHTML = `
                 <tr style="border-bottom: 1px solid #EBEDF0;">
                     <td style="padding: 16px 12px; color: #08090A; font-weight: 500; font-size: 14px; vertical-align: top; border-right: 1px solid #EBEDF0;">${dateStr}</td>
@@ -4890,7 +4897,9 @@ async function filterEODByDate(userId, dateStr) {
                 </tr>
             `;
         } else {
-            // Display all EOD entries for the selected date
+            // Render entries efficiently
+            const fragment = document.createDocumentFragment();
+            
             dateEntries.forEach((entry, index) => {
                 const row = document.createElement("tr");
                 row.style.borderBottom = '1px solid #EBEDF0';
@@ -4898,68 +4907,39 @@ async function filterEODByDate(userId, dateStr) {
                 row.onmouseenter = function() { this.style.backgroundColor = '#F9FAFB'; };
                 row.onmouseleave = function() { this.style.backgroundColor = 'transparent'; };
                 
-                const dateCell = document.createElement("td");
-                dateCell.textContent = index === 0 ? dateStr : "";
-                dateCell.style.padding = '16px 12px';
-                dateCell.style.color = '#08090A';
-                dateCell.style.fontWeight = '500';
-                dateCell.style.fontSize = '14px';
-                dateCell.style.verticalAlign = 'top';
-                dateCell.style.borderRight = '1px solid #EBEDF0';
-                
-                const projectCell = document.createElement("td");
-                projectCell.textContent = entry.project_name;
-                projectCell.style.padding = '16px 12px';
-                projectCell.style.color = '#08090A';
-                projectCell.style.fontSize = '14px';
-                projectCell.style.verticalAlign = 'top';
-                projectCell.style.borderRight = '1px solid #EBEDF0';
-                
-                const summaryCell = document.createElement("td");
-                summaryCell.style.padding = '16px 12px';
-                summaryCell.style.verticalAlign = 'top';
-                summaryCell.innerHTML = `
-                    <div style="color: #08090A; font-size: 14px; line-height: 1.6; margin-bottom: 8px;">
-                        <strong style="color: #504CF5;">${entry.task_name}</strong> — ${entry.text}
-                    </div>
-                    <span class="status-chip ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}" style="
-                        display: inline-block;
-                        padding: 4px 12px;
-                        background: ${entry.task_status === 'C' ? '#E6F9F4' : '#FFF3E6'};
-                        color: ${entry.task_status === 'C' ? '#00B879' : '#F5A623'};
-                        border-radius: 12px;
-                        font-size: 12px;
-                        font-weight: 600;
-                    ">
-                        ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}
-                    </span>
+                row.innerHTML = `
+                    <td style="padding: 16px 12px; color: #08090A; font-weight: 500; font-size: 14px; vertical-align: top; border-right: 1px solid #EBEDF0;">${index === 0 ? dateStr : ''}</td>
+                    <td style="padding: 16px 12px; color: #08090A; font-size: 14px; vertical-align: top; border-right: 1px solid #EBEDF0;">${entry.project_name}</td>
+                    <td style="padding: 16px 12px; vertical-align: top;">
+                        <div style="color: #08090A; font-size: 14px; line-height: 1.6; margin-bottom: 8px;">
+                            <strong style="color: #504CF5;">${entry.task_name}</strong> — ${entry.text}
+                        </div>
+                        <span class="status-chip" style="
+                            display: inline-block;
+                            padding: 4px 12px;
+                            background: ${entry.task_status === 'C' ? '#E6F9F4' : '#FFF3E6'};
+                            color: ${entry.task_status === 'C' ? '#00B879' : '#F5A623'};
+                            border-radius: 12px;
+                            font-size: 12px;
+                            font-weight: 600;
+                        ">
+                            ${entry.task_status === 'C' ? 'Complete' : 'Incomplete'}
+                        </span>
+                    </td>
                 `;
                 
-                row.append(dateCell, projectCell, summaryCell);
-                tbody.appendChild(row);
+                fragment.appendChild(row);
             });
             
-            // // Add a "Show All" button at the bottom
-            // const buttonRow = document.createElement("tr");
-            // buttonRow.innerHTML = `
-            //     <td colspan="3" style="text-align: center; padding: 16px;">
-            //         <button onclick="showAllEODForMonth(${userId}, '${filterValue}', ${year})" style="
-            //             padding: 8px 16px;
-            //             background: #504CF5;
-            //             color: white;
-            //             border: none;
-            //             border-radius: 4px;
-            //             cursor: pointer;
-            //             font-size: 14px;
-            //             font-weight: 500;
-            //         ">Show All Dates</button>
-            //     </td>
-            // `;
-            // tbody.appendChild(buttonRow);
+            tbody.appendChild(fragment);
         }
         
     } catch (err) {
-        console.error(err);
+        if (err.name === 'AbortError') {
+            console.log('Previous request cancelled');
+            return;
+        }
+        console.error('Error loading EOD data:', err);
         tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #E44A69; font-size: 14px;">Error loading data. Please try again.</td></tr>';
     }
 }

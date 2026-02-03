@@ -3360,8 +3360,8 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
     <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;" title="Completed: ${bountyInfo.completed_bounties || 0}\nTotal Tasks: ${bountyInfo.total_tasks || 0}\nCompleted Tasks: ${bountyInfo.completed_tasks || 0}">${bountyInfo.completed_bounties || 0}</div>
 </td>
  <td style="width: 300px; min-width: 300px; padding: 16px 8px; background: ${rowBg};">
-    <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
-        <div class="date-container-inline" id="dateContainer-${employee.user_id}" style="display: flex !important; gap: 0 !important; flex-wrap: nowrap !important;">
+   <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+        <div class="date-container-inline" id="dateContainer-${employee.user_id}" style="display: flex; gap: 0;">
             <!-- Calendar will be populated here -->
         </div>
         <div style="padding: 2px 7px; opacity: 0.90; border-radius: 4px; display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="openEODSummary(${employee.user_id}, '${employee.first_name}${employee.last_name ? ' ' + employee.last_name : ''}')">
@@ -4588,16 +4588,15 @@ const calendarHeader = `
         const todayDate = today.getDate();
         
         let calendarHTML = `
-            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px; width: 100%; box-sizing: border-box;">
-                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sun</div>
-                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Mon</div>
-                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Tue</div>
-                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Wed</div>
-                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Thu</div>
-                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Fri</div>
-                <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sat</div>
-        `;
-        
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 24px;">
+        <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sun</div>
+        <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Mon</div>
+        <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Tue</div>
+        <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Wed</div>
+        <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Thu</div>
+        <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Fri</div>
+        <div style="font-weight: 600; text-align: center; padding: 8px; color: #08090A; font-size: 14px;">Sat</div>
+`;
         // Empty cells before first day
         for (let i = 0; i < firstDay; i++) {
             calendarHTML += '<div style="min-height: 48px;"></div>';

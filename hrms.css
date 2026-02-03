@@ -371,6 +371,7 @@ body {
 
 .notification-category.expanded svg {
     transform: rotate(180deg);
+    transition: transform 0.3s ease;
 }
 
 /* Notification content inside the toggles */
@@ -760,8 +761,9 @@ body {
 .none{
     display: none !important;
 }
-.arrow-right{
-    transform: rotate(-90deg);
+.arrow-right svg {
+    transform: rotate(180deg);
+    transition: transform 0.3s ease;
 }
 
 .budget-row {
@@ -1033,6 +1035,18 @@ body {
     top: 6px;
 }
 
+/* EOD Modal Button Visibility Fix */
+#eodSummaryModal button {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+}
+
+#eodCalendarContainer button {
+    box-sizing: border-box !important;
+    min-width: fit-content !important;
+}
+
 /* Rotate chevron when active */
 .skill-level-wrapper.active .skill-chevron {
     transform: rotate(0deg);
@@ -1116,6 +1130,7 @@ body {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    box-sizing: border-box;
 }
 
 /* Close Button */
@@ -2348,4 +2363,75 @@ body.modal-open {
     overflow: hidden;
     position: fixed;
     width: 100%;
+}
+/* EOD Calendar Grid Fixes */
+.full-month-calendar {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.calendar-day-wrapper {
+    position: relative;
+    display: block !important;
+    width: 100% !important;
+    aspect-ratio: 1 / 1 !important;
+    box-sizing: border-box !important;
+}
+
+.calendar-day {
+    width: 100% !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Prevent flex from creating extra space */
+#eodCalendarContainer {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+}
+
+#eodCalendarContainer > div {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Fix for calendar date squishing in Chrome/Safari */
+.date-container-inline {
+    display: flex !important;
+    gap: 0 !important;
+    flex-wrap: nowrap !important;
+    flex-shrink: 0 !important;
+    min-width: fit-content !important;
+}
+
+.calendar-day-wrapper {
+    position: relative;
+    flex-shrink: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+}
+
+.calendar-day {
+    width: 32px !important;
+    height: 32px !important;
+    padding: 10px !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Ensure EOD column doesn't compress */
+.teams-table td:nth-last-child(2) {
+    min-width: 300px !important;
 }

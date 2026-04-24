@@ -1350,7 +1350,7 @@ document.addEventListener('keydown', handleEnterKey);
         <th style="width: 48px; padding: 8px; text-align: left;">BA</th>
         <th style="width: 104px; padding: 8px; text-align: left; position: relative;">
             <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="toggleBCDropdown(this, event)">
-                <span class="bc-duration-label">BC (30 d)</span>
+                <span class="bc-duration-label">BC (This month)</span>
                 <svg class="bc-dropdown-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transition: transform 0.2s ease;">
                     <path d="M4 6L8 10L12 6" stroke="#08090A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -1370,42 +1370,42 @@ document.addEventListener('keydown', handleEnterKey);
         padding: 8px 0;
         margin-top: 4px;
     ">
-        <div class="duration-option" data-days="7" style="
+        <div class="duration-option" data-filter="7" data-label="7 d" style="
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
             color: #08090A;
             transition: background-color 0.2s ease;
         ">Last 7 days</div>
-        <div class="duration-option" data-days="15" style="
+        <div class="duration-option" data-filter="15" data-label="15 d" style="
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
             color: #08090A;
             transition: background-color 0.2s ease;
         ">Last 15 days</div>
-        <div class="duration-option active" data-days="30" style="
+        <div class="duration-option active" data-filter="this_month" data-label="This month" style="
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
             color: #08090A;
             background: #F2F4FF;
             transition: background-color 0.2s ease;
-        ">Last 30 days</div>
-        <div class="duration-option" data-days="60" style="
+        ">This month</div>
+        <div class="duration-option" data-filter="previous_month" data-label="Previous month" style="
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
             color: #08090A;
             transition: background-color 0.2s ease;
-        ">Last 60 days</div>
-        <div class="duration-option" data-days="90" style="
+        ">Previous month</div>
+        <div class="duration-option" data-filter="two_months_ago" data-label="2 months ago" style="
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
             color: #08090A;
             transition: background-color 0.2s ease;
-        ">Last 90 days</div>
+        ">2 months ago</div>
     </div>
 </th>
         <th style="width: 300px; padding: 8px; text-align: left;">EOD Summary & Attendance</th>
@@ -1608,7 +1608,7 @@ document.addEventListener('keydown', handleEnterKey);
         });
     }
 
-    let currentBCDuration = 30;
+    let currentBCDuration = 'this_month';
 
 // Toggle BC duration dropdown
 function toggleBCDropdown(headerElement, event) {
@@ -1641,7 +1641,8 @@ function attachBCDropdownHandlers() {
         if (e.target.classList.contains('duration-option')) {
             e.stopPropagation();
             
-            const days = parseInt(e.target.getAttribute('data-days'));
+            const selectedFilter = e.target.getAttribute('data-filter') || e.target.getAttribute('data-days');
+            const selectedLabel = e.target.getAttribute('data-label') || `${selectedFilter} d`;
             const dropdown = e.target.closest('.bc-duration-dropdown');
             const thElement = dropdown?.closest('th');
             const tableContainer = thElement?.closest('.table-container');
@@ -1651,7 +1652,7 @@ function attachBCDropdownHandlers() {
             // Update label
             const label = thElement?.querySelector('.bc-duration-label');
             if (label) {
-                label.textContent = `BC (${days} d)`;
+                label.textContent = `BC (${selectedLabel})`;
             }
             
             // Update active state
@@ -1663,7 +1664,7 @@ function attachBCDropdownHandlers() {
             e.target.style.background = '#F2F4FF';
             
             // Store current duration
-            currentBCDuration = days;
+            currentBCDuration = selectedFilter;
             
             // Close dropdown
             dropdown.style.display = 'none';
@@ -1674,7 +1675,7 @@ function attachBCDropdownHandlers() {
             
             // Reload employee data with new duration
             if (departmentId) {
-                reloadDepartmentWithDuration(departmentId, days);
+                reloadDepartmentWithDuration(departmentId, selectedFilter);
             }
         }
     });
@@ -1957,7 +1958,7 @@ function reloadDepartmentWithDuration(departmentId, duration) {
         <th style="width: 48px; padding: 8px; text-align: left;">BA</th>
         <th style="width: 104px; padding: 8px; text-align: left; position: relative;">
             <div style="display: flex; align-items: center; gap: 4px; cursor: pointer;" onclick="toggleBCDropdown(this, event)">
-                <span class="bc-duration-label">BC (30 d)</span>
+                <span class="bc-duration-label">BC (This month)</span>
                 <svg class="bc-dropdown-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="transition: transform 0.2s ease;">
                     <path d="M4 6L8 10L12 6" stroke="#08090A" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -1977,42 +1978,42 @@ function reloadDepartmentWithDuration(departmentId, duration) {
         padding: 8px 0;
         margin-top: 4px;
     ">
-        <div class="duration-option" data-days="7" style="
+        <div class="duration-option" data-filter="7" data-label="7 d" style="
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
             color: #08090A;
             transition: background-color 0.2s ease;
         ">Last 7 days</div>
-        <div class="duration-option" data-days="15" style="
+        <div class="duration-option" data-filter="15" data-label="15 d" style="
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
             color: #08090A;
             transition: background-color 0.2s ease;
         ">Last 15 days</div>
-        <div class="duration-option active" data-days="30" style="
+        <div class="duration-option active" data-filter="this_month" data-label="This month" style="
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
             color: #08090A;
             background: #F2F4FF;
             transition: background-color 0.2s ease;
-        ">Last 30 days</div>
-        <div class="duration-option" data-days="60" style="
+        ">This month</div>
+        <div class="duration-option" data-filter="previous_month" data-label="Previous month" style="
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
             color: #08090A;
             transition: background-color 0.2s ease;
-        ">Last 60 days</div>
-        <div class="duration-option" data-days="90" style="
+        ">Previous month</div>
+        <div class="duration-option" data-filter="two_months_ago" data-label="2 months ago" style="
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
             color: #08090A;
             transition: background-color 0.2s ease;
-        ">Last 90 days</div>
+        ">2 months ago</div>
     </div>
 </th>
         <th style="width: 300px; padding: 8px; text-align: left;">EOD Summary & Attendance</th>
@@ -2130,7 +2131,7 @@ function sortBountyColumn(headerElement) {
         // Add event listener to duration select if not already added
         if (bountyDurationSelect && !bountyDurationSelect.hasAttribute('data-listener-added')) {
             bountyDurationSelect.addEventListener('change', () => {
-                const selectedDuration = parseInt(bountyDurationSelect.value);
+                const selectedDuration = bountyDurationSelect.value;
                 const tbody = tableContainer.querySelector('tbody');
 
                 // Show loading
@@ -2180,7 +2181,10 @@ function sortBountyColumn(headerElement) {
         // If opening the table, load initial data
         if (tableContainer.style.display === 'block') {
             const tbody = tableContainer.querySelector('tbody');
-            const initialDuration = bountyDurationSelect ? parseInt(bountyDurationSelect.value) : 7;
+            const activeDurationOption = tableContainer.querySelector('.bc-duration-dropdown .duration-option.active');
+            const initialDuration = activeDurationOption
+                ? (activeDurationOption.getAttribute('data-filter') || activeDurationOption.getAttribute('data-days'))
+                : currentBCDuration;
 
             // Create cache key
             const cacheKey = `${departmentId}_${initialDuration}`;
@@ -3354,10 +3358,10 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
         placeholder="Add remarks...">${employee.remark || ''}</textarea>
 </td>
           <td style="width: 48px; padding: 16px 8px; background: ${rowBg}; text-align: center;">
-    <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;" title="Allocated: ${bountyInfo.allocated_bounties || 0}">${bountyInfo.allocated_bounties || 0}</div>
+    <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;" title="Allocated Bounties: ${bountyInfo.allocated_bounties || 0}\nAllocated Tasks: ${bountyInfo.allocated_tasks || 0}\nBrought Down Bounties: ${bountyInfo.brought_down_bounties || 0}">${bountyInfo.allocated_bounties || 0}</div>
 </td>
 <td style="width: 104px; padding: 16px 8px; background: ${rowBg}; text-align: center;">
-    <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;" title="Completed: ${bountyInfo.completed_bounties || 0}\nTotal Tasks: ${bountyInfo.total_tasks || 0}\nCompleted Tasks: ${bountyInfo.completed_tasks || 0}">${bountyInfo.completed_bounties || 0}</div>
+    <div style="color: #6D747A; font-size: 16px; font-family: Roboto; line-height: 24px; letter-spacing: 0.08px;" title="Completed Bounties: ${bountyInfo.completed_bounties || 0}\nCompleted Tasks: ${bountyInfo.completed_tasks || 0}">${bountyInfo.completed_bounties || 0}</div>
 </td>
  <td style="width: 300px; min-width: 300px; padding: 16px 8px; background: ${rowBg};">
    <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
@@ -3464,13 +3468,17 @@ const attendanceHtml = employee.attendance && employee.attendance.length > 0
     attachThreeDotMenuListeners();
 
      const attendancePromises = data.map(employee => 
-        fetchUserAttendanceInline(employee.user_id, 7)
+        fetchUserAttendanceInline(
+            employee.user_id,
+            7,
+            `${employee.first_name || ''}${employee.last_name ? ' ' + employee.last_name : ''}`.trim()
+        )
     );
      Promise.all(attendancePromises).catch(error => {
          console.error("Error fetching one or more attendance records:", error);
      });
 }
-async function fetchUserAttendanceInline(userId, daysRange = 7) {
+async function fetchUserAttendanceInline(userId, daysRange = 7, employeeName = 'Employee') {
     try {
         const response = await fetch(`/attendance/by-user/?user=${userId}`, {
             credentials: 'include'
@@ -3478,7 +3486,8 @@ async function fetchUserAttendanceInline(userId, daysRange = 7) {
 
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
-        const attendanceApiData = await response.json();
+        const apiResponse = await response.json();
+        const attendanceApiData = apiResponse.attendance;
 
         const attendanceData = {};
         const today = new Date();
@@ -3522,7 +3531,7 @@ async function fetchUserAttendanceInline(userId, daysRange = 7) {
             }
         });
 
-        generateInlineDateBoxes(`dateContainer-${userId}`, daysRange, attendanceData);
+        generateInlineDateBoxes(`dateContainer-${userId}`, daysRange, attendanceData, employeeName);
     } catch (error) {
         console.error("Error fetching attendance data:", error);
         const container = document.getElementById(`dateContainer-${userId}`);
@@ -3534,7 +3543,97 @@ async function fetchUserAttendanceInline(userId, daysRange = 7) {
 
 
 
-function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}) {
+function escapeHtml(value = '') {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatTooltipDate(date) {
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    }).format(date);
+}
+
+function formatSubmittedTime(value) {
+    if (!value) return '';
+
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+        return new Intl.DateTimeFormat('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        }).format(parsed);
+    }
+
+    // If backend sends a pre-formatted value like "6:30 PM", use as-is.
+    return String(value).trim();
+}
+
+function buildEODTooltipHTML({ status, dateLabel, employeeName, eodTextData, leaveSubject }) {
+    if (status === 'holiday') {
+        return `
+            <div class="eod-hover-empty-card">
+                <h4>No EOD expected</h4>
+                <p>This person was on approved leave.${leaveSubject ? ` ${escapeHtml(leaveSubject)}` : ''}</p>
+            </div>
+        `;
+    }
+
+    if (!eodTextData || eodTextData.length === 0) {
+        return `
+            <div class="eod-hover-empty-card">
+                <h4>No EOD submitted</h4>
+                <p>This person did not file an end-of-day report for this date.</p>
+            </div>
+        `;
+    }
+
+    const reportBlocks = eodTextData.map((entry) => `
+        <section class="eod-hover-report-block">
+            <div class="eod-hover-project">
+                <span>${escapeHtml(entry.project_name || 'GENERAL')}</span>
+            </div>
+            <div class="eod-hover-report-text">
+                ${entry.task_name ? `<strong>${escapeHtml(entry.task_name)}:</strong> ` : ''}${escapeHtml(entry.text || '')}
+            </div>
+        </section>
+    `).join('');
+
+    const submittedAtRaw =
+        eodTextData[0]?.submitted_at ||
+        eodTextData[0]?.submitted_time ||
+        eodTextData[0]?.updated_at ||
+        '';
+    const submittedTime = formatSubmittedTime(submittedAtRaw);
+
+    return `
+        <article class="eod-hover-card">
+            <header class="eod-hover-header">
+                <div>
+                    <h4>${escapeHtml(employeeName || 'Employee')}</h4>
+                    <p>${escapeHtml(dateLabel)} • EOD Report</p>
+                </div>
+                <button type="button" class="eod-hover-close" aria-label="Close tooltip">×</button>
+            </header>
+            <div class="eod-hover-body">
+                ${reportBlocks}
+            </div>
+            <footer class="eod-hover-footer">
+                <span class="eod-hover-status-dot"></span>
+                <span>Submitted${submittedTime ? ` ${escapeHtml(submittedTime)}` : ''}</span>
+            </footer>
+        </article>
+    `;
+}
+
+function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}, employeeName = 'Employee') {
     const dateContainer = document.getElementById(containerId);
     if (!dateContainer) {
         console.error(`Element with ID ${containerId} not found.`);
@@ -3549,6 +3648,7 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
         date.setDate(today.getDate() - i);
         const day = date.getDate();
         const dateKey = date.toISOString().split('T')[0];
+        const dateLabel = formatTooltipDate(date);
 
         const dateBox = document.createElement('div');
         dateBox.classList.add('calendar-day-wrapper');
@@ -3590,26 +3690,27 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
                 </div>
             </div>
 
-            <div class="calendar-tooltip" style="
+            <div class="calendar-tooltip calendar-tooltip-rich" style="
                 visibility: hidden;
                 opacity: 0;
                 position: absolute;
                 bottom: calc(100% + 12px);
                 left: 50%;
                 transform: translateX(-50%);
-                background: white;
+                background: transparent;
                 color: #08090A;
-                padding: 10px 14px;
-                border-radius: 6px;
-                font-size: 11px;
+                padding: 0;
+                border-radius: 12px;
+                font-size: 12px;
                 z-index: 10000;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                border: 1px solid #D9D9D9;
+                box-shadow: none;
+                border: none;
                 pointer-events: auto;
                 font-weight: 500;
-                max-width: 280px;
-                max-height: 200px;
-                overflow-y: auto;
+                min-width: 340px;
+                max-width: 460px;
+                max-height: 420px;
+                overflow: visible;
                 word-wrap: break-word;
                 overflow-wrap: break-word;
                 white-space: normal;
@@ -3627,41 +3728,13 @@ function generateInlineDateBoxes(containerId, daysRange = 7, dateStatusData = {}
         function showTooltip() {
             clearTimeout(hideTimeout);
             
-            if (leaveSubject) {
-                tooltip.innerHTML = `<strong>On Leave</strong><br>${leaveSubject}`;
-                tooltip.style.whiteSpace = 'normal';
-                tooltip.style.textAlign = 'left';
-            } else if (eodTextData && eodTextData.length > 0) {
-                let tooltipContent = '';
-                
-                eodTextData.forEach((eod, index) => {
-                    const truncatedText = eod.text.length > 150 
-                        ? eod.text.substring(0, 150) + '...' 
-                        : eod.text;
-                    
-                    tooltipContent += `
-                        <div style="margin-bottom: ${index < eodTextData.length - 1 ? '12px' : '0'};">
-                            <div style="font-weight:600; color:#504CF5; margin-bottom:4px;">
-                                ${eod.project_name || 'EOD REPORT'}
-                            </div>
-                            <div style="color:#08090A; font-size:11px; line-height:1.4;">
-                                ${eod.task_name ? '<strong>' + eod.task_name + ':</strong> ' : ''}${truncatedText}
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                tooltip.innerHTML = tooltipContent;
-                tooltip.style.whiteSpace = 'normal';
-                tooltip.style.textAlign = 'left';
-            } else {
-                tooltip.innerHTML = `
-                    <div style="color:rgba(163,125,33,1);font-weight:600;">EOD not submitted</div>
-                    <div style="font-size:11px;color:#6D747A;margin-top:4px;">Day ${day}</div>
-                `;
-                tooltip.style.whiteSpace = 'nowrap';
-                tooltip.style.textAlign = 'center';
-            }
+            tooltip.innerHTML = buildEODTooltipHTML({
+                status,
+                dateLabel,
+                employeeName,
+                eodTextData,
+                leaveSubject
+            });
 
             tooltip.style.visibility = 'visible';
             tooltip.style.opacity = '1';
@@ -4659,14 +4732,14 @@ const calendarHeader = `
                 <div class="calendar-day-wrapper" style="position: relative;">
                     <div class="calendar-day" style="
                         width: 100%;
-                        height: 48px;
+                        height: 72px;
                         background: ${bgColor};
                         opacity: ${opacity};
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         color: ${isFutureDate ? '#999999' : (isToday ? '#ffff' : 'white')};
-                        font-size: 16px;
+                        font-size: 20px;
                         font-weight: ${isToday ? '700' : '400'};
                         border-radius: 4px;
                         cursor: ${isFutureDate ? 'default' : 'pointer'};
@@ -5589,14 +5662,15 @@ if (closeBtn) {
     });
 }
 function applyBcFilter(elem) {
-  const days = elem.dataset.days;
+  const filterValue = elem.dataset.filter || elem.dataset.days;
+  const labelText = elem.dataset.label || `${filterValue} d`;
   const label = document.querySelector('.bc-duration-label');
-  if (label) label.innerText = `BC (${days} d)`;
+  if (label) label.innerText = `BC (${labelText})`;
   const dropdown = elem.closest('.bc-duration-dropdown');
   if (dropdown) dropdown.style.display = 'none';
 
   // Try server fetch
-  fetch(`/api/team/?bc_days=${days}`, { method: 'GET', credentials: 'include' })
+  fetch(`/api/team/?bc_days=${filterValue}`, { method: 'GET', credentials: 'include' })
     .then(res => {
       if (!res.ok) throw new Error('no-server');
       return res.json();
